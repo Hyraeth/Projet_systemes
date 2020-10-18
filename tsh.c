@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "headers/str_to_arr.h"
 
 #define BUFLEN 512
 #define NBARGS 8
@@ -75,7 +74,11 @@ char *read_line() {
     return line;
 }
 
-
+/**
+ *  @brief Parse the line into an array of args 
+ *  @param line line to parse
+ *  @return A null-terminated array of args
+*/
 char **parse_line(char *line) {
     int nbargs = NBARGS;
     char **args = malloc(nbargs*sizeof(char *));
