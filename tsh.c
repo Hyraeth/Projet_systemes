@@ -23,12 +23,33 @@ typedef struct SimpleCommand_t
 char *read_line();
 SimpleCommand_t *parse_line(char *line);
 int exec_cmd(SimpleCommand_t *cmd);
+int tsh_cd(SimpleCommand_t *cmd);
+int tsh_exit(SimpleCommand_t *cmd);
+char **parse_path(char *path);
+
+char *builtin_str[] = {
+  "cd",
+  "exit"
+};
+
+int (*builtin_func[]) (SimpleCommand_t *cmd) = {
+  &tsh_cd,
+  &tsh_exit
+};
 
 int main(int argc, char const *argv[])
 {
     int run = 1;
     do {
         char *pwd = getcwd(NULL, 0);
+        if(tarDepth > -1) {
+            for (size_t i = 0; i <= tarDepth; i++)
+            {   
+                strcat(pwd,"/");
+                strcat(pwd, tarDirArray[i]);
+            }
+        }
+        
         strcat(pwd, ">");
         write(STDOUT_FILENO, pwd, strlen(pwd));
 
@@ -37,7 +58,7 @@ int main(int argc, char const *argv[])
 
         line = read_line();
         cmd = parse_line(line);
-        //run = exec_cmd(cmd);
+        run = exec_cmd(cmd);
 
         //free everything
         free(line);
@@ -45,6 +66,7 @@ int main(int argc, char const *argv[])
         {
            free(cmd->args[i]);
         }
+        free(cmd->args);
         free(cmd);
         free(pwd);
     } while(run);
@@ -124,18 +146,18 @@ SimpleCommand_t *parse_line(char *line) {
     return cmd;
 }
 
-int tsh_cd(SimpleCommand_t *cmd);
-int tsh_exit(SimpleCommand_t *cmd);
-
-char *builtin_str[] = {
-  "cd",
-  "exit"
-};
-
-int (*builtin_func[]) (SimpleCommand_t *cmd) = {
-  &tsh_cd,
-  &tsh_exit
-};
+int exec_cmd(SimpleCommand_t *cmd) {
+    if(cmd->args[0] == NULL) {
+        return 1;
+    }
+    for (size_t i = 0; i < 2; i++)
+    {
+        if (strcmp(cmd->args[0], builtin_str[i]) == 0) {
+            return (*builtin_func[i])(cmd);
+        }
+    }
+    return 0;
+}
 
 char **parse_path(char *path) {
     int nbargs = NBARGS;
@@ -170,22 +192,30 @@ int isTar(char *file) {
     return 0;
 }
 
+int isTarFolder(char *folder, char **path) {
+    return 1;
+}
+
 int tsh_cd(SimpleCommand_t *cmd) {
+
+    //weirds arguments handling
     if(cmd->nbargs > 3) {
         perror("tsh: cd: too many arguments");
-    } else if (cmd->nbargs == 2) {
-        if(chdir("/") != 0) {
-            perror("tsh: cd");
-        }
-    }
-    char **arrayDir = parse_path(cmd->args[1]);
+        return 1;
+    } //if we want to go to the start
+    //todo case where no args or args is "~"
+   
+    //regular path
+    char **arrayDir = parse_path(cmd->args[1]); //parsing th path into array of folder/file name
     int i = 0;
     while(arrayDir[i] != NULL) {
-        //if the destination a tar
+        //if the destination a tar we add the file name into tarDirArray
         if(isTar(arrayDir[i])) {
+            //todo check if file exist first you dumbass
             tarDepth++;
-            fdTar = open(arrayDir[i], O_RDWR, S_IRUSR | S_IWUSR);
-            if((tarDirArray = malloc(sizeof(char*)))==NULL) 
+            if((fdTar = open(arrayDir[i], O_RDWR, S_IRUSR | S_IWUSR)) == -1) 
+                perror("tsh");
+            if((tarDirArray = malloc(sizeof(char*))) == NULL) 
                 perror("tsh");
             if((tarDirArray[tarDepth] = malloc((strlen(arrayDir[i]) + 1)* sizeof(char))) == NULL) 
                 perror("tsh");
@@ -197,39 +227,50 @@ int tsh_cd(SimpleCommand_t *cmd) {
             if(tarDepth != -1) {
                 //if we go up in/out of the tar
                 if(strcmp(arrayDir[i], "..") == 0) {
-                    free(tarDirArray[tarDepth]);
-                    tarDepth--;
+                    free(tarDirArray[tarDepth]); //we free the latest folder added to tarDirArray
+                    tarDepth--; //decrement tardepth since we took out the latest folder
                     //if we are now out of the tar
                     if(tarDepth == -1) {
-                        close(fdTar);
-                        free(tarDirArray);
+                        fdTar = close(fdTar); //we can now close the file descriptor
+                        free(tarDirArray); // and free the tarDirArray entirely (we will malloc again if we go back into a tar)
                     } //if we are not out of the tar
                     else {
+                        //we realloc tarDirArray into 1 size smaller
                         tarDirArray = realloc(tarDirArray, (tarDepth+1)*sizeof(char*));
                     }
                 } //if we go down in the tar
                 else if(strcmp(arrayDir[i], ".") != 0) {
                     //if it is a folder connected from where we are in the tar
-                    if(isTarFolder(tarDirArray, arrayDir[i]) == 1) {
-                        tarDepth++;
-                        tarDirArray = realloc(tarDirArray, (tarDepth+1)*sizeof(char*));
+                    if(isTarFolder(arrayDir[i], tarDirArray) == 1) {
+                        tarDepth++;//increment tardepth to add a new folder
+                        if((tarDirArray = realloc(tarDirArray, (tarDepth+1)*sizeof(char*))) == NULL) //realloc one size bigger
+                            perror("tsh");
+                        //malloc the space required for the name of the new folder
                         if((tarDirArray[tarDepth] = malloc((strlen(arrayDir[i]) + 1)* sizeof(char))) == NULL) 
                             perror("tsh");
+                        //copy the name of the folder into the new space
                         memcpy(tarDirArray[tarDepth], arrayDir[i], strlen(arrayDir[i]) + 1);
                     }
                     //if it is not a folder connected from where we are
                     else {
                         perror("tsh: cd: No such directory");
+                        break;
                     }
                 }
             } //if we are not in a tar
             else {
                 if(chdir(arrayDir[i]) != 0) {
                     perror("tsh: cd");
+                    break;
                 }
             }
         }
         i++;
     }
+    free(arrayDir);
     return 1;
+}
+
+int tsh_exit(SimpleCommand_t *cmd) {
+    return 0;
 }
