@@ -25,16 +25,19 @@ char *read_line();
 SimpleCommand_t *parse_line(char *line);
 int exec_cmd(SimpleCommand_t *cmd);
 int tsh_cd(SimpleCommand_t *cmd);
+int tsh_pwd(SimpleCommand_t *cmd);
 int tsh_exit(SimpleCommand_t *cmd);
 char **parse_path(char *path);
 
 char *builtin_str[] = {
   "cd",
+  "pwd",
   "exit"
 };
 
 int (*builtin_func[]) (SimpleCommand_t *cmd) = {
   &tsh_cd,
+  &tsh_pwd,
   &tsh_exit
 };
 
@@ -292,6 +295,25 @@ int tsh_cd(SimpleCommand_t *cmd) {
     free(arrayDir);
     free(path);
     
+    return 1;
+}
+
+int tsh_pwd(SimpleCommand_t *cmd) {
+    int pwdlen = PWDLEN;
+    char *pwd = malloc(pwdlen); 
+    while(getcwd(pwd, pwdlen) == NULL) {
+        pwdlen *= 2;
+        char *pwd = malloc(pwdlen);
+    }
+    if(tarDepth > -1) {
+        for (size_t i = 0; i <= tarDepth; i++)
+        {   
+            strcat(pwd,"/");
+            strcat(pwd, tarDirArray[i]);
+        }
+    }
+    strcat(pwd, "\n");
+    write(STDOUT_FILENO, pwd, strlen(pwd));
     return 1;
 }
 
