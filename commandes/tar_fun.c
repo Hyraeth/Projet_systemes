@@ -133,13 +133,72 @@ char **path_to_tar_file_path (char *path) {
 
 }
 
+int isTarFolder (char *folder, char**path){
+	int i = 1;
+	char *path_to_check = malloc(1);
+	int len = 1;
+	while (path[i] != NULL) {
+		len += strlen(path[i]) + 1;
+		path_to_check = realloc (path_to_check,len);
+		strcat(path_to_check,path[i]);
+		strcat(path_to_check,"/");
+		i++;
+	}
+
+	len += strlen(folder) + 1;
+	path_to_check = realloc (path_to_check,len);
+	strcat(path_to_check,folder);
+	strcat(path_to_check,"/");
+
+	if (typeFile(path[0],path_to_check) == '5') return 1;
+	else return 0;
+}
+
+char typeFile (char *path_tar, char *pathInTar) {
+	printf("%s\n",pathInTar );
+	int src = open(path_tar,O_RDONLY);
+	if (src == -1) perror("tsh");
+	char bloc[BLOCKSIZE];
+	read(src,bloc,512);
+	char name[100];
+	char size[12];
+
+
+	while (bloc[0] != 0) {
+
+		memcpy(name,bloc,100);
+		printf("%s\n", name);
+
+		if (strcmp(name,pathInTar) == 0){
+			return bloc[156];
+		}
+
+		memcpy(size,&bloc[124],12);
+		int filesize;
+		sscanf(size,"%o",&filesize);
+
+		int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
+
+		lseek(src,BLOCKSIZE*occupiedBlocks,SEEK_CUR);
+		read(src,bloc,512);
+	}
+
+	return '9';
+}
+
 
 int main(int argc, char const *argv[])
 {
-	char **res = path_to_tar_file_path(argv[1]);
+	/**char **res = path_to_tar_file_path(argv[1]);
 	printf("%s et %s \n",res[0],res[1] );
 
-	printf("%s\n", fileDataInTar("supp.txt","toto.tar"));
+	printf("%s\n", fileDataInTar("supp.txt","toto.tar"));**/
+
+	char *A[] = {"titi.tar", "toto",NULL};
+
+
+	if (isTarFolder("tat",A)) printf("BIEN\n");
+	else printf("PAS BIEN\n");
 
 	return 0;
 }
