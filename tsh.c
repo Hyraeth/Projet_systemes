@@ -49,7 +49,8 @@ int main(int argc, char const *argv[])
         char *pwd = malloc(pwdlen); 
         while(getcwd(pwd, pwdlen) == NULL) {
             pwdlen *= 2;
-            char *pwd = malloc(pwdlen);
+            free(pwd);
+            pwd = malloc(pwdlen);
         }
         if(tarDepth > -1) {
             for (size_t i = 0; i <= tarDepth; i++)
@@ -196,11 +197,20 @@ int isTarFolder(char *folder, char **path) {
 }
 
 int tsh_cd(SimpleCommand_t *cmd) {
-    //todo what happen if there is an error
-
+    int pwdlen = PWDLEN;
+    char *pwdtmp = malloc(pwdlen); 
+    while(getcwd(pwdtmp, pwdlen) == NULL) {
+        pwdlen *= 2;
+        free(pwdtmp);
+        pwdtmp = malloc(pwdlen);
+    }
+    int tmpDepth = tarDepth;
+    char **tmpTarDir = malloc((tarDepth+1)*sizeof(char *));
+    memcpy(tmpTarDir, tarDirArray, tarDepth+1);
+    int failure = 0;
     //weirds arguments handling
-    if(cmd->nbargs > 3) {
-        perror("tsh: cd: too many arguments");
+    if(cmd->nbargs > 2) {
+        write(STDOUT_FILENO, "tsh: cd: too many arguments\n", strlen("tsh: cd: too many arguments\n"));
         return 1;
     } //if we want to go to home or ~
     if(cmd->nbargs == 1) {
@@ -235,13 +245,13 @@ int tsh_cd(SimpleCommand_t *cmd) {
             if((fdTar = open(arrayDir[i], O_RDWR, S_IRUSR | S_IWUSR)) == -1) {
                 free(path);
                 tarDepth--;
-                perror("tsh open tar");
+                perror("tsh: cd");
                 return 1;
             }
             if((tarDirArray = malloc((tarDepth+1)*sizeof(char*))) == NULL) 
-                perror("tsh malloc tardir array");
+                perror("tsh: cd");
             if((tarDirArray[tarDepth] = malloc((strlen(arrayDir[i]) + 1)* sizeof(char))) == NULL) 
-                perror("tsh malloc tardirarray(0)");
+                perror("tsh: cd");
             memcpy(tarDirArray[tarDepth], arrayDir[i], strlen(arrayDir[i]) + 1);
         } 
         //if the destination is not a tar
@@ -267,25 +277,25 @@ int tsh_cd(SimpleCommand_t *cmd) {
                     if(isTarFolder(arrayDir[i], tarDirArray) == 1) {
                         tarDepth++;//increment tardepth to add a new folder
                         if((tarDirArray = realloc(tarDirArray, (tarDepth+1) * sizeof(char*))) == NULL) //realloc one size bigger
-                            perror("tsh realloc");
+                            perror("tsh: cd");
                         //malloc the space required for the name of the new folder
                         if((tarDirArray[tarDepth] = malloc((strlen(arrayDir[i]) + 1) * sizeof(char))) == NULL) 
-                            perror("tsh malloc realloc");
+                            perror("tsh: cd");
                         //copy the name of the folder into the new space
                         memcpy(tarDirArray[tarDepth], arrayDir[i], strlen(arrayDir[i]) + 1);
                     }
                     //if it is not a folder connected from where we are
                     else {
-                        //todo error handling here
-                        perror("tsh: cd: No such directory");
+                        failure = 1;
+                        write(STDOUT_FILENO, "tsh: cd: No such directory\n", strlen("tsh: cd: No such directory\n"));
                         break;
                     }
                 }
             } //if we are not in a tar
             else {
                 if(chdir(arrayDir[i]) != 0) {
-                    //todo error handling here
-                    perror("tsh: cd");
+                    failure = 1;
+                    write(STDOUT_FILENO, "tsh: cd: No such directory\n", strlen("tsh: cd: No such directory\n"));
                     break;
                 }
             }
@@ -294,7 +304,14 @@ int tsh_cd(SimpleCommand_t *cmd) {
     }
     free(arrayDir);
     free(path);
-    
+    if(failure) {
+        chdir(pwdtmp);
+        free(pwdtmp);
+        memcpy(tarDirArray, tmpTarDir, tmpDepth+1);
+        tarDepth = tmpDepth;
+        free(tmpTarDir);
+    }
+
     return 1;
 }
 
@@ -303,7 +320,8 @@ int tsh_pwd(SimpleCommand_t *cmd) {
     char *pwd = malloc(pwdlen); 
     while(getcwd(pwd, pwdlen) == NULL) {
         pwdlen *= 2;
-        char *pwd = malloc(pwdlen);
+        free(pwd);
+        pwd = malloc(pwdlen);
     }
     if(tarDepth > -1) {
         for (size_t i = 0; i <= tarDepth; i++)
