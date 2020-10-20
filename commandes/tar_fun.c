@@ -1,46 +1,146 @@
 #include "tar_fun.h"
+#include "tar.h"
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
+
+#define BLOCKSIZE 512
+#define BLOCKBITS 9
+
 
 int isTar(char *file) {
     if(strcmp(file+(strlen(file)-4), ".tar") == 0) return 1;
     return 0;
 }
 
+char *fileDataInTar (char *name_file, char *path_tar) {
+	int src = open(path_tar,O_RDONLY);
+	if (src == -1) perror("tsh");
+	char bloc[BLOCKSIZE];
+	read(src,bloc,512);
+	char name[100];
+	char size[12];
+
+
+	while (bloc[0] != 0) {
+
+		memcpy(name,bloc,100);
+		printf("%s\n", name);
+		memcpy(size,&bloc[124],12);
+		int filesize;
+		sscanf(size,"%o",&filesize);
+
+		int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
+
+		if (strcmp(name,name_file) == 0){
+			char *res = malloc(BLOCKSIZE * occupiedBlocks + 1);
+			int n = read(src,res,BLOCKSIZE * occupiedBlocks);
+			res[n] = 0;
+			return res;
+		}
+
+		lseek(src,BLOCKSIZE*occupiedBlocks,SEEK_CUR);
+		read(src,bloc,512);
+	}
+
+	return NULL;
+}
+
+int copyFileInTar (int fd_src, const char *name, int fd_dest) {
+	int size = lseek(fd_src,0,SEEK_END);
+	lseek(fd_src,0,SEEK_SET);
+
+	struct posix_header *ph = malloc(sizeof(struct posix_header));
+	memcpy(ph->name, name, strlen(name));
+	sprintf(ph->mode,"0000700");
+	sprintf(ph->size,"%011o",size);
+	ph->typeflag = '0';
+	memcpy(ph->magic, TMAGIC, strlen(TMAGIC));
+	memcpy(ph->version, TVERSION, strlen(TVERSION));
+
+	set_checksum(ph);
+
+	write(fd_dest,ph,sizeof(struct posix_header));
+
+	int occupiedBlocks = (size + BLOCKSIZE - 1) >> BLOCKBITS;
+
+	char buf[BLOCKSIZE];
+	for (int i = 0; i < occupiedBlocks; ++i)
+	{
+		int buflen = read(fd_src,buf,512);
+		write(fd_dest, buf, buflen);
+	}
+
+	for (int i = 0; i < 512 - (size%512); ++i) //On remplit le dernier bloc pour qu'il faisse bien 512o
+	{
+		write(0,buf,1);
+	}
+
+	return 1;
+}
+
+
+char *path_strstr (char *path) {
+	printf("%s\n",path );
+	char *res = strstr(path,".tar");
+
+	if (res == NULL) return NULL;
+   	
+   	if (res != NULL && res[4] != 0 && res[4] != '/') {
+   		int pos = strlen(path) - strlen(res) + 4;
+   		return path_strstr(&path[pos]);
+   	}
+   	return res;
+}
 
 char **path_to_tar_file_path (char *path) {
 
-   char *res = strstr(path,".tar");
-   char **path_res = malloc(2*sizeof(char *));
+	char *res = path_strstr(path);
 
-   if (res == NULL) {
-       path_res[0] = NULL;
-       path_res[1] = path;
-       return path_res
-   }
+	char **path_res = malloc(2*sizeof(char *));
 
-   int len_res = strlen(res);
-   int len_char_1 = strlen(path) - len_res + 4;
-   char *path_to_tar = malloc(len_char_1 + 1);
-   char *path_tar_to_file;
+	if (res == NULL) {
+		path_res[0] = NULL;
+		path_res[1] = path;
+		return path_res;
+	}
 
-    strncpy (path_to_tar,path,len_char_1 + 1)
+	int len_res = strlen(res);
+	int len_char_1 = strlen(path) - len_res + 4;;
+	char *path_to_tar = malloc(len_char_1 + 1);
+	char *path_tar_to_file;
 
-   if (path[len_char_1] == '/'){
-       path_tar_to_file = malloc(len_res - 4);
-       strncpy(path_tar_to_file,&path[len_char_1+1],len_res - 4);
-   }
-   else {
-        path_tar_to_file = NULL
-   }
+   printf("BO2\n");
 
-    path_res[0] = NULL;
-    path_res[1] = path;
-    return path_res;
+	strncpy (path_to_tar,path,len_char_1 + 1);
+
+	if (path[len_char_1] == '/'){
+		path_tar_to_file = malloc(len_res - 4);
+		strncpy(path_tar_to_file,&path[len_char_1+1],len_res - 4);
+	}
+	else {
+		path_tar_to_file = NULL;
+	}
+
+	path_res[0] = path_to_tar;
+	path_res[1] = path_tar_to_file;
+
+	return path_res;
 
 }
 
+
+int main(int argc, char const *argv[])
+{
+	char **res = path_to_tar_file_path(argv[1]);
+	printf("%s et %s \n",res[0],res[1] );
+
+	printf("%s\n", fileDataInTar("supp.txt","toto.tar"));
+
+	return 0;
+}
 
