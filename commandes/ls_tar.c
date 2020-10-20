@@ -11,7 +11,7 @@
 #include "tar.h"
 
 //return true if s is in string at the begining
-bool is_in_string(char * string, char * s) {
+bool s_is_in_string(char * string, char * s) {
   for (int i=0; i<strlen(s); i++) {
     if (string[i] != s[i])
       return false;
@@ -19,9 +19,32 @@ bool is_in_string(char * string, char * s) {
   return true;
 }
 
+//retun true if c is in s
+bool contain_char(char * s, char c) {
+  for (int i=0; i<strlen(s); i++) {
+    if (s[i] == c)
+      return true;
+  }
+  return false;
+}
+
+//return true if there is juste one time c in s
+bool contain_one_char(char * s, char c) {
+  for (int i=0; i<strlen(s); i++) {
+    if (s[i] == c)
+      if (i==strlen(s)-1)
+        return true;
+      else
+        return false;
+  }
+  return false;
+}
+
 void print_header_name(struct posix_header * header, char * path) {
-  write(STDOUT_FILENO, header->name + strlen(path) + 1, strlen(header->name) - strlen(path) - 1);
-  write(STDOUT_FILENO, "  ", strlen("  "));
+  if (contain_one_char(header->name + strlen(path) + 1, '/') || !contain_char(header->name + strlen(path) + 1, '/')) {
+    write(STDOUT_FILENO, header->name + strlen(path) + 1, strlen(header->name) - strlen(path) - 1);
+    write(STDOUT_FILENO, " ", strlen(" "));
+  }
 }
 
 int ls_tar(char op, char *path, int fd) {
@@ -31,56 +54,16 @@ int ls_tar(char op, char *path, int fd) {
     perror("erreur d'ouverture du fichier");
     return -1;
   }
-
   int n = 0;
   while((n=read(fd, header, BLOCKSIZE))>0){
     int i = 0;
-    if (is_in_string(header->name, path)) {
+    if (s_is_in_string(header->name, path)) {
       print_header_name(header,path);
     }
-
-    /*char d[] = "/";
-    char *ppath = strtok(path,d);
-    char *pheader = strtok(header->name,d);
-    int i = 0;
-    while (pheader!=NULL) {
-      write(STDOUT_FILENO, pheader, strlen(pheader));
-      write(STDOUT_FILENO, ppath, strlen(ppath));
-      if (ppath == NULL) {
-        pheader = strtok(NULL,d);
-        write(STDOUT_FILENO, pheader, strlen(pheader));
-      }
-      else if (strcmp(ppath, pheader) != 0) exit(0);
-      ppath = strtok(NULL,d);
-      pheader = strtok(NULL,d);
-    }
-    print_header_name(header);*/
-
-
-
-    /*
-
-    if(strcmp(header->name, path) == 0){
-      write(STDOUT_FILENO, path, strlen(path));
-      write(STDOUT_FILENO, " pas find dans l'archive\n", strlen(" pas trouver dans l'archive\n"));
-      //printf("Je n'ai pas trouvé %s dans l'archive\n", path);
-      return 0;
-    }*/
     int taille = 0;
     int *ptaille = &taille;
     sscanf(header->size, "%o", ptaille);
     int filesize = ((*ptaille + 512-1)/512);
-    /*if(strcmp((header->name), path) == 0){
-      write(STDOUT_FILENO, header->name, strlen(header->name));
-      //printf("%s trouvé\n", header->name);
-      //printf("C'est %s\n", (header->typeflag=='0')?"un fichier standard":(header->typeflag=='5')?"un repertoire":"un type inconnu");
-      return 0;
-    }
-    
-    */
-
-
-
     read(fd, header, BLOCKSIZE*filesize);
   }
   printf("\n");
