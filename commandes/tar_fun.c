@@ -83,6 +83,54 @@ int copyFileInTar (int fd_src, const char *name, int fd_dest) {
 	return 1;
 }
 
+int deleteFileInTar (char *name_file, char *path_tar) {
+    int src = open(path_tar,O_RDONLY);
+    if (src == -1) {
+        perror("tsh");
+        return 0;
+    }
+    char bloc[BLOCKSIZE];
+    read(src,bloc,512);
+    char name[100];
+    char size[12];
+
+    int sizeToDelete = 0;
+    int emplacement = -1;
+
+    while (bloc[0] != 0) {
+
+        memcpy(name,bloc,100);
+        printf("%s\n", name);
+        memcpy(size,&bloc[124],12);
+        int filesize;
+        sscanf(size,"%o",&filesize);
+
+        int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
+
+        if (strcmp(name,name_file) == 0){
+            sizeToDelete = 512 + occupiedBlocks*512;
+            emplacement = lseek(fd_src,0,SEEK_CUR) - 512;
+        }
+
+        lseek(src,BLOCKSIZE*occupiedBlocks,SEEK_CUR);
+        read(src,bloc,512);
+    }
+
+    if (emplacement != -1) {
+        int sizeFullTar = lseek(fd_src,2*BLOCKSIZE,SEEK_CUR);
+        lseek(fd_src,0,SEEK_SET);
+        int sizeToCopy = sizeFullTar - emplacement - sizeToDelete;
+        char tarfile[sizeFullTar];
+        if (read(src,tarfile,sizeFullTar) == -1 ) perror("tsh")
+        memmove(&tarfile[emplacement],&tarfile[emplacement+sizeToDelete],sizeToCopy);
+        realloc(tarfile,emplacement+sizeToCopy);
+        return 1;
+    }
+
+    perror("Le fichier à supprimer n'existe pas");
+    return 0;
+}
+
 
 char *path_strstr (char *path) {
 	printf("%s\n",path );
