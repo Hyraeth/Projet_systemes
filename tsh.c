@@ -7,6 +7,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
 #define PWDLEN 1024
 #define BUFLEN 512
 #define NBARGS 8
@@ -60,8 +68,11 @@ int main(int argc, char const *argv[])
             }
         }
         
-        strcat(pwd, ">");
+        
+        write(STDOUT_FILENO, ANSI_COLOR_BLUE, strlen(ANSI_COLOR_BLUE));
         write(STDOUT_FILENO, pwd, strlen(pwd));
+        write(STDOUT_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
+        write(STDOUT_FILENO, ">", strlen(">"));
 
         char *line;
         SimpleCommand_t *cmd;
@@ -330,8 +341,11 @@ int tsh_pwd(SimpleCommand_t *cmd) {
             strcat(pwd, tarDirArray[i]);
         }
     }
-    strcat(pwd, "\n");
+
+    write(STDOUT_FILENO, ANSI_COLOR_CYAN, strlen(ANSI_COLOR_CYAN));
     write(STDOUT_FILENO, pwd, strlen(pwd));
+    write(STDOUT_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
+    write(STDOUT_FILENO, "\n", strlen("\n"));
     return 1;
 }
 
