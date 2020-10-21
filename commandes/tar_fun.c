@@ -11,7 +11,6 @@
 #define BLOCKSIZE 512
 #define BLOCKBITS 9
 
-
 int isTar(char *file) {
     if(strcmp(file+(strlen(file)-4), ".tar") == 0) return 1;
     return 0;
@@ -215,7 +214,6 @@ int isTarFolder (char *folder, char**path){
 }
 
 char typeFile (char *path_tar, char *pathInTar) {
-	printf("%s\n",pathInTar );
 	int src = open(path_tar,O_RDONLY);
 	if (src == -1) perror("tsh");
 	char bloc[BLOCKSIZE];
@@ -227,7 +225,6 @@ char typeFile (char *path_tar, char *pathInTar) {
 	while (bloc[0] != 0) {
 
 		memcpy(name,bloc,100);
-		printf("%s\n", name);
 
 		if (strcmp(name,pathInTar) == 0){
 			return bloc[156];
@@ -245,11 +242,11 @@ char typeFile (char *path_tar, char *pathInTar) {
 
 	return '9';
 }
-
+/*
 
 int main(int argc, char const *argv[])
 {
-	/**char **res = path_to_tar_file_path(argv[1]);
+	/char **res = path_to_tar_file_path(argv[1]);
 	printf("%s et %s \n",res[0],res[1] );
 
 	printf("%s\n", fileDataInTar("supp.txt","toto.tar"));
@@ -265,3 +262,4 @@ int main(int argc, char const *argv[])
 	return 0;
 }
 
+*/
