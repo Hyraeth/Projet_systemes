@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include "commandes/tar_fun.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -15,13 +16,13 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-#define PWDLEN 1024
-#define BUFLEN 512
-#define NBARGS 8
-
 static int fdTar;
 static int tarDepth = -1;
 static char **tarDirArray;
+
+#define PWDLEN 1024
+#define BUFLEN 512
+#define NBARGS 8
 
 typedef struct SimpleCommand_t
 {
@@ -198,14 +199,6 @@ char **parse_path(char *path) {
     return args;
 }
 
-int isTar(char *file) {
-    if(strcmp(file+(strlen(file)-4), ".tar") == 0) return 1;
-    return 0;
-}
-
-int isTarFolder(char *folder, char **path) {
-    return 1;
-}
 
 int tsh_cd(SimpleCommand_t *cmd) {
     int pwdlen = PWDLEN;
