@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <curses.h>
 #include "tar.h"
 
 //return true if s is in string at the begining
@@ -41,7 +42,11 @@ bool contain_one_char(char * s, char c) {
 }
 
 void print_header_name(struct posix_header * header, char * path) {
-  if (contain_one_char(header->name + strlen(path) + 1, '/') || !contain_char(header->name + strlen(path) + 1, '/')) {
+  if (contain_one_char(header->name + strlen(path) + 1, '/')) {
+    write(STDOUT_FILENO, header->name + strlen(path) + 1, strlen(header->name) - strlen(path) - 1);
+    write(STDOUT_FILENO, " ", strlen(" "));
+  }
+  else if (!contain_char(header->name + strlen(path) + 1, '/')) {
     write(STDOUT_FILENO, header->name + strlen(path) + 1, strlen(header->name) - strlen(path) - 1);
     write(STDOUT_FILENO, " ", strlen(" "));
   }
