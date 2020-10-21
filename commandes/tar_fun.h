@@ -8,5 +8,6 @@ int copyFileInTar (int fd_src, const char *name, int fd_dest);
 char *fileDataInTar (char *name_file, char *path_tar);
 int isTarFolder (char *folder, char**path);
 char typeFile (char *path_tar, char *pathInTar) ;
+int deleteFileInTar (char *name_file, char *path_tar);
 
 #endif //CMAKE_TESTAPP_TAR_FUN_H
