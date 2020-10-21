@@ -8,8 +8,10 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdbool.h>
-#include <curses.h>
 #include "tar.h"
+
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
 
 //return true if s is in string at the begining
 bool s_is_in_string(char * string, char * s) {
@@ -43,8 +45,10 @@ bool contain_one_char(char * s, char c) {
 
 void print_header_name(struct posix_header * header, char * path) {
   if (contain_one_char(header->name + strlen(path) + 1, '/')) {
-    write(STDOUT_FILENO, header->name + strlen(path) + 1, strlen(header->name) - strlen(path) - 1);
-    write(STDOUT_FILENO, " ", strlen(" "));
+    write(STDOUT_FILENO, ANSI_COLOR_GREEN"", strlen(ANSI_COLOR_GREEN""));
+    write(STDOUT_FILENO, (header->name + strlen(path) + 1), strlen(header->name) - strlen(path) - 2);
+    write(STDOUT_FILENO, ANSI_COLOR_RESET" ", strlen(ANSI_COLOR_RESET" "));
+
   }
   else if (!contain_char(header->name + strlen(path) + 1, '/')) {
     write(STDOUT_FILENO, header->name + strlen(path) + 1, strlen(header->name) - strlen(path) - 1);
