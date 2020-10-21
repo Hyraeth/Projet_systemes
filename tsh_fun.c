@@ -50,6 +50,7 @@ char **parsePathAbsolute (char *path) {
             }
         }
         else {
+            nbElementsBefore_2++;
         	i++;
         }
     }
