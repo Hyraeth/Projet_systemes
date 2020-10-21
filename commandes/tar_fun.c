@@ -77,16 +77,17 @@ int copyFileInTar (int fd_src, const char *name, int fd_dest) {
 
 	for (int i = 0; i < 512 - (size%512); ++i) //On remplit le dernier bloc pour qu'il faisse bien 512o
 	{
-		write(0,buf,1);
+		write(fd_dest,"0",1);
 	}
 
 	return 1;
 }
 
 int deleteFileInTar (char *name_file, char *path_tar) {
-    int src = open(path_tar,O_RDONLY);
+    int src = open(path_tar,O_RDWR);
     if (src == -1) {
         perror("tsh");
+        close(src);
         return 0;
     }
     char bloc[BLOCKSIZE];
@@ -109,7 +110,8 @@ int deleteFileInTar (char *name_file, char *path_tar) {
 
         if (strcmp(name,name_file) == 0){
             sizeToDelete = 512 + occupiedBlocks*512;
-            emplacement = lseek(fd_src,0,SEEK_CUR) - 512;
+            emplacement = lseek(src,0,SEEK_CUR) - 512;
+            break;
         }
 
         lseek(src,BLOCKSIZE*occupiedBlocks,SEEK_CUR);
@@ -117,17 +119,27 @@ int deleteFileInTar (char *name_file, char *path_tar) {
     }
 
     if (emplacement != -1) {
-        int sizeFullTar = lseek(fd_src,2*BLOCKSIZE,SEEK_CUR);
-        lseek(fd_src,0,SEEK_SET);
+        int sizeFullTar = lseek(src,0,SEEK_END);
+        lseek(src,emplacement,SEEK_SET);
+        for (int i = 0; i < sizeToDelete; i++)
+        {
+        	write(src,"0",1);
+        }
         int sizeToCopy = sizeFullTar - emplacement - sizeToDelete;
-        char tarfile[sizeFullTar];
-        if (read(src,tarfile,sizeFullTar) == -1 ) perror("tsh")
-        memmove(&tarfile[emplacement],&tarfile[emplacement+sizeToDelete],sizeToCopy);
-        realloc(tarfile,emplacement+sizeToCopy);
+        char dataToMove[sizeToCopy];
+        if (read(src,dataToMove,sizeToCopy) == -1 ) perror("tsh");
+        lseek(src,emplacement,SEEK_SET);
+        write(src,dataToMove,sizeToCopy);
+        ftruncate(src,emplacement+sizeToCopy);
+
+        printf("%d\n", sizeFullTar);
+        printf("%d\n", sizeToCopy);
+        close(src);
         return 1;
     }
 
     perror("Le fichier à supprimer n'existe pas");
+    close(src);
     return 0;
 }
 
@@ -240,13 +252,15 @@ int main(int argc, char const *argv[])
 	/**char **res = path_to_tar_file_path(argv[1]);
 	printf("%s et %s \n",res[0],res[1] );
 
-	printf("%s\n", fileDataInTar("supp.txt","toto.tar"));**/
+	printf("%s\n", fileDataInTar("supp.txt","toto.tar"));
 
 	char *A[] = {"titi.tar", "toto",NULL};
 
 
 	if (isTarFolder("tat",A)) printf("BIEN\n");
-	else printf("PAS BIEN\n");
+	else printf("PAS BIEN\n");**/
+
+	printf(" Resultat %d\n", deleteFileInTar("supp.txt","toto.tar"));
 
 	return 0;
 }
