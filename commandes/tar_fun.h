@@ -10,4 +10,4 @@ int isTarFolder (char *folder, char**path);
 char typeFile (char *path_tar, char *pathInTar) ;
 int deleteFileInTar (char *name_file, char *path_tar);
 
-#endif //CMAKE_TESTAPP_TAR_FUN_H
+#endif //TAR_FUN_H
