@@ -438,9 +438,16 @@ int tsh_ls(SimpleCommand_t *cmd) {
                 } else {
                     char *path_to_ls = array_to_path(abs_path_split[0]);
                     char **args = malloc((cmd->nb_options + 3)*sizeof(char *));
+                    args[0] = malloc(strlen(cmd->args[0]) + 1);
                     memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
-                    memcpy(args+1, cmd->options, cmd->nb_options);
-                    memcpy(args+(cmd->nb_options+1), path_to_ls, 1);
+                    for (size_t i = 0; i < cmd->nb_options; i++)
+                    {
+                        args[i+1] = malloc(strlen(cmd->options[i])+1);
+                        memcpy(args[i+1], cmd->options[i], strlen(cmd->options[i])+1);
+                    }
+                    args[cmd->nb_options+1] = malloc(strlen(path_to_ls)+1);
+                    memcpy(args[cmd->nb_options+1], path_to_ls, strlen(path_to_ls)+1);
+                    args[cmd->nb_options+1] = NULL;
                     call_existing_command(args);
                 }
             }
