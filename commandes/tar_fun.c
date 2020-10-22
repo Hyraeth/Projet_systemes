@@ -1,12 +1,4 @@
-#include "tar_fun.h"
-#include "tar.h"
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <unistd.h>
+#include "../headers/tar_fun.h"
 
 #define BLOCKSIZE 512
 #define BLOCKBITS 9
@@ -208,7 +200,17 @@ char typeFile (char *path_tar, char *pathInTar) {
 	return '9';
 }
 
-/**int main(int argc, char const *argv[])
+void printArray (char **path1) {
+	int i = 0;
+	while (path1[i] != NULL) {
+		printf("/%s",path1[i]);
+		i++;
+	}
+	printf("\n");
+}
+/*
+
+int main(int argc, char const *argv[])
 {
 	char **res = path_to_tar_file_path(argv[1]);
 	printf("%s et %s \n",res[0],res[1] );
@@ -224,5 +226,5 @@ char typeFile (char *path_tar, char *pathInTar) {
 	printf(" Resultat %d\n", deleteFileInTar("supp.txt","toto.tar"));
 
 	return 0;
-}**/
+}*/
 
