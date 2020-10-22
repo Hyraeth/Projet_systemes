@@ -32,11 +32,13 @@ typedef struct SimpleCommand_t
 
 char *read_line();
 SimpleCommand_t *parse_line(char *line);
+char **parse_path(char *path);
 int exec_cmd(SimpleCommand_t *cmd);
+
 int tsh_cd(SimpleCommand_t *cmd);
 int tsh_pwd(SimpleCommand_t *cmd);
 int tsh_exit(SimpleCommand_t *cmd);
-char **parse_path(char *path);
+
 
 char *builtin_str[] = {
   "cd",
@@ -73,7 +75,7 @@ int main(int argc, char const *argv[])
         write(STDOUT_FILENO, ANSI_COLOR_BLUE, strlen(ANSI_COLOR_BLUE));
         write(STDOUT_FILENO, pwd, strlen(pwd));
         write(STDOUT_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
-        write(STDOUT_FILENO, ">", strlen(">"));
+        write(STDOUT_FILENO, "> ", strlen("> "));
 
         char *line;
         SimpleCommand_t *cmd;
@@ -91,7 +93,7 @@ int main(int argc, char const *argv[])
         free(cmd->args);
         free(cmd);
         free(pwd);
-    } while(run);
+    } while(run != 0);
     return 0;
 }
 
@@ -250,7 +252,6 @@ int tsh_cd(SimpleCommand_t *cmd) {
                 free(path);
                 tarDepth--;
                 perror("tsh: cd");
-                return 1;
             }
             if((tarDirArray = malloc((tarDepth+1)*sizeof(char*))) == NULL) 
                 perror("tsh: cd");
@@ -314,6 +315,7 @@ int tsh_cd(SimpleCommand_t *cmd) {
         memcpy(tarDirArray, tmpTarDir, tmpDepth+1);
         tarDepth = tmpDepth;
         free(tmpTarDir);
+        return -1;
     }
 
     return 1;
