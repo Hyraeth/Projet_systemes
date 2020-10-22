@@ -88,6 +88,53 @@ char **parse_path_array(char *path, int *a) {
     return args;
 }
 
+char ***path_to_tar_file_path_new (char **path) {
+
+    int i = 0;
+    while (path[i] != NULL) {
+        i++;
+    }
+    int size = i;
+
+    i = 0;
+    int index_tar = -1;
+    while (path[i] != NULL) {
+        int lenpath_i = strlen(path[i]);
+        if (lenpath_i > 4 && strcmp(&path[i][lenpath_i - 4],".tar") == 0) {
+            index_tar = i ;
+            break;
+        }
+        i++;
+    }
+
+    char ***path_res = malloc(3*sizeof(char **));
+
+    if (index_tar == -1) {
+        if (size == 0) {
+            path_res[0] = NULL;
+        }
+        else {
+            path_res[0] = (char **) malloc((size + 1) * sizeof(char *) );
+            memcpy(path_res[0], path, size * sizeof(char *));
+        }
+        path_res[1] = NULL;
+        path_res[2] = NULL;
+        return path_res;
+    }
+    else {
+        path_res[0] = (char **) malloc((index_tar + 1) * sizeof(char *) );
+        memcpy(path_res[0], path, index_tar * sizeof(char *));
+        path_res[0][index_tar] = NULL;
+        path_res[1] = (char **) malloc(1 * sizeof(char *) );
+        path_res[1][0] = path[index_tar];
+        path_res[2] = (char **) malloc((size - index_tar) * sizeof(char *) );
+        memcpy(path_res[2], &path[index_tar + 1], (size - index_tar -1) * sizeof(char *));
+        path_res[2][size - index_tar -1] = NULL;
+    }
+    return path_res;
+
+}
+
 void printArray (char **path1) {
 	int i = 0;
 	while (path1[i] != NULL) {
@@ -99,7 +146,9 @@ void printArray (char **path1) {
 
 int main(int argc, char const *argv[])
 {
-	char **res = parsePathAbsolute(argv[1]);
-	printArray(res);
+	char ***res = path_to_tar_file_path_new(parsePathAbsolute(argv[1]));
+	printArray(res[0]);
+    printArray(res[1]);
+    printArray(res[2]);
 	return 0;
 }
