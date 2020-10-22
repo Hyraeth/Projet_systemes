@@ -156,42 +156,6 @@ char *path_strstr (char *path) {
    	return res;
 }
 
-char **path_to_tar_file_path (char *path) {
-
-	char *res = path_strstr(path);
-
-	char **path_res = malloc(2*sizeof(char *));
-
-	if (res == NULL) {
-		path_res[0] = NULL;
-		path_res[1] = path;
-		return path_res;
-	}
-
-	int len_res = strlen(res);
-	int len_char_1 = strlen(path) - len_res + 4;;
-	char *path_to_tar = malloc(len_char_1 + 1);
-	char *path_tar_to_file;
-
-   printf("BO2\n");
-
-	strncpy (path_to_tar,path,len_char_1 + 1);
-
-	if (path[len_char_1] == '/'){
-		path_tar_to_file = malloc(len_res - 4);
-		strncpy(path_tar_to_file,&path[len_char_1+1],len_res - 4);
-	}
-	else {
-		path_tar_to_file = NULL;
-	}
-
-	path_res[0] = path_to_tar;
-	path_res[1] = path_tar_to_file;
-
-	return path_res;
-
-}
-
 int isTarFolder (char *folder, char**path){
 	int i = 1;
 	char *path_to_check = malloc(1);
