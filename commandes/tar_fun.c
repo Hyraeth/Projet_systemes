@@ -226,6 +226,5 @@ int main(int argc, char const *argv[])
 	printf(" Resultat %d\n", deleteFileInTar("supp.txt","toto.tar"));
 
 	return 0;
-}
+}*/
 
-*/
