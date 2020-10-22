@@ -9,10 +9,6 @@
 char **parsePathAbsolute (char *path, char *pwd) {
     int size_1;
     char **pwdArray = parse_path_array(pwd,&size_1);
-<<<<<<< HEAD
-    free(pwd);
-=======
->>>>>>> 13-faire-la-fonction-pour-cat
     int size_2;
     char **pathArray = parse_path_array(path,&size_2);
 
