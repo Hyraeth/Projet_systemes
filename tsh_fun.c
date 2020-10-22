@@ -1,13 +1,8 @@
 #define _GNU_SOURCE
 
-#include "tsh_fun.h"
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include "headers/tsh_fun.h"
 
-char **parsePathAbsolute (char *path) {
-    char *pathHere = get_current_dir_name();
+char **parsePathAbsolute (char *path, char *pathHere) {
     int size_1;
     char **pathHereArray = parse_path_array(pathHere,&size_1);
     free(pathHere);
@@ -143,7 +138,7 @@ void printArray (char **path1) {
 	}
 	printf("\n");
 }
-
+/*
 int main(int argc, char const *argv[])
 {
 	char ***res = path_to_tar_file_path_new(parsePathAbsolute(argv[1]));
@@ -152,3 +147,4 @@ int main(int argc, char const *argv[])
     printArray(res[2]);
 	return 0;
 }
+*/

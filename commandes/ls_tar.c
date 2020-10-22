@@ -1,14 +1,4 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <stdbool.h>
-#include "tar.h"
+#include "../headers/ls_tar.h"
 
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
@@ -34,11 +24,7 @@ bool contain_char(char * s, char c) {
 //return true if there is juste one time c in s
 bool contain_one_char(char * s, char c) {
   for (int i=0; i<strlen(s); i++) {
-    if (s[i] == c)
-      if (i==strlen(s)-1)
-        return true;
-      else
-        return false;
+    if (s[i] == c) return (i==strlen(s)-1) ? true : false;
   }
   return false;
 }
@@ -147,7 +133,6 @@ int ls_tar(char op, char *path, int fd) {
   }
   int n = 0;
   while((n=read(fd, header, BLOCKSIZE))>0){
-    int i = 0;
     if (s_is_in_string(header->name, path)) {
       print_header_name(op,header,path);
     }
@@ -158,9 +143,9 @@ int ls_tar(char op, char *path, int fd) {
     read(fd, header, BLOCKSIZE*filesize);
   }
   write(STDOUT_FILENO, "\n", strlen("\n"));
-  return 0;
+  return 1;
 }
-
+/*
 int main(int argc, char *argv[]){
   if(argc <= 2) printf("Pas de fichier\n");
   else {
@@ -173,3 +158,4 @@ int main(int argc, char *argv[]){
     close(fd);
   }
 }
+*/
