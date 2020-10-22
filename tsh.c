@@ -234,13 +234,13 @@ int exec_cmd(SimpleCommand_t *cmd) {
     if(cmd->args[0] == NULL) {
         return 1;
     }
-    for (size_t i = 0; i < 2; i++)
+    for (size_t i = 0; i < 4; i++)
     {
         if (strcmp(cmd->args[0], builtin_str[i]) == 0) {
             return (*builtin_func[i])(cmd);
         }
     }
-    if(tarDepth != -1) {
+    if(tarDepth == -1) {
         return call_existing_command(cmd->args);
     } else {
         write(STDOUT_FILENO, ANSI_COLOR_RED, strlen(ANSI_COLOR_RED));
