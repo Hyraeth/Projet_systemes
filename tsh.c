@@ -32,7 +32,7 @@ typedef struct SimpleCommand_t
     int nbargs;
     char **args;
     int nb_options;
-    int *options_pos;
+    char **options;
 } 
 SimpleCommand_t;
 
@@ -101,7 +101,11 @@ int main(int argc, char const *argv[])
            free(cmd->args[i]);
         }
         free(cmd->args);
-        free(cmd->options_pos);
+        for (size_t i = 0; i <= cmd->nb_options; i++)
+        {
+           free(cmd->options[i]);
+        }
+        free(cmd->options);
         free(cmd);
         free(pwd);
     } while(run != 0);
@@ -142,7 +146,7 @@ char *read_line() {
 
 /**
  * @brief Parse the line into an null-terminated array of args and add it to a SimpleCommand_t struct. 
- * Also add the number of options and their pos in the array of args
+ * Also add the number of options and an array of option
  * @param line line to parse
  * @return a SimpleCommand_t struct
 */
@@ -151,7 +155,7 @@ SimpleCommand_t *parse_line(char *line) {
 
     SimpleCommand_t *cmd = malloc(sizeof(struct SimpleCommand_t));
     char **args = malloc(nbargs*sizeof(char *));
-    int *ops_pos = malloc(sizeof(int));
+    char **ops = malloc(sizeof(char *));
     char *word = strtok(line, " \n\t");
 
     int nbword = 0;
@@ -163,10 +167,12 @@ SimpleCommand_t *parse_line(char *line) {
             if((args = realloc(args, nbargs*sizeof(char *))) == NULL)
                 perror("tsh");
         }
+
         if(word[0] == '-' && strlen(word) != 1) {
-            ops_pos[nbops] = nbword;
+            ops[nbops] = malloc(strlen(word)+1);
+            memcpy(ops[nbops], word, strlen(word)+1);
             nbops++;
-            ops_pos = realloc(ops_pos, (nbops+1)*sizeof(int));
+            ops = realloc(ops, (nbops+1)*sizeof(int));
         }
 
         if((args[nbword] = malloc((strlen(word)+1) * sizeof(char))) == NULL)
@@ -176,10 +182,11 @@ SimpleCommand_t *parse_line(char *line) {
         word = strtok(NULL, " \n\t");
     }
     args[nbword] = NULL;
+    ops[nbops] = NULL;
     cmd->args = args;
     cmd->nbargs = nbword;
     cmd->nb_options = nbops;
-    cmd->options_pos = ops_pos;
+    cmd->options = ops;
 
     return cmd;
 }
@@ -346,7 +353,7 @@ int tsh_cd(SimpleCommand_t *cmd) {
 }
 
 char *array_to_path(char **array) {
-    if(array[0] == NULL) return NULL;
+    if(array == NULL || array[0] == NULL) return "\0";
     int pathlength = strlen(array[0])+1;
     char *path = malloc(pathlength);
     memcpy(path, array[0], pathlength);
@@ -354,7 +361,8 @@ char *array_to_path(char **array) {
     while (array[i] != NULL)
     {
         pathlength += strlen(array[i]);
-        path = realloc(path, pathlength);
+        path = realloc(path, pathlength+1);
+        strcat(path, "/");
         strcat(path, array[i]);
     }
     
@@ -382,35 +390,24 @@ int call_existing_command(char **args) {
     return 1;
 }
 
-int is_in_option_pos(SimpleCommand_t *cmd, int k) {
-    if(cmd->nb_options == 0) return false;
-    for (size_t i = 0; i < cmd->nb_options; i++)
-    {
-        if(cmd->options_pos[i] == k) return true;
-    }
-    return false;
+int is_an_option(char *string) {
+    return (string[0] == '-') ? true : false;
 }
 
 int tsh_ls(SimpleCommand_t *cmd) {
     //if no path is given
     if((cmd->nbargs - cmd->nb_options) == 1) {
         //check whether or not we are in a tar
-        if(tarDepth != -1) {
-            //no need to fork since exec is not called
+        if(tarDepth != -1) {//no need to fork since exec is not called
             if(cmd->nb_options > 1 ) {
                 write(STDOUT_FILENO, "tsh: ls: Too many options.", strlen("tsh: ls: Too many options."));
                 return 1;
             }
-            if(cmd->nb_options == 1 ) {
-                if(strlen(cmd->args[cmd->options_pos[0]]) != 2)
-                    write(STDOUT_FILENO, "tsh: ls: Too many options.", strlen("tsh: ls: Too many options."));
-                else if(cmd->args[cmd->options_pos[0]][1] != 'l')
-                    write(STDOUT_FILENO, "tsh: ls: Only accepted option is -l.", strlen("tsh: ls: Only accepted option is -l."));
-                return 1;
+            if(cmd->nb_options == 1 && strcmp(cmd->options[0], "-l")==0 || cmd->nb_options == 0) {
+                char *path_in_tar = array_to_path(tarDirArray+1);
+                ls_tar(cmd->options[0], path_in_tar, fdTar);
+                free(path_in_tar);
             }
-            char *path_in_tar = array_to_path(tarDirArray+1);
-            ls_tar(cmd->args[cmd->options_pos[0]][1], path_in_tar, fdTar);
-            free(path_in_tar);
         } else {
             call_existing_command(cmd->args);
         }
@@ -418,9 +415,34 @@ int tsh_ls(SimpleCommand_t *cmd) {
     else {
         for (size_t i = 1; i < cmd->nbargs; i++)
         {
-            if(!is_in_option_pos(cmd, i)) {
-                char *pwd = get_pwd();
-                char **abs_path = parsePathAbsolute(cmd->args[i], pwd);
+            //if the ith argument of the command is not an option
+            if(!is_an_option(cmd->args[i])) {
+                write(STDOUT_FILENO, cmd->args[i], strlen(cmd->args[i])); //write the name of the path to ls
+                //get the absolute path of the path given in form of array of string
+                char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd()); 
+                //split the absolute path in 3 array of string corresponding to the path before the tar, the name of the tar and the path after
+                char ***abs_path_split = path_to_tar_file_path_new(abs_path_array);
+                //if we are going in a tar
+                if(abs_path_split[1] != NULL) {
+                    //turn the array of string in the form of a string
+                    char *path_to_open = array_to_path(abs_path_split[0]);
+                    //add more memory to add the tar to open in the path
+                    path_to_open = realloc(path_to_open, strlen(path_to_open) + strlen(abs_path_split[1][0]) + 1);
+                    strcat(path_to_open, "/");
+                    strcat(path_to_open, abs_path_split[1][0]);
+                    //open the tar to ls
+                    int fd = open(path_to_open, O_RDWR);
+                    //get the path to ls inside the tar
+                    char *path_in_tar = array_to_path(abs_path_split[2]);
+                    ls_tar(cmd->options[0], path_in_tar, fd);
+                } else {
+                    char *path_to_ls = array_to_path(abs_path_split[0]);
+                    char **args = malloc((cmd->nb_options + 3)*sizeof(char *));
+                    memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+                    memcpy(args+1, cmd->options, cmd->nb_options);
+                    memcpy(args+(cmd->nb_options+1), path_to_ls, 1);
+                    call_existing_command(args);
+                }
             }
         }
         
