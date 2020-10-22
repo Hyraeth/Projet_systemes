@@ -62,21 +62,32 @@ void print_name_rep(struct posix_header * header, char * path) {
   write(STDOUT_FILENO, ANSI_COLOR_RESET" ", strlen(ANSI_COLOR_RESET" "));
 }
 
+//affiche le type du fichier
+void print_type (struct posix_header * header) {
+  switch (header->typeflag) {
+    case '0' : write(STDOUT_FILENO, "-", 1); break;
+    case '5' : write(STDOUT_FILENO, "d", 1); break;
+    default : write(STDOUT_FILENO, "i", 1); break;
+  }
+}
 //affiche les droit du FILE
 void print_right(struct posix_header * header) {
   for (int i=0; i<3; i++) {
     switch((header->mode + 4)[i]) {
-      case '0' : write(STDOUT_FILENO, "---", strlen("---")); break;
-      case '1' : write(STDOUT_FILENO, "--x", strlen("--x")); break;
-      case '2' : write(STDOUT_FILENO, "-w-", strlen("-w-")); break;
-      case '3' : write(STDOUT_FILENO, "-wx", strlen("-wx")); break;
-      case '4' : write(STDOUT_FILENO, "r--", strlen("r--")); break;
-      case '5' : write(STDOUT_FILENO, "r-x", strlen("r-x")); break;
-      case '6' : write(STDOUT_FILENO, "rw-", strlen("rw-")); break;
-      case '7' : write(STDOUT_FILENO, "rwx", strlen("rwx")); break;
+      case '0' : write(STDOUT_FILENO, "---", 3); break;
+      case '1' : write(STDOUT_FILENO, "--x", 3); break;
+      case '2' : write(STDOUT_FILENO, "-w-", 3); break;
+      case '3' : write(STDOUT_FILENO, "-wx", 3); break;
+      case '4' : write(STDOUT_FILENO, "r--", 3); break;
+      case '5' : write(STDOUT_FILENO, "r-x", 3); break;
+      case '6' : write(STDOUT_FILENO, "rw-", 3); break;
+      case '7' : write(STDOUT_FILENO, "rwx", 3); break;
     }
   }
-  print_space(1);
+}
+//affiche le nombre de lien physique
+void print_nb_link(struct posix_header * header) {
+  
 }
 //affiche la taille du fichier
 void print_size(struct posix_header * header) {
@@ -89,9 +100,10 @@ void print_size(struct posix_header * header) {
 }
 //affiche toute les info supplementaire de la commande "ls -l" autre que le nom
 void print_ls_l (struct posix_header * header) {
-  write(STDOUT_FILENO, "-", 1);
+  print_type(header); //affiche le type du fichier
   print_right(header); //affiche les droits
-  write(STDOUT_FILENO, header->name + 156, 1); //affiche le type
+  print_space(1);
+  print_nb_link(header);
   print_space(1);
   write(STDOUT_FILENO, header->uname, strlen(header->uname)); //affiche le nom du propriétaire
   print_space(1);
