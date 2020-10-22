@@ -1,8 +1,5 @@
 #include "../headers/tar_fun.h"
 
-#define BLOCKSIZE 512
-#define BLOCKBITS 9
-
 int isTar(char *file) {
     if(strcmp(file+(strlen(file)-4), ".tar") == 0) return 1;
     return 0;
@@ -200,14 +197,6 @@ char typeFile (char *path_tar, char *pathInTar) {
 	return '9';
 }
 
-void printArray (char **path1) {
-	int i = 0;
-	while (path1[i] != NULL) {
-		printf("/%s",path1[i]);
-		i++;
-	}
-	printf("\n");
-}
 /*
 
 int main(int argc, char const *argv[])
