@@ -9,10 +9,6 @@
 char **parsePathAbsolute (char *path, char *pwd) {
     int size_1;
     char **pwdArray = parse_path_array(pwd,&size_1);
-<<<<<<< HEAD
-    free(pwd);
-=======
->>>>>>> 13-faire-la-fonction-pour-cat
     int size_2;
     char **pathArray = parse_path_array(path,&size_2);
 
@@ -147,6 +143,27 @@ void printArray (char **path1) {
 		i++;
 	}
 	printf("\n");
+}
+
+char *array_to_path(char **array) {
+    if(array == NULL || array[0] == NULL) return "\0";
+    int pathlength = strlen(array[0])+1;
+    char *path = malloc(pathlength);
+    memcpy(path, array[0], pathlength);
+    int i = 1;
+    while (array[i] != NULL)
+    {
+        pathlength += strlen(array[i]);
+        path = realloc(path, pathlength+1);
+        strcat(path, "/");
+        strcat(path, array[i]);
+    }
+    
+    return path;
+}
+
+int is_an_option(char *string) {
+    return (string[0] == '-') ? 1 : 0;
 }
 /*
 int main(int argc, char const *argv[])
