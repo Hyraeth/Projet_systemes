@@ -40,6 +40,7 @@ char *read_line();
 SimpleCommand_t *parse_line(char *line);
 char **parse_path(char *path);
 int exec_cmd(SimpleCommand_t *cmd);
+int call_existing_command(char **args);
 char *get_pwd();
 
 int tsh_cd(SimpleCommand_t *cmd);
@@ -55,6 +56,10 @@ char *builtin_str[] = {
   "exit"
 };
 
+/**
+ * @brief List of builtin functions currently implemented.
+ * 
+ */
 int (*builtin_func[]) (SimpleCommand_t *cmd) = {
   &tsh_cd,
   &tsh_ls,
@@ -145,9 +150,9 @@ char *read_line() {
 }
 
 /**
- * @brief Parse the line into an null-terminated array of args and add it to a SimpleCommand_t struct. 
+ * @brief Parse the line into a null-terminated array of args and add it to a SimpleCommand_t struct. 
  * Also add the number of options and an array of option
- * @param line line to parse
+ * @param line Line to parse
  * @return a SimpleCommand_t struct
 */
 SimpleCommand_t *parse_line(char *line) {
@@ -191,6 +196,40 @@ SimpleCommand_t *parse_line(char *line) {
     return cmd;
 }
 
+/**
+ * @brief Execute an existing command in the PATH if successful.
+ * 
+ * @param args Null-terminated array containing the command split using " "(space) as a separator.
+ * @return 1 no matter what
+ */
+int call_existing_command(char **args) {
+    pid_t pid, wpid;
+    int status;
+
+    pid = fork();
+    if (pid < 0) {
+        perror("lsh");
+    } else if (pid == 0) {
+        if (execvp(args[0], args) == -1) {
+            perror("lsh");
+        }
+        exit(EXIT_FAILURE);
+    } else {
+        do {
+        wpid = waitpid(pid, &status, WUNTRACED);
+        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    }
+
+    return 1;
+}
+
+/**
+ * @brief Execute a command. If the command is builtin then call the function to execute it. If it isn't it will try to find the command 
+ * in the PATH environnemental variable
+ * 
+ * @param cmd Command to execute
+ * @return 1 if successful, 0 if exit was called, -1 in case of failure. 
+ */
 int exec_cmd(SimpleCommand_t *cmd) {
     if(cmd->args[0] == NULL) {
         return 1;
@@ -213,6 +252,12 @@ int exec_cmd(SimpleCommand_t *cmd) {
     }
 }
 
+/**
+ * @brief Parse the path into a null terminaled array of strings. The path is split using "/" as a separator
+ * 
+ * @param path Path to parse
+ * @return A null terminaled array of strings.
+ */
 char **parse_path(char *path) {
     int nbargs = NBARGS;
 
@@ -238,7 +283,12 @@ char **parse_path(char *path) {
     return args;
 }
 
-
+/**
+ * @brief Execute the command "cd". For more information see ARCHITECTURE.md
+ * 
+ * @param cmd Command to execute. Contains the path and the number of arguments of the command
+ * @return 1 on success, -1 on failure 
+ */
 int tsh_cd(SimpleCommand_t *cmd) {
     //in case there is an error we can go back
     int pwdlen = PWDLEN;
@@ -361,48 +411,12 @@ int tsh_cd(SimpleCommand_t *cmd) {
     return 1;
 }
 
-char *array_to_path(char **array) {
-    if(array == NULL || array[0] == NULL) return "\0";
-    int pathlength = strlen(array[0])+1;
-    char *path = malloc(pathlength);
-    memcpy(path, array[0], pathlength);
-    int i = 1;
-    while (array[i] != NULL)
-    {
-        pathlength += strlen(array[i]);
-        path = realloc(path, pathlength+1);
-        strcat(path, "/");
-        strcat(path, array[i]);
-    }
-    
-    return path;
-}
-
-int call_existing_command(char **args) {
-    pid_t pid, wpid;
-    int status;
-
-    pid = fork();
-    if (pid < 0) {
-        perror("lsh");
-    } else if (pid == 0) {
-        if (execvp(args[0], args) == -1) {
-            perror("lsh");
-        }
-        exit(EXIT_FAILURE);
-    } else {
-        do {
-        wpid = waitpid(pid, &status, WUNTRACED);
-        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-    }
-
-    return 1;
-}
-
-int is_an_option(char *string) {
-    return (string[0] == '-') ? true : false;
-}
-
+/**
+ * @brief Execute the command "ls".  
+ * 
+ * @param cmd Command to execute. Contains the path and options
+ * @return 1 on success 
+ */
 int tsh_ls(SimpleCommand_t *cmd) {
     //if no path is given
     if((cmd->nbargs - cmd->nb_options) == 1) {
@@ -487,6 +501,11 @@ int tsh_ls(SimpleCommand_t *cmd) {
     return 1;
 }
 
+/**
+ * @brief Get the pwd object
+ * 
+ * @return the absolute path to the current directory in form of a string.
+ */
 char *get_pwd() {
     int pwdlen = PWDLEN;
     char *pwd = malloc(pwdlen); 
@@ -505,6 +524,12 @@ char *get_pwd() {
     return pwd;
 }
 
+/**
+ * @brief Write the pwd into the standard output.
+ * 
+ * @param cmd Irrelevant. like myself.
+ * @return 1 whatever happens
+ */
 int tsh_pwd(SimpleCommand_t *cmd) {
     char *pwd = get_pwd();
 
@@ -516,6 +541,12 @@ int tsh_pwd(SimpleCommand_t *cmd) {
     return 1;
 }
 
+/**
+ * @brief Exit the terminal by ending the main loop.
+ * 
+ * @param cmd Decoration
+ * @return 0 
+ */
 int tsh_exit(SimpleCommand_t *cmd) {
     return 0;
 }

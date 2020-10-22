@@ -148,6 +148,27 @@ void printArray (char **path1) {
 	}
 	printf("\n");
 }
+
+char *array_to_path(char **array) {
+    if(array == NULL || array[0] == NULL) return "\0";
+    int pathlength = strlen(array[0])+1;
+    char *path = malloc(pathlength);
+    memcpy(path, array[0], pathlength);
+    int i = 1;
+    while (array[i] != NULL)
+    {
+        pathlength += strlen(array[i]);
+        path = realloc(path, pathlength+1);
+        strcat(path, "/");
+        strcat(path, array[i]);
+    }
+    
+    return path;
+}
+
+int is_an_option(char *string) {
+    return (string[0] == '-') ? 1 : 0;
+}
 /*
 int main(int argc, char const *argv[])
 {
