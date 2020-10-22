@@ -208,19 +208,9 @@ char typeFile (char *path_tar, char *pathInTar) {
 	return '9';
 }
 
-void printArray (char **path1) {
-	int i = 0;
-	while (path1[i] != NULL) {
-		printf("/%s",path1[i]);
-		i++;
-	}
-	printf("\n");
-}
-
-
-int main(int argc, char const *argv[])
+/**int main(int argc, char const *argv[])
 {
-	/*char **res = path_to_tar_file_path(argv[1]);
+	char **res = path_to_tar_file_path(argv[1]);
 	printf("%s et %s \n",res[0],res[1] );
 
 	printf("%s\n", fileDataInTar("supp.txt","toto.tar"));
@@ -229,10 +219,10 @@ int main(int argc, char const *argv[])
 
 
 	if (isTarFolder("tat",A)) printf("BIEN\n");
-	else printf("PAS BIEN\n");**/
+	else printf("PAS BIEN\n");
 
 	printf(" Resultat %d\n", deleteFileInTar("supp.txt","toto.tar"));
 
 	return 0;
-}
+}**/
 
