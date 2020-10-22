@@ -1,10 +1,14 @@
 #define _GNU_SOURCE
 
-#include "headers/tsh_fun.h"
+#include "tsh_fun.h"
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-char **parsePathAbsolute (char *path, char *pathHere) {
+char **parsePathAbsolute (char *path, char *pwd) {
     int size_1;
-    char **pathHereArray = parse_path_array(pathHere,&size_1);
+    char **pwdArray = parse_path_array(pwd,&size_1);
     free(pathHere);
     int size_2;
     char **pathArray = parse_path_array(path,&size_2);
@@ -19,11 +23,11 @@ char **parsePathAbsolute (char *path, char *pathHere) {
                     perror("tsh no such file or directory parsePathAbsolute");
                 }
                 else {
-                    if ((pathHereArray = realloc(pathHereArray,(size_1 - 1) * sizeof(char *) )) == NULL){
+                    if ((pwdArray = realloc(pwdArray,(size_1 - 1) * sizeof(char *) )) == NULL){
                     	perror ("tsh realloc parsePathAbsolute");
                 	}
                 	size_1--;
-                    pathHereArray[size_1 - 1] = NULL;
+                    pwdArray[size_1 - 1] = NULL;
 
                     memmove(pathArray, &pathArray[1], (size_2 - 1)*sizeof( char *) );
 
@@ -49,12 +53,12 @@ char **parsePathAbsolute (char *path, char *pathHere) {
         	i++;
         }
     }
-    if ((pathHereArray = realloc(pathHereArray,(size_1 + size_2) * sizeof(char *) )) == NULL){
+    if ((pwdArray = realloc(pwdArray,(size_1 + size_2) * sizeof(char *) )) == NULL){
     	perror ("tsh realloc parsePathAbsolute");
 	}
-	memcpy(&pathHereArray[size_1 - 1],pathArray, size_2 * sizeof( char * ));
+	memcpy(&pwdArray[size_1 - 1],pathArray, size_2 * sizeof( char * ));
 	free(pathArray);
-    return pathHereArray;
+    return pwdArray;
 }
 
 char **parse_path_array(char *path, int *a) {
