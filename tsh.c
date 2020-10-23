@@ -458,7 +458,8 @@ int tsh_ls(SimpleCommand_t *cmd) {
                     int fd = open(path_to_open, O_RDWR);
                     //get the path to ls inside the tar
                     char *path_in_tar = array_to_abspath(abs_path_split[2]);
-                    ls_tar(cmd->options[0], path_in_tar, fd);
+                    if (path_in_tar == NULL) ls_tar(cmd->options[0], "", fd);
+                    else ls_tar(cmd->options[0], path_in_tar, fd);
                     free(path_to_open);
                     free(path_in_tar);
                 } 
