@@ -481,7 +481,7 @@ int tsh_ls(SimpleCommand_t *cmd) {
                     int fd;
                     if((fd = open(path_to_open, O_RDWR, S_IRUSR | S_IWUSR)) == -1) perror("tsh: ls");
                     //get the path to ls inside the tar
-                    char *path_in_tar = array_to_path(abs_path_split[2], 1);
+                    char *path_in_tar = array_to_path(abs_path_split[2], 0);
                     ls_tar(cmd->options[0], path_in_tar, fd);
                     free(path_to_open);
                     free(path_in_tar);
@@ -514,7 +514,7 @@ int tsh_ls(SimpleCommand_t *cmd) {
                 }
     
                 free(abs_path_array);
-                for (size_t j = 0; j < 2; j++)
+                for (size_t j = 0; j <= 2; j++)
                 {
 
                     if(abs_path_split[j] != NULL) {
