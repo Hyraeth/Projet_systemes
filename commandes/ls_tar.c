@@ -146,7 +146,7 @@ int ls_tar(char *op, char *path, int fd) {
     int *ptaille = &taille;
     sscanf(header->size, "%o", ptaille);
     int filesize = ((*ptaille + 512-1)/512);
-    read(fd, header, BLOCKSIZE*filesize);
+    lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
   }
   write(STDOUT_FILENO, "\n", strlen("\n"));
   lseek(fd, 0, SEEK_SET);
