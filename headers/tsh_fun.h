@@ -12,6 +12,6 @@ void printArray (char **path1);
 char ***path_to_tar_file_path_new (char **path);
 char *array_to_path(char **array, int op);
 int is_an_option(char *string);
-
+void remove_escape_char(char *str);
 
 #endif //TSH_FUN_H

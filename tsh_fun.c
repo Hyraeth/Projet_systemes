@@ -178,6 +178,17 @@ char *array_to_path(char **array, int op) {
 int is_an_option(char *string) {
     return (string[0] == '-') ? 1 : 0;
 }
+
+void remove_escape_char(char *str) {
+    for (size_t i = 0; str[i] != '\0'; i++)
+    {
+        if(str[i] == '\\') {
+            memmove(str+i, str+i+1, strlen(str+i+1)+1);
+            i--;
+        }
+    }
+    
+}
 /*
 int main(int argc, char const *argv[])
 {
