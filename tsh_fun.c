@@ -142,12 +142,22 @@ void printArray (char **path1) {
 	printf("\n");
 }
 
-char *array_to_abspath(char **array) {
+char *array_to_path(char **array, int op) {
     if(array[0] == NULL) return NULL;
-    int pathlength = strlen(array[0])+2;
+    int pathlength;
+    if(op == 1) 
+        pathlength = strlen(array[0])+2;
+    else 
+        pathlength = strlen(array[0])+1;
     char *path = malloc(pathlength);
-    path[0] = '/';
-    memcpy(path+1, array[0], strlen(array[0])+1);
+    if(op == 1) {
+        path[0] = '/';
+        memcpy(path+1, array[0], strlen(array[0])+1);
+    } else {
+        memcpy(path, array[0], strlen(array[0])+1);
+    }
+        
+    
     int i = 1;
     while (array[i] != NULL)
     {
