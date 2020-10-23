@@ -37,7 +37,8 @@ void print_space(int n){
 
 //affiche le nom d'un fichier
 void print_name_file(struct posix_header * header, char * path) {
-  write(STDOUT_FILENO, (header->name + strlen(path) + 1), strlen(header->name) - strlen(path) - 1);
+  if(strlen(path) != 0) write(STDOUT_FILENO, (header->name + strlen(path) + 1), strlen(header->name) - strlen(path) - 1);
+  else write(STDOUT_FILENO, header->name, strlen(header->name));
   print_space(1);
 }
 
