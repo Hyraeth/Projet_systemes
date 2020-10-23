@@ -427,7 +427,7 @@ int tsh_ls(SimpleCommand_t *cmd) {
                 return 1;
             }
             if(cmd->nb_options == 1 && strcmp(cmd->options[0], "-l")==0 || cmd->nb_options == 0) {
-                char *path_in_tar = array_to_abspath(tarDirArray+1); 
+                char *path_in_tar = array_to_path(tarDirArray+1, 0); 
                 ls_tar(cmd->options[0], path_in_tar, fdTar);
                 free(path_in_tar);
             }
@@ -449,7 +449,7 @@ int tsh_ls(SimpleCommand_t *cmd) {
                 //if we are going in a tar
                 if(abs_path_split[1] != NULL) {
                     //turn the array of string in the form of a string
-                    char *path_to_open = array_to_abspath(abs_path_split[0]); 
+                    char *path_to_open = array_to_path(abs_path_split[0], 1); 
                     //add more memory to add the tar to open in the path
                     path_to_open = realloc(path_to_open, strlen(path_to_open) + strlen(abs_path_split[1][0]) + 1);
                     strcat(path_to_open, "/");
@@ -457,15 +457,14 @@ int tsh_ls(SimpleCommand_t *cmd) {
                     //open the tar to ls
                     int fd = open(path_to_open, O_RDWR);
                     //get the path to ls inside the tar
-                    char *path_in_tar = array_to_abspath(abs_path_split[2]);
-                    if (path_in_tar == NULL) ls_tar(cmd->options[0], "", fd);
-                    else ls_tar(cmd->options[0], path_in_tar, fd);
+                    char *path_in_tar = array_to_path(abs_path_split[2], 1);
+                    ls_tar(cmd->options[0], path_in_tar, fd);
                     free(path_to_open);
                     free(path_in_tar);
                 } 
                 else {
                     //get the path to ls
-                    char *path_to_ls = array_to_abspath(abs_path_split[0]);
+                    char *path_to_ls = array_to_path(abs_path_split[0], 1);
                     //allocate memory for "ls", the options, and the path
                     char **args = malloc((cmd->nb_options+3) * sizeof(char *));
                     args[0] = malloc(strlen(cmd->args[0]) + 1);
