@@ -428,8 +428,7 @@ int tsh_ls(SimpleCommand_t *cmd) {
             }
             if(cmd->nb_options == 1 && strcmp(cmd->options[0], "-l")==0 || cmd->nb_options == 0) {
                 char *path_in_tar = array_to_path(tarDirArray+1, 0); 
-                if (path_in_tar == NULL) ls_tar(cmd->options[0], "", fdTar);
-                else ls_tar(cmd->options[0], path_in_tar, fdTar);
+                ls_tar(cmd->options[0], path_in_tar, fdTar);
                 free(path_in_tar);
             }
         } else {
@@ -459,8 +458,7 @@ int tsh_ls(SimpleCommand_t *cmd) {
                     int fd = open(path_to_open, O_RDWR);
                     //get the path to ls inside the tar
                     char *path_in_tar = array_to_path(abs_path_split[2], 1);
-                    if (path_in_tar == NULL) ls_tar(cmd->options[0], "", fd);
-                    else ls_tar(cmd->options[0], path_in_tar, fd);
+                    ls_tar(cmd->options[0], path_in_tar, fd);
                     free(path_to_open);
                     free(path_in_tar);
                 } 
