@@ -430,7 +430,7 @@ int tsh_ls(SimpleCommand_t *cmd) {
                 char *path_in_tar = array_to_path(tarDirArray+1, 0); 
                 write(1, path_in_tar, strlen(path_in_tar));write(1, "\n", 1);
                 printArray(tarDirArray);write(1, "\n", 1);
-                //ls_tar(cmd->options[0], path_in_tar, fdTar);
+                ls_tar(cmd->options[0], path_in_tar, fdTar);
                 free(path_in_tar);
             }
         } else {
