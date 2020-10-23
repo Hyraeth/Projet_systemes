@@ -72,11 +72,12 @@ int main(int argc, char const *argv[])
     int run = 1;
     do {
         int pwdlen = PWDLEN;
-        char *pwd = malloc(pwdlen); 
+        char *pwd;
+        if((pwd = malloc(pwdlen)) == NULL) perror("tsh"); 
         while(getcwd(pwd, pwdlen) == NULL) {
             pwdlen *= 2;
             free(pwd);
-            pwd = malloc(pwdlen);
+            if((pwd = malloc(pwdlen)) == NULL) perror("tsh"); 
         }
         if(tarDepth > -1) {
             for (size_t i = 0; i <= tarDepth; i++)
@@ -123,7 +124,8 @@ int main(int argc, char const *argv[])
 */
 char *read_line() {
     int bufsize = BUFLEN;
-    char *line = malloc(bufsize*sizeof(char));
+    char *line;
+    if((line = malloc(bufsize*sizeof(char))) == NULL) perror("tsh"); 
     if(line == NULL) {
         perror("tsh");
     }
@@ -161,6 +163,9 @@ SimpleCommand_t *parse_line(char *line) {
     SimpleCommand_t *cmd = malloc(sizeof(struct SimpleCommand_t));
     char **args = malloc(nbargs*sizeof(char *));
     char **ops = malloc(sizeof(char *));
+    if(args == NULL) perror("tsh"); 
+    if(cmd == NULL) perror("tsh"); 
+    if(ops == NULL) perror("tsh"); 
     char *word = strtok(line, " \n\t");
 
     int nbword = 0;
@@ -174,15 +179,23 @@ SimpleCommand_t *parse_line(char *line) {
         }
 
         if(word[0] == '-' && strlen(word) != 1) {
-            ops[nbops] = malloc(strlen(word)+1);
+            if( (ops[nbops] = malloc(strlen(word)+1)) == NULL) perror("tsh");
             memcpy(ops[nbops], word, strlen(word)+1);
             nbops++;
-            ops = realloc(ops, (nbops+1)*sizeof(int));
+            if( (ops = realloc(ops, (nbops+1)*sizeof(int))) == NULL) perror("tsh");
         }
 
         if((args[nbword] = malloc((strlen(word)+1) * sizeof(char))) == NULL)
             perror("tsh");
         memcpy(args[nbword], word, strlen(word)+1);
+        if(word[strlen(word)-1] == '\\') {
+            int newsize = strlen(word)+1;
+            word = strtok(NULL, " \n\t");
+            newsize += strlen(word) + 1;
+            if((args[nbword] = realloc(args[nbword], newsize)) == NULL) perror("tsh");
+            strcat(args[nbword], " ");
+            strcat(args[nbword], word);
+        }
         nbword++;
         word = strtok(NULL, " \n\t");
     }
@@ -208,15 +221,15 @@ int call_existing_command(char **args) {
 
     pid = fork();
     if (pid < 0) {
-        perror("lsh");
+        perror("tsh");
     } else if (pid == 0) {
         if (execvp(args[0], args) == -1) {
-            perror("lsh");
+            perror("tsh");
         }
         exit(EXIT_FAILURE);
     } else {
         do {
-        wpid = waitpid(pid, &status, WUNTRACED);
+            wpid = waitpid(pid, &status, WUNTRACED);
         } while (!WIFEXITED(status) && !WIFSIGNALED(status));
     }
 
@@ -261,7 +274,8 @@ int exec_cmd(SimpleCommand_t *cmd) {
 char **parse_path(char *path) {
     int nbargs = NBARGS;
 
-    char **args = malloc(nbargs*sizeof(char *));
+    char **args;
+    if((args = malloc(nbargs*sizeof(char *))) == NULL) perror("tsh");
     char *word = strtok(path, "/");
 
     int nbword = 0;
@@ -276,6 +290,7 @@ char **parse_path(char *path) {
         if((args[nbword] = malloc((strlen(word)+1) * sizeof(char))) == NULL)
             perror("tsh malloc parse path");
         memcpy(args[nbword], word, strlen(word)+1);
+        
         nbword++;
         word = strtok(NULL, "/");
     }
@@ -292,14 +307,16 @@ char **parse_path(char *path) {
 int tsh_cd(SimpleCommand_t *cmd) {
     //in case there is an error we can go back
     int pwdlen = PWDLEN;
-    char *pwdtmp = malloc(pwdlen); 
+    char *pwdtmp; 
+    if((pwdtmp = malloc(pwdlen)) == NULL) perror("tsh");
     while(getcwd(pwdtmp, pwdlen) == NULL) {
         pwdlen *= 2;
         free(pwdtmp);
-        pwdtmp = malloc(pwdlen);
+        if((pwdtmp = malloc(pwdlen)) == NULL) perror("tsh");
     }
     int tmpDepth = tarDepth;
-    char **tmpTarDir = malloc((tarDepth+1)*sizeof(char *));
+    char **tmpTarDir;
+    if((tmpTarDir = malloc((tarDepth+1)*sizeof(char *))) == NULL) perror("tsh");
     memcpy(tmpTarDir, tarDirArray, tarDepth+1);
     int failure = 0;
     //weirds arguments handling
@@ -329,11 +346,13 @@ int tsh_cd(SimpleCommand_t *cmd) {
         }
         i++;
     }
-    char *path = malloc(strlen(cmd->args[1])+1);
+    char *path;
+    if((path = malloc(strlen(cmd->args[1])+1)) == NULL) perror("tsh");
     memcpy(path, cmd->args[1], strlen(cmd->args[1])+1);
     char **arrayDir = parse_path(path); //parsing th path into array of folder/file name
     while(arrayDir[i] != NULL) {
         //if the destination a tar we add the file name into tarDirArray
+        remove_escape_char(arrayDir[i]);
         if(isTar(arrayDir[i])) {
             tarDepth++;
             if((fdTar = open(arrayDir[i], O_RDWR, S_IRUSR | S_IWUSR)) == -1) {
@@ -363,7 +382,7 @@ int tsh_cd(SimpleCommand_t *cmd) {
                     } //if we are not out of the tar
                     else {
                         //we realloc tarDirArray into 1 size smaller
-                        tarDirArray = realloc(tarDirArray, (tarDepth+2)*sizeof(char*));
+                        if((tarDirArray = realloc(tarDirArray, (tarDepth+2)*sizeof(char*))) == NULL) perror("tsh: cd");
                         tarDirArray[tarDepth+1] = NULL;
                     }
                 } //if we go down in the tar
@@ -440,10 +459,14 @@ int tsh_ls(SimpleCommand_t *cmd) {
         {
             //if the ith argument of the command is not an option
             if(!is_an_option(cmd->args[i])) {
+                write(STDOUT_FILENO, "\n", strlen("\n")); 
+                write(STDOUT_FILENO, ANSI_COLOR_CYAN, strlen(ANSI_COLOR_CYAN));
                 write(STDOUT_FILENO, cmd->args[i], strlen(cmd->args[i])); //write the name of the path to ls
+                write(STDOUT_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
                 write(STDOUT_FILENO, ":\n", strlen(":\n")); 
                 //get the absolute path of the path given in form of array of string
                 char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd());
+                remove_escape_char_array(abs_path_array);
                 //split the absolute path in 3 array of string corresponding to the path before the tar, the name of the tar and the path after
                 char ***abs_path_split = path_to_tar_file_path_new(abs_path_array); 
                 //if we are going in a tar
@@ -451,16 +474,18 @@ int tsh_ls(SimpleCommand_t *cmd) {
                     //turn the array of string in the form of a string
                     char *path_to_open = array_to_path(abs_path_split[0], 1); 
                     //add more memory to add the tar to open in the path
-                    path_to_open = realloc(path_to_open, strlen(path_to_open) + strlen(abs_path_split[1][0]) + 1);
+                    if((path_to_open = realloc(path_to_open, strlen(path_to_open) + strlen(abs_path_split[1][0]) + 1)) == NULL) perror("tsh: ls");
                     strcat(path_to_open, "/");
                     strcat(path_to_open, abs_path_split[1][0]);
                     //open the tar to ls
-                    int fd = open(path_to_open, O_RDWR);
+                    int fd;
+                    if((fd = open(path_to_open, O_RDWR, S_IRUSR | S_IWUSR)) == -1) perror("tsh: ls");
                     //get the path to ls inside the tar
                     char *path_in_tar = array_to_path(abs_path_split[2], 1);
                     ls_tar(cmd->options[0], path_in_tar, fd);
                     free(path_to_open);
                     free(path_in_tar);
+                    close(fd);
                 } 
                 else {
                     //get the path to ls
@@ -491,7 +516,7 @@ int tsh_ls(SimpleCommand_t *cmd) {
                 free(abs_path_array);
                 for (size_t j = 0; j < 2; j++)
                 {
-                    
+
                     if(abs_path_split[j] != NULL) {
                         free(abs_path_split[j]);
                     }
