@@ -143,7 +143,11 @@ void printArray (char **path1) {
 }
 
 char *array_to_path(char **array, int op) {
-    if(array[0] == NULL) return NULL;
+    if(array[0] == NULL) {
+        char *path = malloc(1);
+        path[0] = 0;
+        return path;
+    }
     int pathlength;
     if(op == 1) 
         pathlength = strlen(array[0])+2;
