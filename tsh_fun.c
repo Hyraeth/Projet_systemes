@@ -47,6 +47,13 @@ char **parsePathAbsolute (char *path, char *pwd) {
                 nbElementsBefore_2 --;
             }
         }
+        else if (strcmp(pathArray[i],".") == 0) {
+            memmove(&pathArray[i],&pathArray[i+1],(size_2 - 1 - i)*sizeof( char *) );
+            if ((pathArray = realloc(pathArray,(size_2 - 1) * sizeof(char *))) == NULL) {
+                perror ("tsh realloc parsePathAbsolute");
+            }
+            size_2 --;
+        }
         else {
             nbElementsBefore_2++;
         	i++;
