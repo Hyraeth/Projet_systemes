@@ -189,6 +189,14 @@ void remove_escape_char(char *str) {
     }
     
 }
+
+void remove_escape_char_array(char **array) {
+    int i = 0;
+    while(array[i] != NULL) {
+        remove_escape_char(array[i]);
+        i++;
+    }
+}
 /*
 int main(int argc, char const *argv[])
 {
