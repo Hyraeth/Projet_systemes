@@ -139,26 +139,28 @@ char ***path_to_tar_file_path_new (char **path) {
 void printArray (char **path1) {
 	int i = 0;
 	while (path1[i] != NULL) {
-		printf("/%s",path1[i]);
+		printf("%s ",path1[i]);
 		i++;
 	}
 	printf("\n");
 }
 
-char *array_to_path(char **array) {
-    if(array == NULL || array[0] == NULL) return "\0";
-    int pathlength = strlen(array[0])+1;
+char *array_to_abspath(char **array) {
+    if(array[0] == NULL) return NULL;
+    int pathlength = strlen(array[0])+2;
     char *path = malloc(pathlength);
-    memcpy(path, array[0], pathlength);
+    path[0] = '/';
+    memcpy(path+1, array[0], strlen(array[0])+1);
     int i = 1;
     while (array[i] != NULL)
     {
-        pathlength += strlen(array[i]);
-        path = realloc(path, pathlength+1);
+        pathlength += strlen(array[i])+1;
+        path = realloc(path, pathlength);
         strcat(path, "/");
         strcat(path, array[i]);
+        i++;
     }
-    
+    path[strlen(path)] = '\0';
     return path;
 }
 

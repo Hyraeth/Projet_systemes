@@ -104,7 +104,10 @@ void print_ls_l (struct posix_header * header) {
 //affiche ce qu'affiche ls sur un FILE en fonction de la commande
 void print_header_name (char *op, struct posix_header * header, char * path) {
   if (contain_one_char(header->name + strlen(path) + 1, '/')) {
-    if (strcmp(op,"-l") == 0){
+    if(op == NULL) {
+      print_name_file(header,path);
+    }
+    else if (strcmp(op,"-l") == 0){
       print_ls_l(header);
       print_name_rep(header,path);
       write(STDOUT_FILENO, "\n", strlen("\n"));
@@ -113,7 +116,10 @@ void print_header_name (char *op, struct posix_header * header, char * path) {
       print_name_rep(header,path);
   }
   else if (!contain_char(header->name + strlen(path) + 1, '/') && !(strcmp(header->name + strlen(path) + 1, "\0") == 0)) {
-    if (strcmp(op,"-l") == 0){
+    if(op == NULL) {
+      print_name_file(header,path);
+    }
+    else if (strcmp(op,"-l") == 0){
       print_ls_l(header);
       print_name_file(header,path);
       write(STDOUT_FILENO, "\n", strlen("\n"));

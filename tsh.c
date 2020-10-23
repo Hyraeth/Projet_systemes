@@ -427,7 +427,7 @@ int tsh_ls(SimpleCommand_t *cmd) {
                 return 1;
             }
             if(cmd->nb_options == 1 && strcmp(cmd->options[0], "-l")==0 || cmd->nb_options == 0) {
-                char *path_in_tar = array_to_path(tarDirArray+1);
+                char *path_in_tar = array_to_abspath(tarDirArray+1); 
                 ls_tar(cmd->options[0], path_in_tar, fdTar);
                 free(path_in_tar);
             }
@@ -441,14 +441,15 @@ int tsh_ls(SimpleCommand_t *cmd) {
             //if the ith argument of the command is not an option
             if(!is_an_option(cmd->args[i])) {
                 write(STDOUT_FILENO, cmd->args[i], strlen(cmd->args[i])); //write the name of the path to ls
+                write(STDOUT_FILENO, ":\n", strlen(":\n")); 
                 //get the absolute path of the path given in form of array of string
-                char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd()); 
+                char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd());
                 //split the absolute path in 3 array of string corresponding to the path before the tar, the name of the tar and the path after
-                char ***abs_path_split = path_to_tar_file_path_new(abs_path_array);
+                char ***abs_path_split = path_to_tar_file_path_new(abs_path_array); 
                 //if we are going in a tar
                 if(abs_path_split[1] != NULL) {
                     //turn the array of string in the form of a string
-                    char *path_to_open = array_to_path(abs_path_split[0]);
+                    char *path_to_open = array_to_abspath(abs_path_split[0]); 
                     //add more memory to add the tar to open in the path
                     path_to_open = realloc(path_to_open, strlen(path_to_open) + strlen(abs_path_split[1][0]) + 1);
                     strcat(path_to_open, "/");
@@ -456,15 +457,16 @@ int tsh_ls(SimpleCommand_t *cmd) {
                     //open the tar to ls
                     int fd = open(path_to_open, O_RDWR);
                     //get the path to ls inside the tar
-                    char *path_in_tar = array_to_path(abs_path_split[2]);
+                    char *path_in_tar = array_to_abspath(abs_path_split[2]);
                     ls_tar(cmd->options[0], path_in_tar, fd);
                     free(path_to_open);
                     free(path_in_tar);
-                } else {
+                } 
+                else {
                     //get the path to ls
-                    char *path_to_ls = array_to_path(abs_path_split[0]);
+                    char *path_to_ls = array_to_abspath(abs_path_split[0]);
                     //allocate memory for "ls", the options, and the path
-                    char **args = malloc((cmd->nb_options + 3)*sizeof(char *));
+                    char **args = malloc((cmd->nb_options+3) * sizeof(char *));
                     args[0] = malloc(strlen(cmd->args[0]) + 1);
                     memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
                     for (size_t i = 0; i < cmd->nb_options; i++)
@@ -474,22 +476,23 @@ int tsh_ls(SimpleCommand_t *cmd) {
                     }
                     args[cmd->nb_options+1] = malloc(strlen(path_to_ls)+1);
                     memcpy(args[cmd->nb_options+1], path_to_ls, strlen(path_to_ls)+1);
-                    args[cmd->nb_options+1] = NULL;
+                    args[cmd->nb_options+2] = NULL;
+                    //write(1, path_to_ls, strlen(path_to_ls));
                     free(path_to_ls);
+
                     call_existing_command(args);
                 }
                 int i = 0;
                 while(abs_path_array[i] != NULL) {
                     free(abs_path_array[i]);
+                    i++;
                 }
+    
                 free(abs_path_array);
                 for (size_t j = 0; j < 2; j++)
                 {
+                    
                     if(abs_path_split[j] != NULL) {
-                        int k = 0;
-                        while(abs_path_split[j][k] != NULL) {
-                            free(abs_path_split[j][k]);
-                        }
                         free(abs_path_split[j]);
                     }
                 }
