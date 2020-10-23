@@ -149,6 +149,8 @@ int ls_tar(char *op, char *path, int fd) {
     read(fd, header, BLOCKSIZE*filesize);
   }
   write(STDOUT_FILENO, "\n", strlen("\n"));
+  lseek(fd, 0, SEEK_SET);
+  free(header);
   return 1;
 }
 /*
