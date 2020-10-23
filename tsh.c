@@ -463,6 +463,7 @@ int tsh_ls(SimpleCommand_t *cmd) {
                     ls_tar(cmd->options[0], path_in_tar, fd);
                     free(path_to_open);
                     free(path_in_tar);
+                    close(fd);
                 } 
                 else {
                     //get the path to ls
