@@ -13,6 +13,7 @@ void print_name_rep(struct posix_header * header, char * path);
 void print_type (struct posix_header * header);
 void print_right(struct posix_header * header);
 void print_size(struct posix_header * header);
+void print_time(struct posix_header * header);
 void print_ls_l (struct posix_header * header);
 void print_header_name(char *op, struct posix_header * header, char * path);
 int ls_tar(char *op, char *path, int fd);
