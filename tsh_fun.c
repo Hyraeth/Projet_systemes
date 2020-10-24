@@ -204,6 +204,12 @@ void remove_escape_char_array(char **array) {
         i++;
     }
 }
+
+int nb_elem(char **array) {
+    int i = 0;
+    while(array[i] != NULL) i++;
+    return i;
+}
 /*
 int main(int argc, char const *argv[])
 {
