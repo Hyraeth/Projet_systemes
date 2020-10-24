@@ -8,9 +8,27 @@
 
 char **parsePathAbsolute (char *path, char *pwd) {
     int size_1;
-    char **pwdArray = parse_path_array(pwd,&size_1);
+    char **pwdArray;
     int size_2;
-    char **pathArray = parse_path_array(path,&size_2);
+    char **pathArray;
+
+    char *envHome = getenv("HOME");
+    char *envHomeCpy = malloc(strlen(envHome) + 1);
+    
+    if (path[0] == '~') {
+        memcpy(envHomeCpy,envHome,strlen(envHome) + 1);
+        pwdArray = parse_path_array(envHomeCpy,&size_1);
+        pathArray = parse_path_array(path+1,&size_2);
+    }
+    else {
+        pathArray = parse_path_array(path,&size_2);
+        if (path[0] == '/') {
+            pwdArray = parse_path_array("",&size_1);
+        }
+        else {
+            pwdArray = parse_path_array(pwd,&size_1);
+        }
+    }
 
     int i = 0;
 
@@ -18,7 +36,8 @@ char **parsePathAbsolute (char *path, char *pwd) {
         if (strcmp(pathArray[i],"..") == 0) {
             if (i == 0) {
                 if ((size_1 - 1) == 0) {
-                    perror("tsh no such file or directory parsePathAbsolute");
+                    write(STDOUT_FILENO, "tsh: ls: No such file or directory\n", strlen("tsh: ls: No such file or directory\n"));
+                    return NULL;
                 }
                 else {
                     if ((pwdArray = realloc(pwdArray,(size_1 - 1) * sizeof(char *) )) == NULL){
@@ -55,11 +74,13 @@ char **parsePathAbsolute (char *path, char *pwd) {
         	i++;
         }
     }
+
     if ((pwdArray = realloc(pwdArray,(size_1 + size_2) * sizeof(char *) )) == NULL){
     	perror ("tsh realloc parsePathAbsolute");
 	}
 	memcpy(&pwdArray[size_1 - 1],pathArray, size_2 * sizeof( char * ));
 	free(pathArray);
+    free(envHomeCpy);
     return pwdArray;
 }
 
@@ -134,15 +155,6 @@ char ***path_to_tar_file_path_new (char **path) {
     }
     return path_res;
 
-}
-
-void printArray (char **path1) {
-	int i = 0;
-	while (path1[i] != NULL) {
-		printf("%s ",path1[i]);
-		i++;
-	}
-	printf("\n");
 }
 
 char *array_to_path(char **array, int op) {
