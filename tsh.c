@@ -498,6 +498,7 @@ int tsh_ls(SimpleCommand_t *cmd) {
                 else {
                     //get the path to ls
                     char *path_to_ls = array_to_path(abs_path_array, 1);
+                    if(strcmp(path_to_ls, "") == 0) path_to_ls[0] = '/';
                     //allocate memory for "ls", the options, and the path
                     char **args = malloc((cmd->nb_options+3) * sizeof(char *));
                     args[0] = malloc(strlen(cmd->args[0]) + 1);
