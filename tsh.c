@@ -298,13 +298,7 @@ char **parse_path(char *path) {
     return args;
 }
 
-/**
- * @brief Execute the command "cd". For more information see ARCHITECTURE.md
- * 
- * @param cmd Command to execute. Contains the path and the number of arguments of the command
- * @return 1 on success, -1 on failure 
- */
-int tsh_cd(SimpleCommand_t *cmd) {
+int cd_tar(char *path) {
     //in case there is an error we can go back
     int pwdlen = PWDLEN;
     char *pwdtmp; 
@@ -319,44 +313,33 @@ int tsh_cd(SimpleCommand_t *cmd) {
     if((tmpTarDir = malloc((tarDepth+1)*sizeof(char *))) == NULL) perror("tsh");
     memcpy(tmpTarDir, tarDirArray, tarDepth+1);
     int failure = 0;
-    //weirds arguments handling
-    if(cmd->nbargs > 2) {
-        write(STDOUT_FILENO, "tsh: cd: too many arguments\n", strlen("tsh: cd: too many arguments\n"));
-        return 1;
-    } //if we want to go to home or ~
-    if(cmd->nbargs == 1) {
-        char *home = getenv ("HOME");
-        if(chdir(home) != 0) {
-            perror("tsh: cd");
-        }
-        return 1;
-    }
-    int i = 0;
+
+     int i = 0;
     //if the path start by '/'
-    if(cmd->args[1][0] == '/') {
+    if(path[0] == '/') {
         if(chdir("/") != 0) {
             perror("tsh: cd");
         }
     } 
     //if the parth start with a ~
-    if(cmd->args[1][0] == '~') {
+    if(path[0] == '~') {
         char *home = getenv ("HOME");
         if(chdir(home) != 0) {
             perror("tsh: cd");
         }
         i++;
     }
-    char *path;
-    if((path = malloc(strlen(cmd->args[1])+1)) == NULL) perror("tsh");
-    memcpy(path, cmd->args[1], strlen(cmd->args[1])+1);
-    char **arrayDir = parse_path(path); //parsing th path into array of folder/file name
+    char *chemin;
+    if((chemin = malloc(strlen(path)+1)) == NULL) perror("tsh");
+    memcpy(chemin, path, strlen(path)+1);
+    char **arrayDir = parse_path(chemin); //parsing th path into array of folder/file name
     while(arrayDir[i] != NULL) {
         //if the destination a tar we add the file name into tarDirArray
         remove_escape_char(arrayDir[i]);
         if(isTar(arrayDir[i])) {
             tarDepth++;
             if((fdTar = open(arrayDir[i], O_RDWR, S_IRUSR | S_IWUSR)) == -1) {
-                free(path);
+                free(chemin);
                 tarDepth--;
                 perror("tsh: cd");
             }
@@ -418,7 +401,7 @@ int tsh_cd(SimpleCommand_t *cmd) {
         i++;
     }
     free(arrayDir);
-    free(path);
+    free(chemin);
     if(failure) {
         chdir(pwdtmp);
         memcpy(tarDirArray, tmpTarDir, tmpDepth+1);
@@ -428,6 +411,29 @@ int tsh_cd(SimpleCommand_t *cmd) {
     free(pwdtmp);
     free(tmpTarDir);
     return 1;
+}
+
+/**
+ * @brief Execute the command "cd". For more information see ARCHITECTURE.md
+ * 
+ * @param cmd Command to execute. Contains the path and the number of arguments of the command
+ * @return 1 on success, -1 on failure 
+ */
+int tsh_cd(SimpleCommand_t *cmd) {
+    
+    //weirds arguments handling
+    if(cmd->nbargs > 2) {
+        write(STDOUT_FILENO, "tsh: cd: too many arguments\n", strlen("tsh: cd: too many arguments\n"));
+        return 1;
+    } //if we want to go to home or ~
+    if(cmd->nbargs == 1) {
+        char *home = getenv ("HOME");
+        if(chdir(home) != 0) {
+            perror("tsh: cd");
+        }
+        return 1;
+    }
+   return cd_tar(cmd->args[1]);
 }
 
 /**
