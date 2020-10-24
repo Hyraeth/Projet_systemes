@@ -13,38 +13,35 @@ char **parsePathAbsolute (char *path, char *pwd) {
     char **pathArray = parse_path_array(path,&size_2);
 
     int i = 0;
-    int nbElementsBefore_2 = 0;
 
     while (pathArray[i] != NULL) {
         if (strcmp(pathArray[i],"..") == 0) {
-            if (nbElementsBefore_2 == 0) {
+            if (i == 0) {
                 if ((size_1 - 1) == 0) {
                     perror("tsh no such file or directory parsePathAbsolute");
                 }
                 else {
                     if ((pwdArray = realloc(pwdArray,(size_1 - 1) * sizeof(char *) )) == NULL){
-                    	perror ("tsh realloc parsePathAbsolute");
+                    	perror ("tsh realloc parsePathAbsolute1");
                 	}
                 	size_1--;
                     pwdArray[size_1 - 1] = NULL;
 
-                    memmove(pathArray, &pathArray[1], (size_2 - 1)*sizeof( char *) );
+                    memmove(&pathArray[i], &pathArray[i + 1], (size_2 - 1)*sizeof( char *) );
 
 	                if ((pathArray = realloc(pathArray,(size_2 - 1) * sizeof(char *))) == NULL) {
-	                	perror ("tsh realloc parsePathAbsolute");
+	                	perror ("tsh realloc parsePathAbsolute2");
 	                }
 	                size_2 --;
                 }
             }
             else {
-                memmove(&pathArray[nbElementsBefore_2 - 1],
-                        &pathArray[nbElementsBefore_2],
-                        (size_2 - 1 - nbElementsBefore_2)*sizeof( char *) );
-                if ((pathArray = realloc(pathArray,(size_2 - 1) * sizeof(char *))) == NULL) {
+                memmove(&pathArray[i - 1], &pathArray[i+1], (size_2 - 1 - i)*sizeof( char *) );
+                if ((pathArray = realloc(pathArray,(size_2 - 2) * sizeof(char *))) == NULL) {
                 	perror ("tsh realloc parsePathAbsolute");
                 }
-                size_2 --;
-                nbElementsBefore_2 --;
+                size_2 -= 2;
+                i--;
             }
         }
         else if (strcmp(pathArray[i],".") == 0) {
@@ -55,7 +52,6 @@ char **parsePathAbsolute (char *path, char *pwd) {
             size_2 --;
         }
         else {
-            nbElementsBefore_2++;
         	i++;
         }
     }
