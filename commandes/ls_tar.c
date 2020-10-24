@@ -82,10 +82,23 @@ void print_size(struct posix_header * header) {
   int taille;
   sscanf(header->size,"%o",&taille);
   char buffer [33];
+  if(header->typeflag == '5') taille = 4096;
   sprintf(buffer,"%d",taille);
   print_space(8-strlen(buffer)); //tant pis si la taille depace 8 carractère
   write(STDOUT_FILENO, buffer, strlen(buffer));
 }
+
+void print_time(struct posix_header * header) {
+  unsigned long taille;
+  sscanf(header->mtime,"%lo",&taille);
+  time_t timestamp = taille;
+  struct tm * pTime = localtime( &timestamp );
+  char buffer [65];
+  strftime(buffer, 65, "%b %d %H:%M", pTime );
+  print_space(8-strlen(buffer)); //tant pis si la taille depace 8 carractère
+  write(STDOUT_FILENO, buffer, strlen(buffer));
+}
+
 //affiche toute les info supplementaire de la commande "ls -l" autre que le nom
 void print_ls_l (struct posix_header * header) {
   print_type(header); //affiche le type du fichier
@@ -99,7 +112,7 @@ void print_ls_l (struct posix_header * header) {
   print_space(1);
   print_size(header); //affiche la taille du fichier
   print_space(1);
-  write(STDOUT_FILENO, header->mtime, strlen(header->mtime)); //affiche l'horodatage
+  print_time(header); //affiche l'horodatage
   print_space(1);
 }
 
