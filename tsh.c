@@ -472,7 +472,9 @@ int tsh_ls(SimpleCommand_t *cmd) {
                 write(STDOUT_FILENO, ":\n", strlen(":\n")); 
                 //get the absolute path of the path given in form of array of string
                 char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd());
+                if (abs_path_array == NULL) return -1;
                 remove_escape_char_array(abs_path_array);
+                
                 //split the absolute path in 3 array of string corresponding to the path before the tar, the name of the tar and the path after
                 char ***abs_path_split = path_to_tar_file_path_new(abs_path_array); 
                 //if we are going in a tar
