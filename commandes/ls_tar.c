@@ -45,7 +45,8 @@ void print_name_file(struct posix_header * header, char * path) {
 //affiche le nom d'un repertoir (avec de la couleur)
 void print_name_rep(struct posix_header * header, char * path) {
   write(STDOUT_FILENO, ANSI_COLOR_GREEN"", strlen(ANSI_COLOR_GREEN""));
-  write(STDOUT_FILENO, (header->name + strlen(path) + 1), strlen(header->name) - strlen(path) - 2);
+  if(strlen(path) != 0) write(STDOUT_FILENO, (header->name + strlen(path) + 1), strlen(header->name) - strlen(path) - 2);
+  else write(STDOUT_FILENO, header->name, strlen(header->name) - 1);
   write(STDOUT_FILENO, ANSI_COLOR_RESET" ", strlen(ANSI_COLOR_RESET" "));
 }
 
@@ -106,7 +107,7 @@ void print_ls_l (struct posix_header * header) {
 void print_header_name (char *op, struct posix_header * header, char * path) {
   if (contain_one_char(header->name + strlen(path) + 1, '/')) {
     if(op == NULL) {
-      print_name_file(header,path);
+      print_name_rep(header,path);
     }
     else if (strcmp(op,"-l") == 0){
       print_ls_l(header);
