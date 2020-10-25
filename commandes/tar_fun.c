@@ -38,13 +38,17 @@ char *fileDataInTar (char *name_file, char *path_tar) {
 	return NULL;
 }
 
-int copyFileInTar (int fd_src, const char *name, int fd_dest) {
-	int size = lseek(fd_src,0,SEEK_END);
-	lseek(fd_src,0,SEEK_SET);
+int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar) {
+	int fd_dest;
+
+	if ((fd_dest = open(path_to_tar,O_RDWR)) == -1) return -1;
+
+	int size = strlen(dataToCopy);
+	lseek(fd_dest,-2*BLOCKSIZE,SEEK_END);
 
 	struct posix_header *ph = malloc(sizeof(struct posix_header));
 	memcpy(ph->name, name, strlen(name));
-	sprintf(ph->mode,"0000700");
+	sprintf(ph->mode,"0000664");
 	sprintf(ph->size,"%011o",size);
 	ph->typeflag = '0';
 	memcpy(ph->magic, TMAGIC, strlen(TMAGIC));
@@ -54,18 +58,21 @@ int copyFileInTar (int fd_src, const char *name, int fd_dest) {
 
 	write(fd_dest,ph,sizeof(struct posix_header));
 
-	int occupiedBlocks = (size + BLOCKSIZE - 1) >> BLOCKBITS;
+	char num[50];
+	sprintf(num,"%d",size);
+	write(STDOUT_FILENO,num,strlen(num));
 
-	char buf[BLOCKSIZE];
-	for (int i = 0; i < occupiedBlocks; ++i)
-	{
-		int buflen = read(fd_src,buf,512);
-		write(fd_dest, buf, buflen);
-	}
+	write(fd_dest,dataToCopy,size);
+
 
 	for (int i = 0; i < 512 - (size%512); ++i) //On remplit le dernier bloc pour qu'il faisse bien 512o
 	{
-		write(fd_dest,"0",1);
+		write(fd_dest,'\0',1);
+	}
+
+	for (int i = 0; i < 2 * BLOCKSIZE; ++i) //On remplit les deux blocs de 0 à la fin du tar
+	{
+		write(fd_dest,'\0',1);
 	}
 
 	return 1;

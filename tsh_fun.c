@@ -42,6 +42,7 @@ char **parsePathAbsolute (char *path, char *pwd) {
                 else {
                     if ((pwdArray = realloc(pwdArray,(size_1 - 1) * sizeof(char *) )) == NULL){
                     	perror ("tsh realloc parsePathAbsolute1");
+                        return NULL;
                 	}
                 	size_1--;
                     pwdArray[size_1 - 1] = NULL;
@@ -50,6 +51,7 @@ char **parsePathAbsolute (char *path, char *pwd) {
 
 	                if ((pathArray = realloc(pathArray,(size_2 - 1) * sizeof(char *))) == NULL) {
 	                	perror ("tsh realloc parsePathAbsolute2");
+                        return NULL;
 	                }
 	                size_2 --;
                 }
@@ -58,6 +60,7 @@ char **parsePathAbsolute (char *path, char *pwd) {
                 memmove(&pathArray[i - 1], &pathArray[i+1], (size_2 - 1 - i)*sizeof( char *) );
                 if ((pathArray = realloc(pathArray,(size_2 - 2) * sizeof(char *))) == NULL) {
                 	perror ("tsh realloc parsePathAbsolute");
+                    return NULL;
                 }
                 size_2 -= 2;
                 i--;
@@ -67,6 +70,7 @@ char **parsePathAbsolute (char *path, char *pwd) {
             memmove(&pathArray[i],&pathArray[i+1],(size_2 - 1 - i)*sizeof( char *) );
             if ((pathArray = realloc(pathArray,(size_2 - 1) * sizeof(char *))) == NULL) {
                 perror ("tsh realloc parsePathAbsolute");
+                return NULL;
             }
             size_2 --;
         }
@@ -77,6 +81,7 @@ char **parsePathAbsolute (char *path, char *pwd) {
 
     if ((pwdArray = realloc(pwdArray,(size_1 + size_2) * sizeof(char *) )) == NULL){
     	perror ("tsh realloc parsePathAbsolute");
+        return NULL;
 	}
 	memcpy(&pwdArray[size_1 - 1],pathArray, size_2 * sizeof( char * ));
 	free(pathArray);
@@ -160,7 +165,7 @@ char ***path_to_tar_file_path_new (char **path) {
 char *array_to_path(char **array, int op) {
     if(array[0] == NULL) {
         char *path = malloc(1);
-        path[0] = 0;
+        path[0] = '\0';
         return path;
     }
     int pathlength;

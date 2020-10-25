@@ -10,6 +10,7 @@
 #include "headers/tar_fun.h"
 #include "headers/ls_tar.h"
 #include "headers/tsh_fun.h"
+#include "headers/cp_tar.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -47,13 +48,15 @@ int tsh_cd(SimpleCommand_t *cmd);
 int tsh_ls(SimpleCommand_t *cmd);
 int tsh_pwd(SimpleCommand_t *cmd);
 int tsh_exit(SimpleCommand_t *cmd);
+int tsh_cp(SimpleCommand_t *cmd);
 
 
 char *builtin_str[] = {
   "cd",
   "ls",
   "pwd",
-  "exit"
+  "exit",
+  "cp"
 };
 
 /**
@@ -64,7 +67,8 @@ int (*builtin_func[]) (SimpleCommand_t *cmd) = {
   &tsh_cd,
   &tsh_ls,
   &tsh_pwd,
-  &tsh_exit
+  &tsh_exit,
+  &tsh_cp
 };
 
 int main(int argc, char const *argv[])
@@ -247,7 +251,7 @@ int exec_cmd(SimpleCommand_t *cmd) {
     if(cmd->args[0] == NULL) {
         return 1;
     }
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 5; i++)
     {
         if (strcmp(cmd->args[0], builtin_str[i]) == 0) {
             return (*builtin_func[i])(cmd);
@@ -590,4 +594,28 @@ int tsh_pwd(SimpleCommand_t *cmd) {
  */
 int tsh_exit(SimpleCommand_t *cmd) {
     return 0;
+}
+
+int tsh_cp (SimpleCommand_t *cmd) {
+    if (cmd->nbargs != 3) return -1;
+
+    char *pwd = get_pwd();
+    char **pathFromArr = parsePathAbsolute(cmd->args[1],pwd);
+    free(pwd);
+
+    char *pwd2 = get_pwd();
+    char **pathToArr = parsePathAbsolute(cmd->args[2],pwd2);
+    free(pwd2);
+
+    char ***path1 = path_to_tar_file_path_new(pathFromArr);
+    char ***path2 = path_to_tar_file_path_new(pathToArr);
+
+    if (path1[1] == NULL && path2[1] == NULL) return call_existing_command(cmd->args);
+
+    if (cmd->nb_options == 0) return cp_tar(path1,path2,0);
+    if (cmd->nb_options == 1 && cmd->options[0] == "-l") return cp_tar(path1,path2,1);
+    else return -1;
+
+    free(pathFromArr);
+    free(pathToArr);
 }
