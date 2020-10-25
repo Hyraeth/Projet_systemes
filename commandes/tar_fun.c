@@ -17,7 +17,6 @@ char *fileDataInTar (char *name_file, char *path_tar) {
 	while (bloc[0] != 0) {
 
 		memcpy(name,bloc,100);
-		printf("%s\n", name);
 		memcpy(size,&bloc[124],12);
 		int filesize;
 		sscanf(size,"%o",&filesize);
@@ -25,9 +24,11 @@ char *fileDataInTar (char *name_file, char *path_tar) {
 		int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
 
 		if (strcmp(name,name_file) == 0){
+
 			char *res = malloc(BLOCKSIZE * occupiedBlocks + 1);
 			int n = read(src,res,BLOCKSIZE * occupiedBlocks);
 			res[n] = 0;
+
 			return res;
 		}
 
@@ -58,10 +59,6 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar) {
 
 	write(fd_dest,ph,sizeof(struct posix_header));
 
-	char num[50];
-	sprintf(num,"%d",size);
-	write(STDOUT_FILENO,num,strlen(num));
-
 	write(fd_dest,dataToCopy,size);
 
 
@@ -69,6 +66,8 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar) {
 	{
 		write(fd_dest,'\0',1);
 	}
+
+	lseek(fd_dest,0,SEEK_END);
 
 	for (int i = 0; i < 2 * BLOCKSIZE; ++i) //On remplit les deux blocs de 0 à la fin du tar
 	{
@@ -96,7 +95,6 @@ int deleteFileInTar (char *name_file, char *path_tar) {
     while (bloc[0] != 0) {
 
         memcpy(name,bloc,100);
-        printf("%s\n", name);
         memcpy(size,&bloc[124],12);
         int filesize;
         sscanf(size,"%o",&filesize);
@@ -116,9 +114,12 @@ int deleteFileInTar (char *name_file, char *path_tar) {
     if (emplacement != -1) {
         int sizeFullTar = lseek(src,0,SEEK_END);
         lseek(src,emplacement,SEEK_SET);
+
+        printf("%d\n",sizeToDelete );
         for (int i = 0; i < sizeToDelete; i++)
         {
-        	write(src,"0",1);
+        	write(src,'\0',1);
+        	lseek(src,1,SEEK_CUR);
         }
         int sizeToCopy = sizeFullTar - emplacement - sizeToDelete;
         char dataToMove[sizeToCopy];
@@ -127,8 +128,6 @@ int deleteFileInTar (char *name_file, char *path_tar) {
         write(src,dataToMove,sizeToCopy);
         ftruncate(src,emplacement+sizeToCopy);
 
-        printf("%d\n", sizeFullTar);
-        printf("%d\n", sizeToCopy);
         close(src);
         return 1;
     }

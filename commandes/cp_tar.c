@@ -18,7 +18,9 @@ int cp_tar (char ***path1, char ***path2, int op) {
 	}
 
 	if (path2[1] == NULL) {
-		char *name = getLast(path1[0]);
+		char *name;
+		if (path1[1] == NULL) name = getLast(path1[0]);
+		else name = getLast(path1[2]);
 		char *path = concatPathBeforeTarPathTar(path2[0],name,1,"");
 		if (name == NULL) return -1;
 		if (cpyDataFileNotInTar(path,dataToCpy) == -1) return -1;
@@ -46,7 +48,7 @@ char *fileDataNotInTar (char *path) {
 	int size = lseek(fd,0,SEEK_END);
 	lseek(fd,0,SEEK_SET);
 
-	char *data = malloc(size + 1);
+	char *data = malloc(size);
 	read(fd,data,size);
 	return data;
 }

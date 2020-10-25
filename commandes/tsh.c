@@ -11,7 +11,6 @@
 #include "headers/ls_tar.h"
 #include "headers/tsh_fun.h"
 #include "headers/cp_tar.h"
-#include "headers/rm_tar.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -50,7 +49,6 @@ int tsh_ls(SimpleCommand_t *cmd);
 int tsh_pwd(SimpleCommand_t *cmd);
 int tsh_exit(SimpleCommand_t *cmd);
 int tsh_cp(SimpleCommand_t *cmd);
-int tsh_rm(SimpleCommand_t *cmd);
 
 
 char *builtin_str[] = {
@@ -58,8 +56,7 @@ char *builtin_str[] = {
   "ls",
   "pwd",
   "exit",
-  "cp",
-  "rm"
+  "cp"
 };
 
 /**
@@ -71,8 +68,7 @@ int (*builtin_func[]) (SimpleCommand_t *cmd) = {
   &tsh_ls,
   &tsh_pwd,
   &tsh_exit,
-  &tsh_cp,
-  &tsh_rm
+  &tsh_cp
 };
 
 int main(int argc, char const *argv[])
@@ -255,7 +251,7 @@ int exec_cmd(SimpleCommand_t *cmd) {
     if(cmd->args[0] == NULL) {
         return 1;
     }
-    for (size_t i = 0; i < 6; i++)
+    for (size_t i = 0; i < 5; i++)
     {
         if (strcmp(cmd->args[0], builtin_str[i]) == 0) {
             return (*builtin_func[i])(cmd);
@@ -601,10 +597,7 @@ int tsh_exit(SimpleCommand_t *cmd) {
 }
 
 int tsh_cp (SimpleCommand_t *cmd) {
-    if (cmd->nbargs < 3) {
-        write(STDOUT_FILENO,"Il faut 3 arguments pour la fonction cp\n",strlen("Il faut 3 arguments pour la fonction cp\n"));
-        return -1;
-    }
+    if (cmd->nbargs != 3) return -1;
 
     char *pwd = get_pwd();
     char **pathFromArr = parsePathAbsolute(cmd->args[1],pwd);
@@ -619,35 +612,10 @@ int tsh_cp (SimpleCommand_t *cmd) {
 
     if (path1[1] == NULL && path2[1] == NULL) return call_existing_command(cmd->args);
 
+    if (cmd->nb_options == 0) return cp_tar(path1,path2,0);
+    if (cmd->nb_options == 1 && cmd->options[0] == "-l") return cp_tar(path1,path2,1);
+    else return -1;
+
     free(pathFromArr);
     free(pathToArr);
-
-    if (cmd->nb_options == 0 && cmd->nbargs == 3) return cp_tar(path1,path2,0);
-    if (cmd->nb_options == 1 && cmd->options[0] == "-l" && cmd->nbargs == 4) return cp_tar(path1,path2,1);
-    
-    write(STDOUT_FILENO,"Il faut 3 arguments pour la fonction cp\n",strlen("Il faut 3 arguments pour la fonction cp\n"));
-    return -1;
-}
-
-int tsh_rm (SimpleCommand_t *cmd) {
-    if (cmd->nbargs < 2) {
-        write(STDOUT_FILENO,"Il faut 2 arguments pour la fonction cp\n",strlen("Il faut 2 arguments pour la fonction cp\n"));
-        return -1;
-    }
-
-    char *pwd = get_pwd();
-    char **pathFromArr = parsePathAbsolute(cmd->args[1],pwd);
-    free(pwd);
-
-    char ***path = path_to_tar_file_path_new(pathFromArr);
-
-    if (path[1] == NULL || path[2][0] == NULL) return call_existing_command(cmd->args);
-
-    free(pathFromArr);
-
-    if (cmd->nb_options == 0 && cmd->nbargs == 2) return rm_tar(path,0);
-    if (cmd->nb_options == 1 && cmd->options[0] == "-r" && cmd->nbargs == 3) return rm_tar(path,1);
-    
-    write(STDOUT_FILENO,"Il faut moins d'arguments pour la fonction cp\n",strlen("Il faut moins d'arguments pour la fonction cp\n"));
-    return -1;
 }
