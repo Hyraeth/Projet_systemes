@@ -45,7 +45,8 @@ void print_name_file(struct posix_header * header, char * path) {
 //affiche le nom d'un repertoir (avec de la couleur)
 void print_name_rep(struct posix_header * header, char * path) {
   write(STDOUT_FILENO, ANSI_COLOR_GREEN"", strlen(ANSI_COLOR_GREEN""));
-  write(STDOUT_FILENO, (header->name + strlen(path) + 1), strlen(header->name) - strlen(path) - 2);
+  if(strlen(path) != 0) write(STDOUT_FILENO, (header->name + strlen(path) + 1), strlen(header->name) - strlen(path) - 2);
+  else write(STDOUT_FILENO, header->name, strlen(header->name) - 1);
   write(STDOUT_FILENO, ANSI_COLOR_RESET" ", strlen(ANSI_COLOR_RESET" "));
 }
 
@@ -81,10 +82,23 @@ void print_size(struct posix_header * header) {
   int taille;
   sscanf(header->size,"%o",&taille);
   char buffer [33];
+  if(header->typeflag == '5') taille = 4096;
   sprintf(buffer,"%d",taille);
   print_space(8-strlen(buffer)); //tant pis si la taille depace 8 carractère
   write(STDOUT_FILENO, buffer, strlen(buffer));
 }
+
+void print_time(struct posix_header * header) {
+  unsigned long taille;
+  sscanf(header->mtime,"%lo",&taille);
+  time_t timestamp = taille;
+  struct tm * pTime = localtime( &timestamp );
+  char buffer [65];
+  strftime(buffer, 65, "%b %d %H:%M", pTime );
+  print_space(8-strlen(buffer)); //tant pis si la taille depace 8 carractère
+  write(STDOUT_FILENO, buffer, strlen(buffer));
+}
+
 //affiche toute les info supplementaire de la commande "ls -l" autre que le nom
 void print_ls_l (struct posix_header * header) {
   print_type(header); //affiche le type du fichier
@@ -98,7 +112,7 @@ void print_ls_l (struct posix_header * header) {
   print_space(1);
   print_size(header); //affiche la taille du fichier
   print_space(1);
-  write(STDOUT_FILENO, header->mtime, strlen(header->mtime)); //affiche l'horodatage
+  print_time(header); //affiche l'horodatage
   print_space(1);
 }
 
@@ -106,7 +120,7 @@ void print_ls_l (struct posix_header * header) {
 void print_header_name (char *op, struct posix_header * header, char * path) {
   if (contain_one_char(header->name + strlen(path) + 1, '/')) {
     if(op == NULL) {
-      print_name_file(header,path);
+      print_name_rep(header,path);
     }
     else if (strcmp(op,"-l") == 0){
       print_ls_l(header);
