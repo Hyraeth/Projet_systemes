@@ -16,8 +16,8 @@
 
 char **parse_path(char *path) ;
 int isTar(char *file);
-int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar);
-char *fileDataInTar (char *name_file, char *path_tar);
+int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix_header *ph);
+char *fileDataInTar (char *name_file, char *path_tar, struct posix_header *ph);
 int isTarFolder (char *folder, char**path);
 char typeFile (char *path_tar, char *pathInTar) ;
 int deleteFileInTar (char *name_file, char *path_tar);

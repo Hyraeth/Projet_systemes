@@ -5,19 +5,17 @@ int isTar(char *file) {
     return 0;
 }
 
-char *fileDataInTar (char *name_file, char *path_tar) {
+char *fileDataInTar (char *name_file, char *path_tar, struct posix_header *ph) {
 	int src = open(path_tar,O_RDONLY);
 	if (src == -1) perror("tsh");
-	char bloc[BLOCKSIZE];
-	read(src,bloc,512);
 	char name[100];
 	char size[12];
 
 
-	while (bloc[0] != 0) {
+	while (read(src,ph,BLOCKSIZE) > 0) {
 
-		memcpy(name,bloc,100);
-		memcpy(size,&bloc[124],12);
+		memcpy(name,ph->name,100);
+		memcpy(size,ph->size,12);
 		int filesize;
 		sscanf(size,"%o",&filesize);
 
@@ -33,29 +31,21 @@ char *fileDataInTar (char *name_file, char *path_tar) {
 		}
 
 		lseek(src,BLOCKSIZE*occupiedBlocks,SEEK_CUR);
-		read(src,bloc,512);
 	}
 
 	return NULL;
 }
 
-int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar) {
+int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix_header *ph) {
 	int fd_dest;
+
 
 	if ((fd_dest = open(path_to_tar,O_RDWR)) == -1) return -1;
 
 	int size = strlen(dataToCopy);
 	lseek(fd_dest,-2*BLOCKSIZE,SEEK_END);
 
-	struct posix_header *ph = malloc(sizeof(struct posix_header));
 	memcpy(ph->name, name, strlen(name));
-	sprintf(ph->mode,"0000664");
-	sprintf(ph->size,"%011o",size);
-	ph->typeflag = '0';
-	memcpy(ph->magic, TMAGIC, strlen(TMAGIC));
-	memcpy(ph->version, TVERSION, strlen(TVERSION));
-
-	set_checksum(ph);
 
 	write(fd_dest,ph,sizeof(struct posix_header));
 
