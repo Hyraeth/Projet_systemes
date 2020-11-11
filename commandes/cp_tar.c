@@ -24,7 +24,7 @@ int cp_tar (char ***path1, char ***path2, int op) {
 		else name = getLast(path1[2]);
 		char *path = concatPathBeforeTarPathTar(path2[0],name,1,"");
 		if (name == NULL) return -1;
-		res = cpyDataFileNotInTar(path,dataToCpy);
+		res = cpyDataFileNotInTar(path,dataToCpy,ph);
 		free(path);
 	}
 	else {
@@ -38,6 +38,7 @@ int cp_tar (char ***path1, char ***path2, int op) {
 		free(nameInTar);
 	}
 
+	free(dataToCpy);
 	free(ph);
 	return res;
 }
@@ -47,15 +48,14 @@ char *fileDataNotInTar (char *path,struct posix_header *ph) {
 	int fd;
 	if ((fd = open(path,O_RDONLY)) == -1) return NULL;
 
-	struct stat *sb;
+	struct stat *sb = malloc (sizeof(struct stat));
 	fstat(fd,sb);
 	remplirHeader(ph,sb);
-
-	printf("Pourquoi \n");
 
 	char *data = malloc(sb->st_size);
 	read(fd,data,sb->st_size);
 	close(fd);
+	free(sb);
 	return data;
 }
 
@@ -81,22 +81,28 @@ void remplirHeader (struct posix_header *ph, struct stat *sb) {
 
 	struct passwd *pwd;
 	pwd = getpwuid(sb->st_uid);
-    //if (pwd != NULL) memcpy(ph->uname,pwd->pw_name,strlen(pwd->pw_name));
-	free(pwd);
+	memcpy(ph->uname, pwd->pw_name, strlen(pwd->pw_name));
+
 
 	struct group *grp;
 	grp = getgrgid(sb->st_gid);
-    //if (pwd != NULL) memcpy(ph->gname,grp->gr_name,strlen(grp->gr_name));
-	free(grp);
+	memcpy(ph->gname, grp->gr_name, strlen(grp->gr_name));
+
 }
 
 
-int cpyDataFileNotInTar (char * path, char *data) {
+int cpyDataFileNotInTar (char * path, char *data, struct posix_header *ph) {
 	int fd;
+	if ((fd = open(path, O_WRONLY | O_CREAT, 0644)) == -1 ) return -1;
 
-	if ((fd = open(path, O_WRONLY | O_APPEND | O_CREAT, 0644)) == -1 ) return -1;
-	if (write(fd,data,strlen(data)) == -1) return -1;
+	int n;
+	n = write(fd,data, atoi(ph->size));
+	perror("cp");
+	char num[20];
+	sprintf(num,"%d",n);
+	write(STDOUT_FILENO,num,strlen(num));
 
+	if ( n== -1 ) return -1;
 	return 1;
 }
 

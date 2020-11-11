@@ -9,7 +9,7 @@
 
 
 int cp_tar (char ***path1, char ***path2, int op);
-int cpyDataFileNotInTar (char * path, char *data);
+int cpyDataFileNotInTar (char * path, char *data, struct posix_header *ph);
 char *concatPathBeforeTarPathTar (char **pathBefore, char *name, int op, char *test);
 char *getLast (char **charArray);
 char *fileDataNotInTar (char *path,struct posix_header *ph);

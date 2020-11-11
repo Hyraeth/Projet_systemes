@@ -14,5 +14,8 @@ int is_an_option(char *string);
 void remove_escape_char(char *str);
 void remove_escape_char_array(char **array);
 int nb_elem(char **array);
+void freeArr3D (char ***arr);
+void freeArr2D (char **arr);
+
 
 #endif //TSH_FUN_H

@@ -84,7 +84,6 @@ char **parsePathAbsolute (char *path, char *pwd) {
         return NULL;
 	}
 	memcpy(&pwdArray[size_1 - 1],pathArray, size_2 * sizeof( char * ));
-	free(pathArray);
     free(envHomeCpy);
     return pwdArray;
 }
@@ -223,13 +222,23 @@ int nb_elem(char **array) {
     while(array[i] != NULL) i++;
     return i;
 }
-/*
-int main(int argc, char const *argv[])
-{
-	char ***res = path_to_tar_file_path_new(parsePathAbsolute(argv[1],""));
-	printArray(res[0]);
-    printArray(res[1]);
-    printArray(res[2]);
-	return 0;
+
+void freeArr3D (char ***arr) {
+    int i = 0;
+    while (arr[i] != NULL)
+    {
+       freeArr2D(arr[i]);
+       i++;
+    }
+    free(arr);
 }
-*/
+
+void freeArr2D (char **arr) {
+    int i = 0;
+    while (arr[i] != NULL)
+    {
+       free(arr[i]);
+       i++;
+    }
+    free(arr);
+}

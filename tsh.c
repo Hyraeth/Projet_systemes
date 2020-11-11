@@ -618,16 +618,19 @@ int tsh_cp (SimpleCommand_t *cmd) {
     char ***path1 = path_to_tar_file_path_new(pathFromArr);
     char ***path2 = path_to_tar_file_path_new(pathToArr);
 
-    if (path1[1] == NULL && path2[1] == NULL) return call_existing_command(cmd->args);
+    int res = -1;
 
-    free(pathFromArr);
-    free(pathToArr);
+    if (path1[1] == NULL && path2[1] == NULL) res = call_existing_command(cmd->args);
+    else{
+        if (cmd->nb_options == 0 && cmd->nbargs == 3) res = cp_tar(path1,path2,0);
+        else if (cmd->nb_options == 1 && cmd->options[0] == "-l" && cmd->nbargs == 4) res = cp_tar(path1,path2,1);
+        else write(STDOUT_FILENO,"Il faut 3 arguments pour la fonction cp\n",strlen("Il faut 3 arguments pour la fonction cp\n"));
+    }
 
-    if (cmd->nb_options == 0 && cmd->nbargs == 3) return cp_tar(path1,path2,0);
-    if (cmd->nb_options == 1 && cmd->options[0] == "-l" && cmd->nbargs == 4) return cp_tar(path1,path2,1);
-    
-    write(STDOUT_FILENO,"Il faut 3 arguments pour la fonction cp\n",strlen("Il faut 3 arguments pour la fonction cp\n"));
-    return -1;
+    freeArr3D(path1);
+    freeArr3D(path2);
+
+    return res;
 }
 
 int tsh_rm (SimpleCommand_t *cmd) {
