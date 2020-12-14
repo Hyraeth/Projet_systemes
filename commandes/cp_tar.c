@@ -1,5 +1,12 @@
 #include "../headers/cp_tar.h"
-
+/**
+ * @brief General function to make copy file from path1 to directory or tar from path2
+ * 
+ * @param path1 : path to the file we want to copy 
+ * @param path2 : path to the directory or tar where we want to copy
+ * @param op 
+ * @return 1 if copy was successful, -1 if there was an error 
+ */
 int cp_tar (char ***path1, char ***path2, int op) {
 	char *dataToCpy;
 	struct posix_header *ph = malloc(sizeof(struct posix_header));
@@ -43,7 +50,13 @@ int cp_tar (char ***path1, char ***path2, int op) {
 	return res;
 }
 
-
+/**
+ * @brief Get the data from a file and fills its correspondant posix_header structure
+ * 
+ * @param path : path to the file we want to copy
+ * @param ph : posix_header corresponding to that file
+ * @return the data of the file in a char array
+ */
 char *fileDataNotInTar (char *path,struct posix_header *ph) {
 	int fd;
 	if ((fd = open(path,O_RDONLY)) == -1) return NULL;
@@ -59,6 +72,12 @@ char *fileDataNotInTar (char *path,struct posix_header *ph) {
 	return data;
 }
 
+/**
+ * @brief Fills the posix_header corresponding to a file
+ * 
+ * @param ph : posix_header to be filled
+ * @param sb : stat structure of the fiole being copied
+ */
 void remplirHeader (struct posix_header *ph, struct stat *sb) {
 	sprintf(ph->mode,"0000664");
 	sprintf(ph->size,"%011lo",sb->st_size);
@@ -90,23 +109,34 @@ void remplirHeader (struct posix_header *ph, struct stat *sb) {
 
 }
 
-
+/**
+ * @brief If the path where we want to copy a file is a directory, then this function is used to create the make the copy
+ * 
+ * @param path path to the file we will create, essentially the path to the directory/name of the copied file
+ * @param data data to be copied
+ * @param ph posix_header corresponding to that file
+ * @return 1 if the copy was successful, -1 if not
+ */
 int cpyDataFileNotInTar (char * path, char *data, struct posix_header *ph) {
 	int fd;
 	if ((fd = open(path, O_WRONLY | O_CREAT, 0644)) == -1 ) return -1;
 
 	int n;
 	n = write(fd,data, atoi(ph->size));
-	perror("cp");
-	char num[20];
-	sprintf(num,"%d",n);
-	write(STDOUT_FILENO,num,strlen(num));
 
 	if ( n== -1 ) return -1;
 	return 1;
 }
 
-char *concatPathBeforeTarPathTar (char **pathBefore, char *name, int op, char *test) {
+/**
+ * @brief Concatenate the path to a directory and the name of a file to create a path to the file we want to create 
+ * 
+ * @param pathBefore : path to a directory
+ * @param name : name of the file
+ * @param op 
+ * @return the path to the file that is to be created 
+ */
+char *concatPathBeforeTarPathTar (char **pathBefore, char *name, int op) {
 	char *path = array_to_path(pathBefore,op);
 	if (strlen(path) == 0) return name;
 
@@ -117,6 +147,12 @@ char *concatPathBeforeTarPathTar (char **pathBefore, char *name, int op, char *t
     return path;
 }
 
+/**
+ * @brief Get the name of the file we want to copy
+ * 
+ * @param charArray : array of a path, split with the "/"
+ * @return the last string in the array, corresponding to the name of the file
+ */
 char *getLast (char **charArray) {
 	int i = 0;
 	while (charArray[i] != NULL) {
