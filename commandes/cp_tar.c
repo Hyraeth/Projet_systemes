@@ -18,7 +18,7 @@ int cp_tar (char ***path1, char ***path2, int op) {
 		free(path);
 	}
 	else {
-		char *path = concatPathBeforeTarPathTar(path1[0],path1[1][0],1,"");
+		char *path = concatPathBeforeTarPathTar(path1[0],path1[1][0],1);
 		char *pathInTar = array_to_path(path1[2],0);
 		dataToCpy = fileDataInTar (pathInTar, path, ph);
 		free(path);
@@ -29,7 +29,7 @@ int cp_tar (char ***path1, char ***path2, int op) {
 		char *name;
 		if (path1[1] == NULL) name = getLast(path1[0]);
 		else name = getLast(path1[2]);
-		char *path = concatPathBeforeTarPathTar(path2[0],name,1,"");
+		char *path = concatPathBeforeTarPathTar(path2[0],name,1);
 		if (name == NULL) return -1;
 		res = cpyDataFileNotInTar(path,dataToCpy,ph);
 		free(path);
@@ -38,8 +38,8 @@ int cp_tar (char ***path1, char ***path2, int op) {
 		char *name;
 		if (path1[1] == NULL) name = getLast(path1[0]);
 		else name = getLast(path1[2]);
-		char *path = concatPathBeforeTarPathTar(path2[0],path2[1][0],1,"");
-		char *nameInTar = concatPathBeforeTarPathTar(path2[2],name,0,path);
+		char *path = concatPathBeforeTarPathTar(path2[0],path2[1][0],1);
+		char *nameInTar = concatPathBeforeTarPathTar(path2[2],name,0);
 		res = copyFileInTar (dataToCpy, name, path,ph);
 		free(path);
 		free(nameInTar);

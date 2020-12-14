@@ -1,10 +1,21 @@
 #include "../headers/tar_fun.h"
 
+/**
+ * @return 1 if file is a tar, 0 if not 
+ */
 int isTar(char *file) {
     if(strcmp(file+(strlen(file)-4), ".tar") == 0) return 1;
     return 0;
 }
 
+/**
+ * @brief Retrieve data from a file in a tar
+ * 
+ * @param name_file : name of the file in the tar
+ * @param path_tar : path to the tar
+ * @param ph : posix_header to be filled with header from the file we retrieve
+ * @return char* with the data from the file
+ */
 char *fileDataInTar (char *name_file, char *path_tar, struct posix_header *ph) {
 	int src = open(path_tar,O_RDONLY);
 	if (src == -1) perror("tsh");
@@ -38,6 +49,15 @@ char *fileDataInTar (char *name_file, char *path_tar, struct posix_header *ph) {
 	return NULL;
 }
 
+/**
+ * @brief Copy file in a tar
+ * 
+ * @param dataToCopy : data from the file we want to copy
+ * @param name : name of the file to be copied
+ * @param path_to_tar : path to the tar where data is to be copied
+ * @param ph : posix_header corresponding to the copied file
+ * @return 1 if copy was successful, -1 if not 
+ */
 int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix_header *ph) {
 	int fd_dest;
 	if ((fd_dest = open(path_to_tar,O_RDWR)) == -1) return -1;
@@ -71,6 +91,13 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix
 	return 1;
 }
 
+/**
+ * @brief Delete a file in a tar
+ * 
+ * @param name_file : name of the file to be deleted
+ * @param path_tar : path of the tar where is located this file
+ * @return -1 if there was an error, else return 1 
+ */
 int deleteFileInTar (char *name_file, char *path_tar) {
     int src = open(path_tar,O_RDWR);
     if (src == -1) {
@@ -128,11 +155,11 @@ int deleteFileInTar (char *name_file, char *path_tar) {
 
     perror("Le fichier à supprimer n'existe pas");
     close(src);
-    return 0;
+    return -1;
 }
 
 
-char *path_strstr (char *path) {
+/**char *path_strstr (char *path) {
 	printf("%s\n",path );
 	char *res = strstr(path,".tar");
 
@@ -143,8 +170,15 @@ char *path_strstr (char *path) {
    		return path_strstr(&path[pos]);
    	}
    	return res;
-}
+}**/
 
+/**
+ * @brief Return a int to know whether a file is a directory in a tar or not
+ * 
+ * @param folder : path of the supposed directory
+ * @param path : path to the tar in a string array
+ * @return 1 if the path is indeed a directory in the tar, else 0 
+ */
 int isTarFolder (char *folder, char**path){
 	int i = 1;
 	char *path_to_check = malloc(1);
@@ -166,7 +200,13 @@ int isTarFolder (char *folder, char**path){
 	else return 0;
 }
 
-
+/**
+ * @brief return the type of a file in a tar
+ * 
+ * @param path_tar : path to the tar
+ * @param pathInTar : path to the file in the tar
+ * @return a char with the type
+ */
 char typeFile (char *path_tar, char *pathInTar) {
 	int src = open(path_tar,O_RDONLY);
 	if (src == -1) perror("tsh");
