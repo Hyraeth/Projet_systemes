@@ -49,9 +49,10 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix
 		read(fd_dest,bloc,512);
 	} while (bloc[0] != 0);
 
-	lseek(fd_dest,-512,SEEK_CUR);
-	
 	memcpy(ph->name, name, strlen(name));
+	set_checksum(ph);
+
+	lseek(fd_dest,-512,SEEK_CUR);
 
 	write(fd_dest,ph,sizeof(struct posix_header));
 

@@ -33,7 +33,7 @@ int cp_tar (char ***path1, char ***path2, int op) {
 		else name = getLast(path1[2]);
 		char *path = concatPathBeforeTarPathTar(path2[0],path2[1][0],1,"");
 		char *nameInTar = concatPathBeforeTarPathTar(path2[2],name,0,path);
-		res = copyFileInTar (dataToCpy,nameInTar,path,ph);
+		res = copyFileInTar (dataToCpy, name, path,ph);
 		free(path);
 		free(nameInTar);
 	}
