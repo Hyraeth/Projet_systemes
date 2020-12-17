@@ -471,8 +471,10 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             perror("tsh: exec_complexcmd fork failed");
         if (cpid == 0)
         {
-            if (exec_cmd(cmd->simpCmds[i]) == -1)
-                retval = -1;
+            if (exec_cmd(cmd->simpCmds[i]) == 1)
+                exit(EXIT_SUCCESS);
+            else
+                exit(EXIT_FAILURE);
         }
     }
     dup2(tmpin, STDIN_FILENO);
@@ -486,7 +488,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     {
         wpid = waitpid(cpid, &status, WUNTRACED);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-    return 1;
+    return retval;
 }
 
 /**
