@@ -86,13 +86,13 @@ int main(int argc, char const *argv[])
         int pwdlen = PWDLEN;
         char *pwd;
         if ((pwd = malloc(pwdlen)) == NULL)
-            perror("tsh");
+            perror("tsh: pwd malloc");
         while (getcwd(pwd, pwdlen) == NULL)
         {
             pwdlen *= 2;
             free(pwd);
             if ((pwd = malloc(pwdlen)) == NULL)
-                perror("tsh");
+                perror("tsh: pwd malloc");
         }
         if (tarDepth > -1)
         {
@@ -112,15 +112,25 @@ int main(int argc, char const *argv[])
         ComplexCommand_t *cmd;
 
         line = read_line();
+        /*
+        write(1, "line read : \n", strlen("line read : \n"));
+        write(1, line, strlen(line));
+        write(1, "\nend line read \n\n", strlen("\nend line read \n\n"));
+        */
         cmd = parse_line(line);
-        /*for (size_t i = 0; i < cmd->nbcmd; i++)
+        /*
+        write(1, "cmd args : \n", strlen("cmd args : \n"));
+        for (size_t i = 0; i < cmd->nbcmd; i++)
         {
-            write(1, &cmd->nbcmd, sizeof(cmd->nbcmd));
-            write(1, cmd->simpCmds[i]->args[0], strlen(cmd->simpCmds[i]->args[0]));
+            for (size_t j = 0; j < cmd->simpCmds[i]->nbargs; j++)
+            {
+                write(1, cmd->simpCmds[i]->args[j], strlen(cmd->simpCmds[i]->args[j]));
+                write(1, " ", 1);
+            }
             write(1, "\n", 1);
         }
-        if (cmd->nbcmd == 1)
-            write(1, "yes\n", 4);*/
+        write(1, "end cmd args\n\n", strlen("end cmd args\n\n"));
+        */
         run = exec_complexcmd(cmd);
 
         //free everything
@@ -155,6 +165,7 @@ void free_complexcmd(ComplexCommand_t *cmd)
     {
         free_simplecmd(cmd->simpCmds[i]);
     }
+    free(cmd->simpCmds);
     free(cmd);
 }
 
@@ -167,11 +178,7 @@ char *read_line()
     int bufsize = BUFLEN;
     char *line;
     if ((line = malloc(bufsize * sizeof(char))) == NULL)
-        perror("tsh");
-    if (line == NULL)
-    {
-        perror("tsh");
-    }
+        perror("tsh: read_line malloc");
     int n;
     int totalread = 0;
     while ((n = read(STDIN_FILENO, line + totalread, BUFLEN)) > 0)
@@ -182,7 +189,7 @@ char *read_line()
         {
             bufsize += BUFLEN;
             if ((line = realloc(line, bufsize)) == NULL)
-                perror("tsh");
+                perror("tsh: read_line realloc");
         }
         //stop
         if (line[totalread - 1] == '\n')
@@ -193,7 +200,7 @@ char *read_line()
     }
     //error handling
     if (n < 0)
-        perror("tsh: read failed.");
+        perror("tsh: read_line failed.");
     return line;
 }
 
@@ -201,9 +208,10 @@ ComplexCommand_t *parse_line(char *line)
 {
     int simpCmdArraySize = NBARGS;
     ComplexCommand_t *cmd = malloc(sizeof(ComplexCommand_t));
-    SimpleCommand_t **simpCmds = malloc(simpCmdArraySize * sizeof(SimpleCommand_t *));
-    if (cmd == NULL || simpCmds == NULL)
-        perror("tsh");
+    char **simpcmdtoparse = malloc(simpCmdArraySize * sizeof(char *));
+
+    if (cmd == NULL || simpcmdtoparse == NULL)
+        perror("tsh: parse_line malloc");
 
     //TODO : find redirections
     cmd->input = "";
@@ -218,17 +226,23 @@ ComplexCommand_t *parse_line(char *line)
         if (nbcmd == simpCmdArraySize)
         {
             simpCmdArraySize += NBARGS;
-            if ((simpCmds = realloc(simpCmds, simpCmdArraySize * sizeof(SimpleCommand_t *))) == NULL)
-                perror("tsh");
+            if ((simpcmdtoparse = realloc(simpcmdtoparse, simpCmdArraySize * sizeof(char *))) == NULL)
+                perror("tsh: parse_line realloc");
         }
-        char *tmpline = malloc(strlen(cmdString) + 1);
-        strcpy(tmpline, cmdString);
-        simpCmds[nbcmd] = parse_simpCmd(tmpline);
+        if ((simpcmdtoparse[nbcmd] = malloc((strlen(cmdString) + 1) * sizeof(char))) == NULL)
+            perror("tsh: parse_simpCmd malloc3");
+        memcpy(simpcmdtoparse[nbcmd], cmdString, strlen(cmdString) + 1);
         nbcmd++;
-        free(tmpline);
         cmdString = strtok(NULL, "|");
     }
-    simpCmds[nbcmd] = NULL;
+    SimpleCommand_t **simpCmds = malloc(nbcmd * sizeof(SimpleCommand_t *));
+    if (simpCmds == NULL)
+        perror("tsh: parse_line malloc");
+    for (size_t i = 0; i < nbcmd; i++)
+    {
+        simpCmds[i] = parse_simpCmd(simpcmdtoparse[i]);
+    }
+
     cmd->simpCmds = simpCmds;
     cmd->nbcmd = nbcmd;
 }
@@ -246,12 +260,9 @@ SimpleCommand_t *parse_simpCmd(char *line)
     SimpleCommand_t *cmd = malloc(sizeof(SimpleCommand_t));
     char **args = malloc(nbargs * sizeof(char *));
     char **ops = malloc(sizeof(char *));
-    if (args == NULL)
-        perror("tsh");
-    if (cmd == NULL)
-        perror("tsh");
-    if (ops == NULL)
-        perror("tsh");
+    if (args == NULL || cmd == NULL || ops == NULL)
+        perror("tsh: parse_simpCmd malloc1");
+
     char *word = strtok(line, " \n\t");
 
     int nbword = 0;
@@ -263,21 +274,21 @@ SimpleCommand_t *parse_simpCmd(char *line)
         {
             nbargs += NBARGS;
             if ((args = realloc(args, nbargs * sizeof(char *))) == NULL)
-                perror("tsh");
+                perror("tsh: parse_simpCmd realloc1");
         }
 
         if (word[0] == '-' && strlen(word) != 1)
         {
             if ((ops[nbops] = malloc(strlen(word) + 1)) == NULL)
-                perror("tsh");
+                perror("tsh: parse_simpCmd malloc2");
             memcpy(ops[nbops], word, strlen(word) + 1);
             nbops++;
             if ((ops = realloc(ops, (nbops + 1) * sizeof(int))) == NULL)
-                perror("tsh");
+                perror("tsh: parse_simpCmd realloc2");
         }
 
         if ((args[nbword] = malloc((strlen(word) + 1) * sizeof(char))) == NULL)
-            perror("tsh");
+            perror("tsh: parse_simpCmd malloc3");
         memcpy(args[nbword], word, strlen(word) + 1);
         if (word[strlen(word) - 1] == '\\')
         {
@@ -285,7 +296,7 @@ SimpleCommand_t *parse_simpCmd(char *line)
             word = strtok(NULL, " \n\t");
             newsize += strlen(word) + 1;
             if ((args[nbword] = realloc(args[nbword], newsize)) == NULL)
-                perror("tsh");
+                perror("tsh: parse_simpCmd realloc3");
             strcat(args[nbword], " ");
             strcat(args[nbword], word);
         }
@@ -315,13 +326,13 @@ int call_existing_command(char **args)
     pid = fork();
     if (pid < 0)
     {
-        perror("tsh");
+        perror("tsh: call_existing_command fork");
     }
     else if (pid == 0)
     {
         if (execvp(args[0], args) == -1)
         {
-            perror("tsh");
+            perror("tsh: call_existing_command execvp failed");
         }
         exit(EXIT_FAILURE);
     }
@@ -429,6 +440,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     pid_t cpid, wpid;
     for (size_t i = 0; i < cmd->nbcmd; i++)
     {
+
         dup2(fdin, STDIN_FILENO);
         close(fdin);
         if (i == cmd->nbcmd - 1)
@@ -447,7 +459,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         {
             int fdpipe[2];
             if (pipe(fdpipe) == -1)
-                perror("tsh");
+                perror("tsh: exec_complexcmd pipe failed");
             fdin = fdpipe[0];
             fdout = fdpipe[1];
         }
@@ -456,7 +468,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
 
         cpid = fork();
         if (cpid == -1)
-            perror("tsh");
+            perror("tsh: exec_complexcmd fork failed");
         if (cpid == 0)
         {
             if (exec_cmd(cmd->simpCmds[i]) == -1)
@@ -489,7 +501,7 @@ char **parse_path(char *path)
 
     char **args;
     if ((args = malloc(nbargs * sizeof(char *))) == NULL)
-        perror("tsh");
+        perror("tsh: parse_path malloc1");
     char *word = strtok(path, "/");
 
     int nbword = 0;
@@ -500,11 +512,11 @@ char **parse_path(char *path)
         {
             nbargs += NBARGS;
             if ((args = realloc(args, nbargs * sizeof(char *))) == NULL)
-                perror("tsh realloc parse path");
+                perror("tsh: realloc parse path");
         }
 
         if ((args[nbword] = malloc((strlen(word) + 1) * sizeof(char))) == NULL)
-            perror("tsh malloc parse path");
+            perror("tsh: malloc parse path");
         memcpy(args[nbword], word, strlen(word) + 1);
 
         nbword++;
