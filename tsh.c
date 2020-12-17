@@ -46,10 +46,14 @@ typedef struct ComplexCommand_t
     int appendErr;
 } ComplexCommand_t;
 
+void free_simplecmd(SimpleCommand_t *cmd);
+void free_complexcmd(ComplexCommand_t *cmd);
 char *read_line();
+ComplexCommand_t *parse_line(char *line);
 SimpleCommand_t *parse_simpCmd(char *line);
 char **parse_path(char *path);
 int exec_cmd(SimpleCommand_t *cmd);
+int exec_complexcmd(ComplexCommand_t *cmd);
 int call_existing_command(char **args);
 char *get_pwd();
 
@@ -105,28 +109,51 @@ int main(int argc, char const *argv[])
         write(STDOUT_FILENO, "> ", strlen("> "));
 
         char *line;
-        SimpleCommand_t *cmd;
+        ComplexCommand_t *cmd;
 
         line = read_line();
-        cmd = parse_simpCmd(line);
-        run = exec_cmd(cmd);
+        cmd = parse_line(line);
+        for (size_t i = 0; i < cmd->nbcmd; i++)
+        {
+            write(1, &cmd->nbcmd, sizeof(cmd->nbcmd));
+            write(1, cmd->simpCmds[i]->args[0], strlen(cmd->simpCmds[i]->args[0]));
+            write(1, "\n", 1);
+        }
+        run = exec_complexcmd(cmd);
 
         //free everything
         free(line);
-        for (size_t i = 0; i <= cmd->nbargs; i++)
-        {
-            free(cmd->args[i]);
-        }
-        free(cmd->args);
-        for (size_t i = 0; i <= cmd->nb_options; i++)
-        {
-            free(cmd->options[i]);
-        }
-        free(cmd->options);
-        free(cmd);
+        free_complexcmd(cmd);
         free(pwd);
     } while (run != 0);
     return 0;
+}
+
+void free_simplecmd(SimpleCommand_t *cmd)
+{
+    for (size_t i = 0; i <= cmd->nbargs; i++)
+    {
+        free(cmd->args[i]);
+    }
+    free(cmd->args);
+    for (size_t i = 0; i <= cmd->nb_options; i++)
+    {
+        free(cmd->options[i]);
+    }
+    free(cmd->options);
+    free(cmd);
+}
+
+void free_complexcmd(ComplexCommand_t *cmd)
+{
+    //free(cmd->input);
+    //free(cmd->output);
+    //free(cmd->err);
+    for (size_t i = 0; i < cmd->nbcmd; i++)
+    {
+        free_simplecmd(cmd->simpCmds[i]);
+    }
+    free(cmd);
 }
 
 /**
@@ -171,12 +198,16 @@ char *read_line()
 ComplexCommand_t *parse_line(char *line)
 {
     int simpCmdArraySize = NBARGS;
-    ComplexCommand_t *cmd = malloc(sizeof(struct ComplexCommand_t));
+    ComplexCommand_t *cmd = malloc(sizeof(ComplexCommand_t));
     SimpleCommand_t **simpCmds = malloc(simpCmdArraySize * sizeof(SimpleCommand_t *));
     if (cmd == NULL || simpCmds == NULL)
         perror("tsh");
 
     //TODO : find redirections
+    cmd->input = "";
+    cmd->output = "";
+    cmd->err = "";
+    write(1, line, strlen(line));
 
     //parsing simple cmds
     char *cmdString = strtok(line, "|");
@@ -189,8 +220,11 @@ ComplexCommand_t *parse_line(char *line)
             if ((simpCmds = realloc(simpCmds, simpCmdArraySize * sizeof(SimpleCommand_t *))) == NULL)
                 perror("tsh");
         }
-        simpCmds[nbcmd] = parse_simpCmd(cmdString);
+        char *tmpline = malloc(strlen(cmdString) + 1);
+        memcpy(tmpline, cmdString, strlen(cmdString) + 1);
+        simpCmds[nbcmd] = parse_simpCmd(tmpline);
         nbcmd++;
+        free(tmpline);
         cmdString = strtok(NULL, "|");
     }
     simpCmds[nbcmd] = NULL;
@@ -263,7 +297,6 @@ SimpleCommand_t *parse_simpCmd(char *line)
     cmd->nbargs = nbword;
     cmd->nb_options = nbops;
     cmd->options = ops;
-
     return cmd;
 }
 
@@ -335,6 +368,112 @@ int exec_cmd(SimpleCommand_t *cmd)
         write(STDERR_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
         return 1;
     }
+}
+
+int exec_complexcmd(ComplexCommand_t *cmd)
+{
+    int fdin, fdout, fderr, status, retval;
+    //save current file descriptor
+    int tmpin = dup(STDIN_FILENO);
+    int tmpout = dup(STDOUT_FILENO);
+    int tmperr = dup(STDERR_FILENO);
+
+    if (strcmp(cmd->input, "") == 0)
+    {
+        fdin = dup(tmpin);
+    }
+    else
+    {
+        //todo
+        fdin = dup(tmpin);
+    }
+    if (strcmp(cmd->err, "") == 0)
+    {
+        fderr = dup(tmperr);
+    }
+    else
+    {
+        //todo
+        fderr = dup(tmperr);
+    }
+    dup2(fderr, STDERR_FILENO);
+    close(fderr);
+    //if there's only one simple command
+    if (cmd->nbcmd == 1)
+    {
+        //Change err and std output
+        if (strcmp(cmd->output, "") == 0)
+        {
+            fdout = dup(tmpout);
+        }
+        else
+        {
+            //todo
+            fdout = dup(tmpout);
+        }
+
+        dup2(fdin, STDIN_FILENO);
+        close(fdin);
+        dup2(fdout, STDOUT_FILENO);
+        close(fdout);
+        retval = exec_cmd(cmd->simpCmds[0]);
+        dup2(tmpin, STDIN_FILENO);
+        close(tmpin);
+        dup2(tmpout, STDOUT_FILENO);
+        close(tmpout);
+        dup2(tmperr, STDERR_FILENO);
+        close(tmperr);
+        return retval;
+    }
+    pid_t cpid, wpid;
+    for (size_t i = 0; i < cmd->nbcmd; i++)
+    {
+        dup2(fdin, STDIN_FILENO);
+        close(fdin);
+        if (i == cmd->nbcmd - 1)
+        {
+            if (strcmp(cmd->output, "") == 0)
+            {
+                fdout = dup(tmpout);
+            }
+            else
+            {
+                //todo
+                fdout = dup(tmpout);
+            }
+        }
+        else
+        {
+            int fdpipe[2];
+            if (pipe(fdpipe) == -1)
+                perror("tsh");
+            fdin = fdpipe[0];
+            fdout = fdpipe[1];
+        }
+        dup2(fdout, STDOUT_FILENO);
+        close(fdout);
+
+        cpid = fork();
+        if (cpid == -1)
+            perror("tsh");
+        if (cpid == 0)
+        {
+            if (exec_cmd(cmd->simpCmds[i]) == -1)
+                retval = -1;
+        }
+    }
+    dup2(tmpin, STDIN_FILENO);
+    close(tmpin);
+    dup2(tmpout, STDOUT_FILENO);
+    close(tmpout);
+    dup2(tmperr, STDERR_FILENO);
+    close(tmperr);
+
+    do
+    {
+        wpid = waitpid(cpid, &status, WUNTRACED);
+    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    return 1;
 }
 
 /**
