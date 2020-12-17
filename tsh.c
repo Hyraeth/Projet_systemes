@@ -113,12 +113,14 @@ int main(int argc, char const *argv[])
 
         line = read_line();
         cmd = parse_line(line);
-        for (size_t i = 0; i < cmd->nbcmd; i++)
+        /*for (size_t i = 0; i < cmd->nbcmd; i++)
         {
             write(1, &cmd->nbcmd, sizeof(cmd->nbcmd));
             write(1, cmd->simpCmds[i]->args[0], strlen(cmd->simpCmds[i]->args[0]));
             write(1, "\n", 1);
         }
+        if (cmd->nbcmd == 1)
+            write(1, "yes\n", 4);*/
         run = exec_complexcmd(cmd);
 
         //free everything
@@ -207,7 +209,6 @@ ComplexCommand_t *parse_line(char *line)
     cmd->input = "";
     cmd->output = "";
     cmd->err = "";
-    write(1, line, strlen(line));
 
     //parsing simple cmds
     char *cmdString = strtok(line, "|");
@@ -221,7 +222,7 @@ ComplexCommand_t *parse_line(char *line)
                 perror("tsh");
         }
         char *tmpline = malloc(strlen(cmdString) + 1);
-        memcpy(tmpline, cmdString, strlen(cmdString) + 1);
+        strcpy(tmpline, cmdString);
         simpCmds[nbcmd] = parse_simpCmd(tmpline);
         nbcmd++;
         free(tmpline);
