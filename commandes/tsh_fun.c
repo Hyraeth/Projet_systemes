@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 
-#include "headers/tsh_fun.h"
+#include "../headers/tsh_fun.h"
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -194,6 +194,16 @@ char *array_to_path(char **array, int op) {
     return path;
 }
 
+char *concatPathName (char *path, char *name) {
+    int len = strlen(path) + strlen(name) + 2;
+    char *pathRes;
+	if ((pathRes = malloc(len)) == NULL) return NULL;
+    strcat(pathRes,path);
+    strcat(pathRes, "/");
+    strcat(pathRes, name);
+    return pathRes;
+}
+
 int is_an_option(char *string) {
     return (string[0] == '-') ? 1 : 0;
 }
@@ -241,4 +251,9 @@ void freeArr2D (char **arr) {
        i++;
     }
     free(arr);
+}
+
+void printMessageTsh (char* message) {
+     write(STDOUT_FILENO,message,strlen(message));
+     write(STDOUT_FILENO,"\n",1);
 }

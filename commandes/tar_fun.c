@@ -4,7 +4,7 @@
  * @return 1 if file is a tar, 0 if not 
  */
 int isTar(char *file) {
-    if(strcmp(file+(strlen(file)-4), ".tar") == 0) return 1;
+    if(strlen(file) > 4 && strcmp(file+(strlen(file)-4), ".tar") == 0) return 1;
     return 0;
 }
 

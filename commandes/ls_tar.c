@@ -91,6 +91,7 @@ void print_size(struct posix_header * header) {
 void print_time(struct posix_header * header) {
   unsigned long taille;
   sscanf(header->mtime,"%lo",&taille);
+  write(STDOUT_FILENO, header->mtime, strlen(header->mtime));
   time_t timestamp = taille;
   struct tm * pTime = localtime( &timestamp );
   char buffer [65];
