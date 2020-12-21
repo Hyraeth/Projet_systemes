@@ -158,9 +158,9 @@ void free_simplecmd(SimpleCommand_t *cmd)
 
 void free_complexcmd(ComplexCommand_t *cmd)
 {
-    //free(cmd->input);
-    //free(cmd->output);
-    //free(cmd->err);
+    free(cmd->input);
+    free(cmd->output);
+    free(cmd->err);
     for (size_t i = 0; i < cmd->nbcmd; i++)
     {
         free_simplecmd(cmd->simpCmds[i]);
@@ -204,6 +204,163 @@ char *read_line()
     return line;
 }
 
+void findInput(char *line, ComplexCommand_t *ccmd)
+{
+    int s, e = 0;
+    for (size_t i = 0; i < strlen(line); i++)
+    {
+        if (line[i] == '<')
+        {
+            //find start of input path
+            for (size_t j = i + 1; j < strlen(line); j++)
+            {
+                if (line[j] != ' ')
+                {
+                    s = j;
+                    break;
+                }
+            }
+            //if no start then remove input char and break;
+            if (s == 0)
+            {
+                line[i] = ' ';
+                break;
+            }
+            //find end of input path
+            for (size_t j = s; j < strlen(line) + 1; j++)
+            {
+                if (line[j] == ' ' || line[j] == '\0')
+                {
+                    e = j;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    if (s == 0)
+        ccmd->input = "";
+    else
+    {
+        if ((ccmd->input = malloc((e - s + 1) * sizeof(char))) == NULL)
+            perror("tsh: findInput malloc");
+        memcpy(ccmd->input, line + s, e - s + 1);
+        ccmd->input[e - s] = '\0';
+        for (size_t i = s; i < e; i++)
+        {
+            line[i] = ' ';
+        }
+    }
+}
+
+void findOutput(char *line, ComplexCommand_t *ccmd)
+{
+    int s, e = 0;
+    for (size_t i = 0; i < strlen(line); i++)
+    {
+        if (line[i] == '>')
+        {
+            if (i > 0 && line[i - 1] == '2')
+                continue;
+            if (line[i + 1] == '>')
+            {
+                ccmd->appendOut = 1;
+                i++;
+            }
+            for (size_t j = i + 1; j < strlen(line); j++)
+            {
+                if (line[j] != ' ')
+                {
+                    s = j;
+                    break;
+                }
+            }
+            //if no start then remove input char and break;
+            if (s == 0)
+            {
+                line[i] = ' ';
+                break;
+            }
+            //find end of input path
+            for (size_t j = s; j < strlen(line) + 1; j++)
+            {
+                if (line[j] == ' ' || line[j] == '\0')
+                {
+                    e = j;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    if (s == 0)
+        ccmd->output = "";
+    else
+    {
+        if ((ccmd->output = malloc((e - s + 1) * sizeof(char))) == NULL)
+            perror("tsh: findInput malloc");
+        memcpy(ccmd->output, line + s, e - s + 1);
+        ccmd->output[e - s] = '\0';
+        for (size_t i = s; i < e; i++)
+        {
+            line[i] = ' ';
+        }
+    }
+}
+
+void findErr(char *line, ComplexCommand_t *ccmd)
+{
+    int s, e = 0;
+    for (size_t i = 1; i < strlen(line); i++)
+    {
+        if (line[i] == '>' && line[i - 1] == '2')
+        {
+            if (line[i + 1] == '>')
+            {
+                ccmd->appendErr = 1;
+                i++;
+            }
+            for (size_t j = i + 1; j < strlen(line); j++)
+            {
+                if (line[j] != ' ')
+                {
+                    s = j;
+                    break;
+                }
+            }
+            //if no start then remove input char and break;
+            if (s == 0)
+            {
+                line[i] = ' ';
+                break;
+            }
+            //find end of input path
+            for (size_t j = s; j < strlen(line) + 1; j++)
+            {
+                if (line[j] == ' ' || line[j] == '\0')
+                {
+                    e = j;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    if (s == 0)
+        ccmd->err = "";
+    else
+    {
+        if ((ccmd->err = malloc((e - s + 1) * sizeof(char))) == NULL)
+            perror("tsh: findInput malloc");
+        memcpy(ccmd->err, line + s, e - s + 1);
+        ccmd->err[e - s] = '\0';
+        for (size_t i = s; i < e; i++)
+        {
+            line[i] = ' ';
+        }
+    }
+}
+
 ComplexCommand_t *parse_line(char *line)
 {
     int simpCmdArraySize = NBARGS;
@@ -213,10 +370,9 @@ ComplexCommand_t *parse_line(char *line)
     if (cmd == NULL || simpcmdtoparse == NULL)
         perror("tsh: parse_line malloc");
 
-    //TODO : find redirections
-    cmd->input = "";
-    cmd->output = "";
-    cmd->err = "";
+    findInput(line, cmd);
+    findOutput(line, cmd);
+    findErr(line, cmd);
 
     //parsing simple cmds
     char *cmdString = strtok(line, "|");
