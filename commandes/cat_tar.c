@@ -12,6 +12,7 @@ int cat_tar(struct posix_header * header, int fd) {
   int *ptaille = &taille;
   sscanf(header->size, "%o", ptaille);
   int filesize = ((*ptaille + BLOCKSIZE-1)/BLOCKSIZE);
+  //block 
   char *block = malloc(sizeof(char) * BLOCKSIZE * filesize);
   read(fd, block, BLOCKSIZE);
   write(STDOUT_FILENO, block, BLOCKSIZE);
@@ -49,7 +50,6 @@ int cat(char *path_tar, char *path) {
     int filesize = ((*ptaille + 512-1)/512);
     lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
   }
-  write(STDOUT_FILENO, "\n", strlen("\n"));
   lseek(fd, 0, SEEK_SET);
   free(header);
   close(fd);
