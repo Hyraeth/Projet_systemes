@@ -1,4 +1,5 @@
 #include "../headers/tar_fun.h"
+#include "../commandes/tar.c"
 
 int isTar(char *file) {
     if(strcmp(file+(strlen(file)-4), ".tar") == 0) return 1;
@@ -38,7 +39,7 @@ char *fileDataInTar (char *name_file, char *path_tar) {
 	return NULL;
 }
 
-/*int copyFileInTar (int fd_src, const char *name, int fd_dest) {
+int copyFileInTar (int fd_src, const char *name, int fd_dest) {
 	int size = lseek(fd_src,0,SEEK_END);
 	lseek(fd_src,0,SEEK_SET);
 
@@ -70,7 +71,7 @@ char *fileDataInTar (char *name_file, char *path_tar) {
 
 	return 1;
 }
-*/
+
 int deleteFileInTar (char *name_file, char *path_tar) {
     int src = open(path_tar,O_RDWR);
     if (src == -1) {
