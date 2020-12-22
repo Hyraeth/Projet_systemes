@@ -62,11 +62,8 @@ int cat(char *path_tar, char *path)
     return 1;
 }
 
-/**
- *  @brief test for the cat_tar
- *  
- */
-/*int main(int argc, char *argv[]){
+/*
+int main(int argc, char *argv[]){
   if(argc <= 1) printf("Pas de fichier\n");
   else {
     cat(argv[1], argv[2]);
