@@ -357,6 +357,7 @@ void findErr(char *line, ComplexCommand_t *ccmd)
                     break;
                 }
             }
+            line[i - 1] = ' ';
             line[i] = ' ';
             break;
         }
