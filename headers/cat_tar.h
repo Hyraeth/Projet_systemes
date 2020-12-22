@@ -4,6 +4,7 @@
 #include "tar_fun.h"
 
 
-int cat_tar(int fd);
+int cat_tar(struct posix_header * header, int fd);
+int cat(char *path_tar, char *path);
 
 #endif //CAT_TAR_H
