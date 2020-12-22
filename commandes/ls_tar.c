@@ -21,7 +21,7 @@ bool contain_char(char * s, char c) {
   return false;
 }
 
-//return true if there is juste one time c in s
+//return true if there is juste one time, at the end, c in s
 bool contain_one_char(char * s, char c) {
   for (int i=0; i<strlen(s); i++) {
     if (s[i] == c) return (i==strlen(s)-1) ? true : false;
