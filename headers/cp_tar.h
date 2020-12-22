@@ -8,16 +8,6 @@
 #include <fcntl.h>
 #include <dirent.h>
 
-typedef struct pathStruct pathStruct;
-struct pathStruct
-{
-	char *path;
-	char *nameInTar;
-	int isTarIndicated;
-	int isTarBrowsed;
-	char *name;
-};
-
 
 int cp_tar (char ***path1, char ***path2, int op,char *beforeName);
 int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *name);

@@ -13,8 +13,6 @@ int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *nam
 	char *dataToCopy;
 	struct posix_header *ph = malloc(sizeof(struct posix_header));
 	int res;
-	printMessageTsh("Copie : ");
-	printMessageTsh(pathData->path);
 
 	if (pathData->isTarBrowsed) {
 		dataToCopy = fileDataInTar(pathData->nameInTar,pathData->path,ph);
@@ -24,7 +22,15 @@ int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *nam
 				return -1;
 			}
 			else {
-				copyFolder(pathData,pathLocation,name,ph);
+				if (pathData->nameInTar[strlen(name) - 1] != '/') {
+					pathData->nameInTar = realloc(pathData->nameInTar,strlen(name) + 2);
+					strcat(pathData->nameInTar,"/");
+					res = copyFolder(pathData,pathLocation,name,ph);
+				}
+				else res = copyFolder(pathData,pathLocation,name,ph);
+				free(dataToCopy);
+				free(ph);
+				return res;
 			}
 		}
 	}
@@ -41,7 +47,10 @@ int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *nam
 				return -1;
 			}
 			else {
-				copyFolder(pathData,pathLocation,name,ph);
+				res = copyFolder(pathData,pathLocation,name,ph);
+				free(dataToCopy);
+				free(ph);
+				return res;
 			}
 		}
 	}
@@ -94,7 +103,32 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 		pathStruct *pathLocationNew = makeNewLocationStruct(pathLocation,name);
 
 		if (pathData->isTarBrowsed) {
+			char **nameSubFiles = findSubFiles(pathData->path,pathData->nameInTar);
+			int i = 0;
+			while (nameSubFiles[i] != NULL)
+			{
+				printMessageTsh("Copie : ");
+				printMessageTsh(nameSubFiles[i]);
+				pathStruct *pathDataNew = malloc(sizeof(pathStruct));
+				pathDataNew->isTarBrowsed = 1;
+				pathDataNew->isTarIndicated = 1;
+				pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 2);
+				memcpy(pathDataNew->nameInTar,pathData->nameInTar,strlen(pathData->nameInTar));
+				printMessageTsh(pathDataNew->nameInTar);
+				strcat(pathDataNew->nameInTar,nameSubFiles[i]);
+				printMessageTsh(pathDataNew->nameInTar);
 
+				pathDataNew->path = malloc(strlen(pathData->path) + 1);
+				memcpy(pathDataNew->path, pathData->path,strlen(pathData->path));
+
+				cpTarTest(pathDataNew,pathLocationNew,1,nameSubFiles[i]);
+				free(nameSubFiles[i]);
+				free(pathDataNew->path);
+				free(pathDataNew->nameInTar);
+				free(pathDataNew);
+				i++;
+			}
+			
 		}
 		else {
 			DIR *dir = opendir(pathData->path);
@@ -121,6 +155,10 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 		freeStruct(pathLocationNew);
 		
 	}
+	else {
+		printMessageTsh("Erreur lors de la créature du dossier pour cp");
+		return -1;
+	}
 
 	return 1;
 }
@@ -138,9 +176,6 @@ char *fileDataNotInTar (char *path,struct posix_header *ph) {
 		printMessageTsh("Erreur lors de l'ouverture du fichier");
 		return NULL;
 	}
-	if (S_ISDIR(sb.st_mode)) {
-
-	}
 
 	int fd;
 	if ((fd = open(path,O_RDONLY)) == -1) return NULL;
@@ -151,6 +186,20 @@ char *fileDataNotInTar (char *path,struct posix_header *ph) {
 	read(fd,data,sb.st_size);
 	close(fd);
 	return data;
+}
+
+long int decimalToOctal(long int decimalnum)
+{
+    long int octalnum = 0, temp = 1;
+
+    while (decimalnum != 0)
+    {
+    	octalnum = octalnum + (decimalnum % 8) * temp;
+    	decimalnum = decimalnum / 8;
+        temp = temp * 10;
+    }
+
+    return octalnum;
 }
 
 /**
@@ -176,7 +225,7 @@ void remplirHeader (struct posix_header *ph, struct stat sb) {
 	memcpy(ph->magic, TMAGIC, strlen(TMAGIC));
 	memcpy(ph->version, TVERSION, strlen(TVERSION));
 
-	sprintf(ph->mtime,"%11ld",sb.st_mtime);
+	sprintf(ph->mtime,"%011lo",decimalToOctal(sb.st_mtime));
 	sprintf(ph->uid,"%07d",sb.st_uid);
 	sprintf(ph->gid,"%07d",sb.st_gid);
 
@@ -272,7 +321,6 @@ char *getLast (char **charArray) {
 
 pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name) {
 	pathStruct *res = malloc(sizeof(pathStruct));
-	res->isTarBrowsed = pathLocation->isTarBrowsed;
 	res->isTarIndicated = pathLocation->isTarIndicated;
 
 	if (res->isTarIndicated) {
@@ -280,13 +328,24 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name) {
 		res->path = malloc(strlen(pathLocation->path) + 1);
 		memcpy(res->path,pathLocation->path,strlen(pathLocation->path));
 
-		char *nameDirInTar = concatPathName(pathLocation->nameInTar,name);
-		nameDirInTar = realloc(nameDirInTar, strlen(nameDirInTar) + 2);
+		char *nameDirInTar;
+		if (pathLocation->isTarBrowsed){
+			nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
+			strcat(nameDirInTar,pathLocation->nameInTar);
+		} 
+		else {
+			nameDirInTar = malloc(strlen(name) + 2);
+		}
+		memcpy(nameDirInTar,name,strlen(name));
 		strcat(nameDirInTar,"/");
+
 		res->nameInTar = nameDirInTar;
+		
+		res->isTarBrowsed = 1;
 	}
 
 	else {
+		res->isTarBrowsed = 0;
 		res->nameInTar = NULL;
 		res->path = concatPathName(pathLocation->path,name);
 	}

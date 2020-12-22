@@ -6,6 +6,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+typedef struct pathStruct pathStruct;
+struct pathStruct
+{
+	char *path;
+	char *nameInTar;
+	int isTarIndicated;
+	int isTarBrowsed;
+	char *name;
+};
+
 char **parsePathAbsolute (char *path, char *pwd);
 char **parse_path_array(char *path,int *a);
 char ***path_to_tar_file_path_new (char **path);

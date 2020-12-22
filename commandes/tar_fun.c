@@ -32,7 +32,7 @@ char *fileDataInTar (char *name_file, char *path_tar, struct posix_header *ph) {
 
 		int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
 
-		if (strcmp(name,name_file) == 0){
+		if (strcmpTar(name_file,name)){
 
 			char *res = malloc(filesize);
 			int n = read(src,res,filesize);
@@ -42,9 +42,6 @@ char *fileDataInTar (char *name_file, char *path_tar, struct posix_header *ph) {
 
 		lseek(src,BLOCKSIZE*occupiedBlocks,SEEK_CUR);
 	}
-
-	
-	write(STDOUT_FILENO,"Null avec fun\n",14);
 
 	return NULL;
 }
@@ -64,6 +61,10 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix
 		printMessageTsh("Erreur lors de l'ouverture du fichier tar d'arrivée");
 		return -1;
 	}
+
+	printMessageTsh("-------------Copy------------------");
+	printMessageTsh(path_to_tar);
+	printMessageTsh(name);
 
 	int size = strlen(dataToCopy);
 	char bloc[BLOCKSIZE];
@@ -126,7 +127,7 @@ int deleteFileInTar (char *name_file, char *path_tar) {
 
         int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
 
-        if (strcmp(name,name_file) == 0){
+        if (strcmpTar(name_file,name)){
             sizeToDelete = 512 + occupiedBlocks*512;
             emplacement = lseek(src,0,SEEK_CUR) - 512;
             break;
@@ -162,19 +163,86 @@ int deleteFileInTar (char *name_file, char *path_tar) {
     return -1;
 }
 
+char **findSubFiles (char *path_tar, char *path_in_tar) {
+	int src = open(path_tar,O_RDONLY);
+    if (src == -1) {
+        perror("tsh");
+        close(src);
+        return 0;
+    }
+    char bloc[BLOCKSIZE];
+    read(src,bloc,512);
+    char name[100];
+    char size[12];
+	int nbSubFiles = 0;
 
-/**char *path_strstr (char *path) {
-	printf("%s\n",path );
-	char *res = strstr(path,".tar");
+    while (bloc[0] != 0) {
 
-	if (res == NULL) return NULL;
-   	
-   	if (res != NULL && res[4] != 0 && res[4] != '/') {
-   		int pos = strlen(path) - strlen(res) + 4;
-   		return path_strstr(&path[pos]);
-   	}
-   	return res;
-}**/
+        memcpy(name,bloc,100);
+        memcpy(size,&bloc[124],12);
+        int filesize;
+        sscanf(size,"%o",&filesize);
+
+        int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
+		char *nameCopy;
+
+        if ((nameCopy = isSubFile(path_in_tar,name)) != NULL){
+            nbSubFiles ++;
+			free(nameCopy);
+        }
+
+        lseek(src,BLOCKSIZE*occupiedBlocks,SEEK_CUR);
+        read(src,bloc,512);
+    }
+
+	char **res = malloc((nbSubFiles + 1) * sizeof(char *));
+	lseek(src,0,SEEK_SET);
+	read(src,bloc,512);
+	int compteur = 0;
+
+	while (bloc[0] != 0) {
+        memcpy(name,bloc,100);
+        memcpy(size,&bloc[124],12);
+        int filesize;
+        sscanf(size,"%o",&filesize);
+
+        int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
+		char *nameCopy;
+
+        if ((nameCopy = isSubFile(path_in_tar,name)) != NULL){
+            res[compteur] = nameCopy;
+			compteur++;
+        }
+
+        lseek(src,BLOCKSIZE*occupiedBlocks,SEEK_CUR);
+        read(src,bloc,512);
+    }
+
+	res[compteur] = NULL;
+	return res;
+}
+
+char *isSubFile (char *s, char *toVerify) {
+	if (strlen(toVerify) <= strlen(s)) return NULL;
+	for (size_t i = 0; i < strlen(s); i++)
+	{
+		if (s[i] != toVerify[i]) return NULL;
+	}
+	int nbSlash = 0;
+	for (size_t i = strlen(s); i < strlen(toVerify); i++)
+	{
+		if (toVerify[i] == '/') {
+			nbSlash += 1;
+			if (nbSlash > 1) return NULL;
+		}
+	}
+
+	char *name = malloc(strlen(toVerify) - strlen(s) + 1);
+	memcpy(name,&toVerify[strlen(s)],strlen(toVerify) - strlen(s));
+	name[strlen(toVerify) - strlen(s)] = '\0';
+	return name;
+	
+}
 
 /**
  * @brief Return a int to know whether a file is a directory in a tar or not
@@ -224,7 +292,7 @@ char typeFile (char *path_tar, char *pathInTar) {
 
 		memcpy(name,bloc,100);
 
-		if (strcmp(name,pathInTar) == 0){
+		if (strcmpTar(pathInTar,name)){
 			return bloc[156];
 		}
 
@@ -241,23 +309,18 @@ char typeFile (char *path_tar, char *pathInTar) {
 	return '9';
 }
 
-/*
+int strcmpTar (char *path_file, char *path_in_tar) {
+	int lenPath1 = strlen(path_file);
+	int lenPath2 = strlen(path_in_tar);
+	if (lenPath1 < lenPath2 - 1 || lenPath1 > lenPath2) return 0;
 
-int main(int argc, char const *argv[])
-{
-	char **res = path_to_tar_file_path(argv[1]);
-	printf("%s et %s \n",res[0],res[1] );
-
-	printf("%s\n", fileDataInTar("supp.txt","toto.tar"));
-
-	char *A[] = {"titi.tar", "toto",NULL};
-
-
-	if (isTarFolder("tat",A)) printf("BIEN\n");
-	else printf("PAS BIEN\n");
-
-	printf(" Resultat %d\n", deleteFileInTar("supp.txt","toto.tar"));
-
-	return 0;
-}*/
+	int i = 0;
+	while (i < lenPath1)
+	{
+		if (path_file[i] != path_in_tar[i]) return 0;
+		i++;
+	}
+	
+	return (lenPath1 == lenPath2 || path_in_tar[i] == '/');
+}
 
