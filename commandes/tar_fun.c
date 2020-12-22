@@ -60,7 +60,10 @@ char *fileDataInTar (char *name_file, char *path_tar, struct posix_header *ph) {
  */
 int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix_header *ph) {
 	int fd_dest;
-	if ((fd_dest = open(path_to_tar,O_RDWR)) == -1) return -1;
+	if ((fd_dest = open(path_to_tar,O_RDWR)) == -1) {
+		printMessageTsh("Erreur lors de l'ouverture du fichier tar d'arrivée");
+		return -1;
+	}
 
 	int size = strlen(dataToCopy);
 	char bloc[BLOCKSIZE];
@@ -68,6 +71,7 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix
 	{
 		read(fd_dest,bloc,512);
 	} while (bloc[0] != 0);
+
 
 	memcpy(ph->name, name, strlen(name));
 	set_checksum(ph);

@@ -670,9 +670,12 @@ int tsh_cp (SimpleCommand_t *cmd) {
     }
 
     pathStruct *pathLocation = makeStructFromPath(cmd->args[cmd->nbargs - 1]);
-    if (pathLocation->isTarIndicated == 1) isTarBrowsed = 1;
+    if (pathLocation->isTarIndicated) isTarBrowsed = 1;
 
-    if (!isTarBrowsed) return call_existing_command(cmd->args);
+    if (!isTarBrowsed) {
+        return call_existing_command(cmd->args);
+    }
+
     if (cmd->nb_options > 2 || (cmd->nb_options == 1 && ! (strcmp(cmd->args[1],"-r") == 0))) {
         printMessageTsh("Veuillez indiquer aucune option ou l'option -r lorsque vous utilisez la focntion cp avec des tar");
         return -1;
@@ -707,6 +710,7 @@ int tsh_rm (SimpleCommand_t *cmd) {
 
     char *pwd = get_pwd();
     char **pathFromArr = parsePathAbsolute(cmd->args[1],pwd);
+
     free(pwd);
 
     char ***path = path_to_tar_file_path_new(pathFromArr);
@@ -732,24 +736,26 @@ pathStruct *makeStructFromPath (char *path) {
 
 	if (path3D[1] == NULL) {
 		pathRes->isTarBrowsed = 0;
-		pathRes->isTarBrowsed = 0;
+		pathRes->isTarIndicated = 0;
 		pathRes->path = array_to_path(path3D[0],1);
-        pathRes->name = getLast(path3D[0]);
 		pathRes->nameInTar = NULL;
 	}
 	else {
         if (path3D[2][0] == NULL) {
             pathRes->isTarBrowsed = 0;
-            pathRes->name = path3D[1][0];
         }
         else {
-            pathRes->isTarBrowsed = 0;
-            pathRes->name = getLast(path3D[2]);
+            pathRes->isTarBrowsed = 1;
         }
-		pathRes->isTarBrowsed = 1;
+		pathRes->isTarIndicated = 1;
 		pathRes->path = concatPathName(array_to_path(path3D[0],1), path3D[1][0]);
 		pathRes->nameInTar = array_to_path(path3D[2],0);
 	}
-	
+
+    pathRes->name = getLast(pathToArr);
+
+    int i = 0;
+    freeArr3D(path3D);
+
 	return pathRes;
 }

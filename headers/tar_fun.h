@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <time.h>
+#include "../headers/tsh_fun.h"
 
 
 char **parse_path(char *path) ;

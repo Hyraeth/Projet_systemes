@@ -79,11 +79,12 @@ char **parsePathAbsolute (char *path, char *pwd) {
         }
     }
 
-    if ((pwdArray = realloc(pwdArray,(size_1 + size_2) * sizeof(char *) )) == NULL){
+    if ((pwdArray = realloc(pwdArray,(size_1 + size_2 - 1) * sizeof(char *) )) == NULL){
     	perror ("tsh realloc parsePathAbsolute");
         return NULL;
 	}
 	memcpy(&pwdArray[size_1 - 1],pathArray, size_2 * sizeof( char * ));
+    pwdArray[size_1 + size_2 - 2] = NULL;
     free(envHomeCpy);
     return pwdArray;
 }
@@ -235,7 +236,7 @@ int nb_elem(char **array) {
 
 void freeArr3D (char ***arr) {
     int i = 0;
-    while (arr[i] != NULL)
+    while (arr[i] != NULL && i < 3)
     {
        freeArr2D(arr[i]);
        i++;

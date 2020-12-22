@@ -9,73 +9,12 @@
  * @param beforeName : If we copy a directory, then path to get from the directory to the file we copy
  * @return 1 if copy was successful, -1 if there was an error 
  */
-int cp_tar (char ***path1, char ***path2, int op,char *beforeName) {
-	char *dataToCpy;
-	struct posix_header *ph = malloc(sizeof(struct posix_header));
-	int res;
-	char *name;
-	struct stat sb;
-
-	if (path1[1] == NULL) {
-		char *path = array_to_path(path1[0],1);
-
-		if (stat(path,&sb) != 0) {
-			printMessageTsh("Erreur lors de l'ouverture du fichier");
-			return -1;
-		}
-		if (S_ISDIR(sb.st_mode)) {
-
-		}
-
-		if ((dataToCpy = fileDataNotInTar(path,ph)) == NULL) {
-			return -1;
-		}
-		name = getLast(path1[0]);
-		free(path);
-	}
-	else {
-		char *path = concatPathBeforeTarPathTar(path1[0],path1[1][0],1);
-
-		if (stat(path,&sb) != 0) {
-			printMessageTsh("Erreur lors de l'ouverture du fichier");
-			return -1;
-		}
-		if (S_ISDIR(sb.st_mode)) {
-			
-		}
-
-		char *pathInTar = array_to_path(path1[2],0);
-		if ((dataToCpy = fileDataInTar (pathInTar, path, ph)) == NULL) {
-			return -1;
-		}
-		name = getLast(path1[2]);
-		free(path);
-		free(pathInTar);
-	}
-
-	if (path2[1] == NULL) {
-		char *path = concatPathBeforeTarPathTar(path2[0],name,1);
-		if (name == NULL) return -1;
-		res = cpyDataFileNotInTar(path,dataToCpy,ph);
-		free(path);
-	}
-	else {
-		char *path = concatPathBeforeTarPathTar(path2[0],path2[1][0],1);
-		char *nameInTar = concatPathBeforeTarPathTar(path2[2],name,0);
-		res = copyFileInTar (dataToCpy, name, path,ph);
-		free(path);
-		free(nameInTar);
-	}
-
-	free(dataToCpy);
-	free(ph);
-	return res;
-}
-
 int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *name) {
 	char *dataToCopy;
 	struct posix_header *ph = malloc(sizeof(struct posix_header));
 	int res;
+	printMessageTsh("Copie : ");
+	printMessageTsh(pathData->path);
 
 	if (pathData->isTarBrowsed) {
 		dataToCopy = fileDataInTar(pathData->nameInTar,pathData->path,ph);
@@ -93,7 +32,7 @@ int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *nam
 		dataToCopy = fileDataNotInTar(pathData->path,ph);
 		struct stat sb;
 		if (stat(pathData->path,&sb) != 0) {
-			printMessageTsh("Erreur lors de l'ouverture du fichier");
+			printMessageTsh("Erreur lors de l'ouverture d'un fichier");
 			return -1;
 		}
 		if (S_ISDIR(sb.st_mode)) {
@@ -107,12 +46,25 @@ int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *nam
 		}
 	}
 
-	if (pathLocation->isTarBrowsed) {
-		res = copyFileInTar(dataToCopy,pathLocation->nameInTar,pathLocation->path,ph);
+
+	if (pathLocation->isTarIndicated) {
+		if (pathLocation->isTarBrowsed) {
+			char *nameFull = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 1);
+			strcat(nameFull,pathLocation->nameInTar);
+			strcat(nameFull,name);
+			res = copyFileInTar(dataToCopy,nameFull,pathLocation->path,ph);
+			free(nameFull);
+		}
+		else {
+			res = copyFileInTar(dataToCopy,name,pathLocation->path,ph);
+		}
 	}
 	else {
 		res = cpyDataFileNotInTar(concatPathName(pathLocation->path,name),dataToCopy,ph);
 	}
+
+	free(dataToCopy);
+	free(ph);
 
 	return res;
 }
@@ -127,8 +79,9 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 		free(pathLocationDir);
 	}
 	else {
-		char *nameDirInTar = concatPathName(pathLocation->nameInTar,name);
-		nameDirInTar = realloc(nameDirInTar, strlen(nameDirInTar) + 2);
+		char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
+		strcat(nameDirInTar,pathLocation->nameInTar);
+		strcat(nameDirInTar,name);
 		strcat(nameDirInTar,"/");
 		char *data = malloc(1);
 		data[0] = '\0';
@@ -149,17 +102,20 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 
 			while ((dirent = readdir(dir)) != NULL)
 			{
-				pathStruct *pathDataNew = malloc(sizeof(pathStruct));
-				pathDataNew->isTarBrowsed = 0;
-				pathDataNew->isTarIndicated = 0;
-				pathDataNew->nameInTar = NULL;
-				pathDataNew->path = dirent->d_name;
+				if (strcmp(".",dirent->d_name) != 0 && strcmp("..",dirent->d_name) !=0) {
+					pathStruct *pathDataNew = malloc(sizeof(pathStruct));
+					pathDataNew->isTarBrowsed = 0;
+					pathDataNew->isTarIndicated = 0;
+					pathDataNew->nameInTar = NULL;
+					pathDataNew->path = concatPathName(pathData->path,dirent->d_name);
 
-				cpTarTest(pathDataNew,pathLocationNew,1,dirent->d_name);
-				free(pathDataNew->path);
-				free(pathDataNew);
+					cpTarTest(pathDataNew,pathLocationNew,1,dirent->d_name);
+					free(pathDataNew->path);
+					free(pathDataNew);
+				}
 			}
-			free(dirent);
+			closedir(dir);
+			
 		}
 
 		freeStruct(pathLocationNew);
@@ -219,8 +175,6 @@ void remplirHeader (struct posix_header *ph, struct stat sb) {
 
 	memcpy(ph->magic, TMAGIC, strlen(TMAGIC));
 	memcpy(ph->version, TVERSION, strlen(TVERSION));
-
-	printf("Time %ld",sb.st_mtime);
 
 	sprintf(ph->mtime,"%11ld",sb.st_mtime);
 	sprintf(ph->uid,"%07d",sb.st_uid);
@@ -309,7 +263,11 @@ char *getLast (char **charArray) {
 		i++;
 	}
 	if (i == 0) return NULL;
-	else return charArray[i - 1];
+	else {
+		char *res = malloc(strlen(charArray[i-1]) + 1);
+		memcpy(res,charArray[i - 1],strlen(charArray[i - 1]));
+		return res;
+	}
 }
 
 pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name) {
