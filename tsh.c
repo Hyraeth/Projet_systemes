@@ -158,9 +158,12 @@ void free_simplecmd(SimpleCommand_t *cmd)
 
 void free_complexcmd(ComplexCommand_t *cmd)
 {
+
     free(cmd->input);
-    free(cmd->output);
-    free(cmd->err);
+    /*if (cmd->output != NULL)
+        free(cmd->output);
+    if (cmd->err != NULL)
+        free(cmd->err);*/
     for (size_t i = 0; i < cmd->nbcmd; i++)
     {
         free_simplecmd(cmd->simpCmds[i]);
@@ -206,7 +209,8 @@ char *read_line()
 
 void findInput(char *line, ComplexCommand_t *ccmd)
 {
-    int s, e = 0;
+    int s = 0;
+    int e = 0;
     for (size_t i = 0; i < strlen(line); i++)
     {
         if (line[i] == '<')
@@ -235,11 +239,15 @@ void findInput(char *line, ComplexCommand_t *ccmd)
                     break;
                 }
             }
+            line[i] = ' ';
             break;
         }
     }
     if (s == 0)
-        ccmd->input = "";
+    {
+        ccmd->input = malloc(1);
+        ccmd->input[0] = '\0';
+    }
     else
     {
         if ((ccmd->input = malloc((e - s + 1) * sizeof(char))) == NULL)
@@ -255,7 +263,8 @@ void findInput(char *line, ComplexCommand_t *ccmd)
 
 void findOutput(char *line, ComplexCommand_t *ccmd)
 {
-    int s, e = 0;
+    int s = 0;
+    int e = 0;
     for (size_t i = 0; i < strlen(line); i++)
     {
         if (line[i] == '>')
@@ -290,15 +299,19 @@ void findOutput(char *line, ComplexCommand_t *ccmd)
                     break;
                 }
             }
+            line[i] = ' ';
             break;
         }
     }
     if (s == 0)
-        ccmd->output = "";
+    {
+        ccmd->output = malloc(1);
+        ccmd->output[0] = '\0';
+    }
     else
     {
         if ((ccmd->output = malloc((e - s + 1) * sizeof(char))) == NULL)
-            perror("tsh: findInput malloc");
+            perror("tsh: findOutput malloc");
         memcpy(ccmd->output, line + s, e - s + 1);
         ccmd->output[e - s] = '\0';
         for (size_t i = s; i < e; i++)
@@ -310,7 +323,8 @@ void findOutput(char *line, ComplexCommand_t *ccmd)
 
 void findErr(char *line, ComplexCommand_t *ccmd)
 {
-    int s, e = 0;
+    int s = 0;
+    int e = 0;
     for (size_t i = 1; i < strlen(line); i++)
     {
         if (line[i] == '>' && line[i - 1] == '2')
@@ -343,15 +357,19 @@ void findErr(char *line, ComplexCommand_t *ccmd)
                     break;
                 }
             }
+            line[i] = ' ';
             break;
         }
     }
     if (s == 0)
-        ccmd->err = "";
+    {
+        ccmd->err = malloc(1);
+        ccmd->err[0] = '\0';
+    }
     else
     {
         if ((ccmd->err = malloc((e - s + 1) * sizeof(char))) == NULL)
-            perror("tsh: findInput malloc");
+            perror("tsh: findErr malloc");
         memcpy(ccmd->err, line + s, e - s + 1);
         ccmd->err[e - s] = '\0';
         for (size_t i = s; i < e; i++)
@@ -401,6 +419,7 @@ ComplexCommand_t *parse_line(char *line)
 
     cmd->simpCmds = simpCmds;
     cmd->nbcmd = nbcmd;
+    return cmd;
 }
 
 /**
@@ -553,7 +572,8 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     else
     {
         //todo
-        fdin = dup(tmpin);
+        if ((fdin = open(cmd->input, O_RDONLY, S_IRUSR)) == -1)
+            perror("tsh : open exec_complexcmd");
     }
     if (strcmp(cmd->err, "") == 0)
     {
@@ -562,7 +582,16 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     else
     {
         //todo
-        fderr = dup(tmperr);
+        if (cmd->appendErr)
+        {
+            if ((fderr = open(cmd->err, O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1)
+                perror("tsh : open exec_complexcmd");
+        }
+        else
+        {
+            if ((fderr = open(cmd->err, O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR)) == -1)
+                perror("tsh : open exec_complexcmd");
+        }
     }
     dup2(fderr, STDERR_FILENO);
     close(fderr);
@@ -577,7 +606,16 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         else
         {
             //todo
-            fdout = dup(tmpout);
+            if (cmd->appendOut)
+            {
+                if ((fdout = open(cmd->output, O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1)
+                    perror("tsh : open exec_complexcmd");
+            }
+            else
+            {
+                if ((fdout = open(cmd->output, O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR)) == -1)
+                    perror("tsh : open exec_complexcmd");
+            }
         }
 
         dup2(fdin, STDIN_FILENO);
@@ -608,7 +646,16 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             else
             {
                 //todo
-                fdout = dup(tmpout);
+                if (cmd->appendOut)
+                {
+                    if ((fdout = open(cmd->output, O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1)
+                        perror("tsh : open exec_complexcmd");
+                }
+                else
+                {
+                    if ((fdout = open(cmd->output, O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR)) == -1)
+                        perror("tsh : open exec_complexcmd");
+                }
             }
         }
         else
