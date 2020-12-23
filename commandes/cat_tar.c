@@ -1,5 +1,5 @@
 #include "../headers/cat_tar.h"
-#include "../commandes/tar_fun.c"
+
 /**
  * @brief copies the contents of a file
  * 
