@@ -913,11 +913,6 @@ int tsh_cat(SimpleCommand_t *cmd)
         {
             if (!is_an_option(cmd->args[i]))
             {
-                write(STDOUT_FILENO, "\n", strlen("\n"));
-                write(STDOUT_FILENO, ANSI_COLOR_CYAN, strlen(ANSI_COLOR_CYAN));
-                write(STDOUT_FILENO, cmd->args[i], strlen(cmd->args[i])); //write the name of the path to ls
-                write(STDOUT_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
-                write(STDOUT_FILENO, ":\n", strlen(":\n"));
                 //get the absolute path of the path given in form of array of string
                 char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd());
                 if (abs_path_array == NULL)
@@ -988,7 +983,6 @@ int tsh_cat(SimpleCommand_t *cmd)
                     }
                 }
                 free(abs_path_split);
-                write(STDOUT_FILENO, "\n", 1);
             }
         }
     }

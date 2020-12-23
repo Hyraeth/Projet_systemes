@@ -15,8 +15,8 @@ int cat_tar(struct posix_header *header, int fd)
     int filesize = ((*ptaille + BLOCKSIZE - 1) / BLOCKSIZE);
     //block
     char *block = malloc(sizeof(char) * BLOCKSIZE * filesize);
-    read(fd, block, BLOCKSIZE);
-    write(STDOUT_FILENO, block, BLOCKSIZE);
+    read(fd, block, BLOCKSIZE * filesize);
+    write(STDOUT_FILENO, block, strlen(block));
 }
 
 /**
@@ -49,6 +49,7 @@ int cat(char *path_tar, char *path)
         if (strcmp(header->name, path) == 0)
         {
             cat_tar(header, fd);
+            break;
         }
         int taille = 0;
         int *ptaille = &taille;
