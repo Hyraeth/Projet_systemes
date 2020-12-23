@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include "headers/tar_fun.h"
 #include "headers/ls_tar.h"
+#include "headers/cat_tar.h"
 #include "headers/tsh_fun.h"
 
 #define ANSI_COLOR_RED "\x1b[31m"
@@ -58,12 +59,14 @@ int call_existing_command(char **args);
 char *get_pwd();
 
 int tsh_cd(SimpleCommand_t *cmd);
+int tsh_cat(SimpleCommand_t *cmd);
 int tsh_ls(SimpleCommand_t *cmd);
 int tsh_pwd(SimpleCommand_t *cmd);
 int tsh_exit(SimpleCommand_t *cmd);
 
 char *builtin_str[] = {
     "cd",
+    "cat",
     "ls",
     "pwd",
     "exit"};
@@ -74,6 +77,7 @@ char *builtin_str[] = {
  */
 int (*builtin_func[])(SimpleCommand_t *cmd) = {
     &tsh_cd,
+    &tsh_cat,
     &tsh_ls,
     &tsh_pwd,
     &tsh_exit};
@@ -897,6 +901,92 @@ int tsh_cd(SimpleCommand_t *cmd)
         return 1;
     }
     return cd_tar(cmd->args[1]);
+}
+
+int tsh_cat(SimpleCommand_t *cmd)
+{
+    if ((cmd->nbargs - cmd->nb_options) == 1)
+        call_existing_command(cmd->args);
+    else
+    {
+        for (size_t i = 1; i < cmd->nbargs; i++)
+        {
+            if (!is_an_option(cmd->args[i]))
+            {
+                //get the absolute path of the path given in form of array of string
+                char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd());
+                if (abs_path_array == NULL)
+                    return -1;
+                remove_escape_char_array(abs_path_array);
+
+                //split the absolute path in 3 array of string corresponding to the path before the tar, the name of the tar and the path after
+                char ***abs_path_split = path_to_tar_file_path_new(abs_path_array);
+                //if we are going in a tar
+                if (abs_path_split[1] != NULL)
+                {
+                    //turn the array of string in the form of a string
+                    char *path_to_open = array_to_path(abs_path_split[0], 1);
+                    //add more memory to add the tar to open in the path
+                    if ((path_to_open = realloc(path_to_open, strlen(path_to_open) + strlen(abs_path_split[1][0]) + 1)) == NULL)
+                        perror("tsh: ls");
+                    strcat(path_to_open, "/");
+                    strcat(path_to_open, abs_path_split[1][0]);
+                    //get the path to ls inside the tar
+                    char *path_in_tar = array_to_path(abs_path_split[2], 0);
+                    cat(path_to_open, path_in_tar);
+                    free(path_to_open);
+                    free(path_in_tar);
+                }
+                else
+                {
+                    //get the path to cat
+                    char *path_to_ls = array_to_path(abs_path_array, 1);
+                    if (strcmp(path_to_ls, "") == 0)
+                        path_to_ls[0] = '/';
+                    //allocate memory for "cat", the options, and the path
+                    char **args = malloc((cmd->nb_options + 3) * sizeof(char *));
+                    args[0] = malloc(strlen(cmd->args[0]) + 1);
+                    memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+                    for (size_t i = 0; i < cmd->nb_options; i++)
+                    {
+                        args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
+                        memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                    }
+                    args[cmd->nb_options + 1] = malloc(strlen(path_to_ls) + 1);
+                    memcpy(args[cmd->nb_options + 1], path_to_ls, strlen(path_to_ls) + 1);
+                    args[cmd->nb_options + 2] = NULL;
+                    //write(1, path_to_ls, strlen(path_to_ls));
+                    free(path_to_ls);
+
+                    call_existing_command(args);
+                }
+                int i = 0;
+                while (abs_path_array[i] != NULL)
+                {
+                    free(abs_path_array[i]);
+                    i++;
+                }
+
+                free(abs_path_array);
+                for (size_t j = 0; j <= 2; j++)
+                {
+
+                    if (abs_path_split[j] != NULL)
+                    {
+                        int k = 0;
+                        while (abs_path_split[j][k] != NULL)
+                        {
+                            //free(abs_path_split[j][k]);
+                            k++;
+                        }
+                        free(abs_path_split[j]);
+                    }
+                }
+                free(abs_path_split);
+            }
+        }
+    }
+    return 1;
 }
 
 /**

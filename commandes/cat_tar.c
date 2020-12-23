@@ -1,5 +1,5 @@
 #include "../headers/cat_tar.h"
-#include "../commandes/tar_fun.c"
+
 /**
  * @brief copies the contents of a file
  * 
@@ -14,9 +14,15 @@ int cat_tar(struct posix_header *header, int fd)
     sscanf(header->size, "%o", ptaille);
     int filesize = ((*ptaille + BLOCKSIZE - 1) / BLOCKSIZE);
     //block
-    char *block = malloc(sizeof(char) * BLOCKSIZE * filesize);
-    read(fd, block, BLOCKSIZE * filesize);
-    write(STDOUT_FILENO, block, BLOCKSIZE * filesize);
+    char *block = malloc(sizeof(char) * BLOCKSIZE);
+    int n = 0;
+    int k = 0;
+    while ((n = read(fd, block, BLOCKSIZE)) > 0)
+    {
+        if ((k = write(STDOUT_FILENO, block, strlen(block))) < n)
+            break;
+    }
+    return k;
 }
 
 /**
@@ -49,6 +55,7 @@ int cat(char *path_tar, char *path)
         if (strcmp(header->name, path) == 0)
         {
             cat_tar(header, fd);
+            break;
         }
         int taille = 0;
         int *ptaille = &taille;
