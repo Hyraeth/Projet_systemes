@@ -16,7 +16,7 @@ int cat_tar(struct posix_header *header, int fd)
     //block
     char *block = malloc(sizeof(char) * BLOCKSIZE * filesize);
     read(fd, block, BLOCKSIZE);
-    write(STDOUT_FILENO, block, BLOCKSIZE);
+    write(STDOUT_FILENO, block, BLOCKSIZE * filesize);
 }
 
 /**
