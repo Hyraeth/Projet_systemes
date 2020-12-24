@@ -1,13 +1,13 @@
 #include "../headers/cp_tar.h"
 
 /**
- * @brief General function to make copy file from path1 to directory or tar from path2
+ * @brief Copy File or Folder with option -r or no option
  * 
- * @param path1 : path to the file we want to copy 
- * @param path2 : path to the directory or tar where we want to copy
- * @param op : 1 if there is the option -r, else 0
- * @param beforeName : If we copy a directory, then path to get from the directory to the file we copy
- * @return 1 if copy was successful, -1 if there was an error 
+ * @param pathData : strucuture for the path of the data to be copied
+ * @param pathLocation : strucuture for the path of the folder where data is to be copied
+ * @param op : 1 if there is the option -r, 0 if not
+ * @param name : name of the file to be copied
+ * @return int : return 1 if copy has been made, -1 if not
  */
 int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *name) {
 	char *dataToCopy;
@@ -78,6 +78,15 @@ int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *nam
 	return res;
 }
 
+/**
+ * @brief Copy a folder and all the files in it
+ * 
+ * @param pathData : strucuture for the path of the data to be copied
+ * @param pathLocation : strucuture for the path of the folder where data is to be copied
+ * @param name : name of the folder to be copied
+ * @param ph : structure posix_header 
+ * @return int : return 1 if copy has been made, -1 if not
+ */
 int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, struct posix_header *ph) {
 	int res;
 	mode_t modeDir;
@@ -113,10 +122,9 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 				pathDataNew->isTarBrowsed = 1;
 				pathDataNew->isTarIndicated = 1;
 				pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 2);
+
 				memcpy(pathDataNew->nameInTar,pathData->nameInTar,strlen(pathData->nameInTar));
-				printMessageTsh(pathDataNew->nameInTar);
 				strcat(pathDataNew->nameInTar,nameSubFiles[i]);
-				printMessageTsh(pathDataNew->nameInTar);
 
 				pathDataNew->path = malloc(strlen(pathData->path) + 1);
 				memcpy(pathDataNew->path, pathData->path,strlen(pathData->path));
@@ -124,6 +132,7 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 				cpTarTest(pathDataNew,pathLocationNew,1,nameSubFiles[i]);
 				free(nameSubFiles[i]);
 				free(pathDataNew->path);
+				memset(pathDataNew->nameInTar, 0, strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 2);
 				free(pathDataNew->nameInTar);
 				free(pathDataNew);
 				i++;
@@ -192,6 +201,8 @@ long int decimalToOctal(long int decimalnum)
 {
     long int octalnum = 0, temp = 1;
 
+	printf("num decim : %ld\n",decimalnum);
+
     while (decimalnum != 0)
     {
     	octalnum = octalnum + (decimalnum % 8) * temp;
@@ -199,6 +210,7 @@ long int decimalToOctal(long int decimalnum)
         temp = temp * 10;
     }
 
+	printf("num octa : %ld\n",octalnum);
     return octalnum;
 }
 
@@ -225,7 +237,7 @@ void remplirHeader (struct posix_header *ph, struct stat sb) {
 	memcpy(ph->magic, TMAGIC, strlen(TMAGIC));
 	memcpy(ph->version, TVERSION, strlen(TVERSION));
 
-	sprintf(ph->mtime,"%011lo",decimalToOctal(sb.st_mtime));
+	sprintf(ph->mtime,"%011lo",sb.st_mtime);
 	sprintf(ph->uid,"%07d",sb.st_uid);
 	sprintf(ph->gid,"%07d",sb.st_gid);
 
@@ -239,6 +251,12 @@ void remplirHeader (struct posix_header *ph, struct stat sb) {
 	memcpy(ph->gname, grp->gr_name, strlen(grp->gr_name));
 }
 
+/**
+ * @brief Fill rights in the posix_header strucutre 
+ * 
+ * @param ph : posix_header to be filled
+ * @param sb : stat structure of the file we want to get the rights from
+ */
 void makePermissions (struct posix_header *ph, struct stat sb) {
 	int permissions = 0;
 
@@ -279,7 +297,8 @@ int cpyDataFileNotInTar (char * path, char *data, struct posix_header *ph) {
 	if ((fd = open(path, O_WRONLY | O_CREAT, 0644)) == -1 ) return -1;
 
 	int n;
-	n = write(fd,data, atoi(ph->size));
+
+	n = write(fd,data, octalToDecimal(atoi(ph->size)));
 
 	if ( n== -1 ) return -1;
 	return 1;
@@ -319,6 +338,14 @@ char *getLast (char **charArray) {
 	}
 }
 
+/**
+ * @brief Build a new pathStruct when we try to copy files from a folder already copied
+ * 
+ * @param pathLocation : pathStruct for the folder that has been copied 
+ * @param name : name of the folde that has been copied
+ * @return pathStruct* : returns a pointer to the pathStruct created, 
+ 						used to copy the subfiles of the folder
+ */
 pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name) {
 	pathStruct *res = malloc(sizeof(pathStruct));
 	res->isTarIndicated = pathLocation->isTarIndicated;
@@ -351,8 +378,13 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name) {
 	}
 }
 
+/**
+ * @brief Free a 
+ * 
+ * @param path 
+ */
 void freeStruct (pathStruct *path) {
-	free(path->nameInTar);
+	if (path->nameInTar != NULL) free(path->nameInTar);
 	free(path->path);
 	free(path);
 }

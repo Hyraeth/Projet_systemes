@@ -324,3 +324,18 @@ int strcmpTar (char *path_file, char *path_in_tar) {
 	return (lenPath1 == lenPath2 || path_in_tar[i] == '/');
 }
 
+int octalToDecimal (long int octal) {
+	long int decimal = 0;
+	int base = 1;
+	long int tmp = octal;
+
+	while (tmp != 0)
+    {
+		int last_digit = tmp % 10;
+		tmp = tmp / 10;
+        decimal += last_digit * base;
+		base = base * 8;
+    }
+	return decimal;
+}
+

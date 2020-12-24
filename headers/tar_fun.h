@@ -26,5 +26,6 @@ int deleteFileInTar (char *name_file, char *path_tar);
 char *isSubFile (char *s, char *toVerify);
 char **findSubFiles (char *path_tar, char *path_in_tar);
 int strcmpTar (char *path_file, char *path_in_tar);
+int octalToDecimal (long int octal);
 
 #endif //TAR_FUN_H
