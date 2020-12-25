@@ -11,6 +11,8 @@
 #include "headers/ls_tar.h"
 #include "headers/cat_tar.h"
 #include "headers/tsh_fun.h"
+#include "headers/cp_tar.h"
+#include "headers/rm_tar.h"
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -57,19 +59,25 @@ int exec_cmd(SimpleCommand_t *cmd);
 int exec_complexcmd(ComplexCommand_t *cmd);
 int call_existing_command(char **args);
 char *get_pwd();
+pathStruct *makeStructFromPath (char *path) ;
 
 int tsh_cd(SimpleCommand_t *cmd);
 int tsh_cat(SimpleCommand_t *cmd);
 int tsh_ls(SimpleCommand_t *cmd);
 int tsh_pwd(SimpleCommand_t *cmd);
 int tsh_exit(SimpleCommand_t *cmd);
+int tsh_cp(SimpleCommand_t *cmd);
+int tsh_rm(SimpleCommand_t *cmd);
 
 char *builtin_str[] = {
-    "cd",
-    "cat",
-    "ls",
-    "pwd",
-    "exit"};
+  "cd",
+  "cat",
+  "ls",
+  "cp",
+  "rm",
+  "pwd",
+  "exit"
+};
 
 /**
  * @brief List of builtin functions currently implemented.
@@ -79,8 +87,11 @@ int (*builtin_func[])(SimpleCommand_t *cmd) = {
     &tsh_cd,
     &tsh_cat,
     &tsh_ls,
+    &tsh_cp,
+    &tsh_rm,
     &tsh_pwd,
-    &tsh_exit};
+    &tsh_exit
+};
 
 int main(int argc, char const *argv[])
 {
@@ -540,7 +551,7 @@ int exec_cmd(SimpleCommand_t *cmd)
     {
         return 1;
     }
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 6; i++)
     {
         if (strcmp(cmd->args[0], builtin_str[i]) == 0)
         {
@@ -1166,4 +1177,114 @@ int tsh_pwd(SimpleCommand_t *cmd)
 int tsh_exit(SimpleCommand_t *cmd)
 {
     return 0;
+}
+
+int tsh_cp (SimpleCommand_t *cmd) {
+    if (cmd->nbargs < 3) {
+        printMessageTsh("Il faut 3 arguments pour la fonction cp");
+        return -1;
+    }
+
+    int beginIndex = (cmd->nb_options == 1) ? 2 : 1;
+    int isTarBrowsed = 0;
+
+    pathStruct **tabStructPathData = malloc((cmd->nbargs - beginIndex - 1)*(sizeof(pathStruct * )));
+
+    for (int i = beginIndex; i < cmd->nbargs -1 ; i++)
+    {
+        tabStructPathData[i-beginIndex] = makeStructFromPath(cmd->args[i]);
+        if (tabStructPathData[i - beginIndex]->isTarBrowsed) {
+            isTarBrowsed = 1;
+        }
+    }
+
+    pathStruct *pathLocation = makeStructFromPath(cmd->args[cmd->nbargs - 1]);
+    if (pathLocation->isTarIndicated) isTarBrowsed = 1;
+
+    if (!isTarBrowsed) {
+        return call_existing_command(cmd->args);
+    }
+
+    if (cmd->nb_options > 2 || (cmd->nb_options == 1 && ! (strcmp(cmd->args[1],"-r") == 0))) {
+        printMessageTsh("Veuillez indiquer aucune option ou l'option -r lorsque vous utilisez la focntion cp avec des tar");
+        return -1;
+    }
+
+    for (int i = beginIndex; i < cmd->nbargs - 1 ; i++)
+    {
+        int res = cpTar(tabStructPathData[i - beginIndex],pathLocation,cmd->nb_options,tabStructPathData[i - beginIndex]->name);
+        freeStruct(tabStructPathData[i - beginIndex]);
+        
+        if (res == -1) {
+            for (int j = i + 1; j < cmd->nbargs - 1 ; j++){
+                freeStruct(tabStructPathData[j - beginIndex]);
+            }
+            free(tabStructPathData);
+
+            freeStruct(pathLocation);
+            return -1;
+        }
+    }
+
+    free(tabStructPathData);
+
+    return 1;
+}
+
+int tsh_rm (SimpleCommand_t *cmd) {
+    if (cmd->nbargs < 2) {
+        write(STDOUT_FILENO,"Il faut 2 arguments pour la fonction cp\n",strlen("Il faut 2 arguments pour la fonction cp\n"));
+        return -1;
+    }
+
+    char *pwd = get_pwd();
+    char **pathFromArr = parsePathAbsolute(cmd->args[1],pwd);
+
+    free(pwd);
+
+    char ***path = path_to_tar_file_path_new(pathFromArr);
+
+    if (path[1] == NULL || path[2][0] == NULL) return call_existing_command(cmd->args);
+
+    free(pathFromArr);
+
+    if (cmd->nb_options == 0 && cmd->nbargs == 2) return rm_tar(path,0);
+    if (cmd->nb_options == 1 && cmd->options[0] == "-r" && cmd->nbargs == 3) return rm_tar(path,1);
+    
+    write(STDOUT_FILENO,"Il faut moins d'arguments pour la fonction cp\n",strlen("Il faut moins d'arguments pour la fonction cp\n"));
+    return -1;
+}
+
+pathStruct *makeStructFromPath (char *path) {
+	char *pwd = get_pwd();
+    char **pathToArr = parsePathAbsolute(path,pwd);
+    free(pwd);
+    char ***path3D = path_to_tar_file_path_new(pathToArr); 
+
+	pathStruct *pathRes = malloc(sizeof(pathStruct));
+
+	if (path3D[1] == NULL) {
+		pathRes->isTarBrowsed = 0;
+		pathRes->isTarIndicated = 0;
+		pathRes->path = array_to_path(path3D[0],1);
+		pathRes->nameInTar = NULL;
+	}
+	else {
+        if (path3D[2][0] == NULL) {
+            pathRes->isTarBrowsed = 0;
+        }
+        else {
+            pathRes->isTarBrowsed = 1;
+        }
+		pathRes->isTarIndicated = 1;
+		pathRes->path = concatPathName(array_to_path(path3D[0],1), path3D[1][0]);
+		pathRes->nameInTar = array_to_path(path3D[2],0);
+	}
+
+    pathRes->name = getLast(pathToArr);
+
+    int i = 0;
+    freeArr3D(path3D);
+
+	return pathRes;
 }

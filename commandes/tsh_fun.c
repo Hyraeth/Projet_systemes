@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 
-#include "headers/tsh_fun.h"
+#include "../headers/tsh_fun.h"
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -42,6 +42,7 @@ char **parsePathAbsolute (char *path, char *pwd) {
                 else {
                     if ((pwdArray = realloc(pwdArray,(size_1 - 1) * sizeof(char *) )) == NULL){
                     	perror ("tsh realloc parsePathAbsolute1");
+                        return NULL;
                 	}
                 	size_1--;
                     pwdArray[size_1 - 1] = NULL;
@@ -50,6 +51,7 @@ char **parsePathAbsolute (char *path, char *pwd) {
 
 	                if ((pathArray = realloc(pathArray,(size_2 - 1) * sizeof(char *))) == NULL) {
 	                	perror ("tsh realloc parsePathAbsolute2");
+                        return NULL;
 	                }
 	                size_2 --;
                 }
@@ -58,6 +60,7 @@ char **parsePathAbsolute (char *path, char *pwd) {
                 memmove(&pathArray[i - 1], &pathArray[i+1], (size_2 - 1 - i)*sizeof( char *) );
                 if ((pathArray = realloc(pathArray,(size_2 - 2) * sizeof(char *))) == NULL) {
                 	perror ("tsh realloc parsePathAbsolute");
+                    return NULL;
                 }
                 size_2 -= 2;
                 i--;
@@ -67,6 +70,7 @@ char **parsePathAbsolute (char *path, char *pwd) {
             memmove(&pathArray[i],&pathArray[i+1],(size_2 - 1 - i)*sizeof( char *) );
             if ((pathArray = realloc(pathArray,(size_2 - 1) * sizeof(char *))) == NULL) {
                 perror ("tsh realloc parsePathAbsolute");
+                return NULL;
             }
             size_2 --;
         }
@@ -75,11 +79,12 @@ char **parsePathAbsolute (char *path, char *pwd) {
         }
     }
 
-    if ((pwdArray = realloc(pwdArray,(size_1 + size_2) * sizeof(char *) )) == NULL){
+    if ((pwdArray = realloc(pwdArray,(size_1 + size_2 - 1) * sizeof(char *) )) == NULL){
     	perror ("tsh realloc parsePathAbsolute");
+        return NULL;
 	}
 	memcpy(&pwdArray[size_1 - 1],pathArray, size_2 * sizeof( char * ));
-	free(pathArray);
+    pwdArray[size_1 + size_2 - 2] = NULL;
     free(envHomeCpy);
     return pwdArray;
 }
@@ -160,7 +165,7 @@ char ***path_to_tar_file_path_new (char **path) {
 char *array_to_path(char **array, int op) {
     if(array[0] == NULL) {
         char *path = malloc(1);
-        path[0] = 0;
+        path[0] = '\0';
         return path;
     }
     int pathlength;
@@ -188,6 +193,16 @@ char *array_to_path(char **array, int op) {
     }
     path[strlen(path)] = '\0';
     return path;
+}
+
+char *concatPathName (char *path, char *name) {
+    int len = strlen(path) + strlen(name) + 2;
+    char *pathRes;
+	if ((pathRes = malloc(len)) == NULL) return NULL;
+    strcat(pathRes,path);
+    strcat(pathRes, "/");
+    strcat(pathRes, name);
+    return pathRes;
 }
 
 int is_an_option(char *string) {
@@ -218,13 +233,28 @@ int nb_elem(char **array) {
     while(array[i] != NULL) i++;
     return i;
 }
-/*
-int main(int argc, char const *argv[])
-{
-	char ***res = path_to_tar_file_path_new(parsePathAbsolute(argv[1],""));
-	printArray(res[0]);
-    printArray(res[1]);
-    printArray(res[2]);
-	return 0;
+
+void freeArr3D (char ***arr) {
+    int i = 0;
+    while (arr[i] != NULL && i < 3)
+    {
+       freeArr2D(arr[i]);
+       i++;
+    }
+    free(arr);
 }
-*/
+
+void freeArr2D (char **arr) {
+    int i = 0;
+    while (arr[i] != NULL)
+    {
+       free(arr[i]);
+       i++;
+    }
+    free(arr);
+}
+
+void printMessageTsh (char* message) {
+     write(STDOUT_FILENO,message,strlen(message));
+     write(STDOUT_FILENO,"\n",1);
+}
