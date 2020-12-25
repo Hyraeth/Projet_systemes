@@ -551,7 +551,7 @@ int exec_cmd(SimpleCommand_t *cmd)
     {
         return 1;
     }
-    for (size_t i = 0; i < 6; i++)
+    for (size_t i = 0; i < 8; i++)
     {
         if (strcmp(cmd->args[0], builtin_str[i]) == 0)
         {
