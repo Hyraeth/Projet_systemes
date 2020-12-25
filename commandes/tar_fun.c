@@ -62,10 +62,6 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix
 		return -1;
 	}
 
-	printMessageTsh("-------------Copy------------------");
-	printMessageTsh(path_to_tar);
-	printMessageTsh(name);
-
 	int size = strlen(dataToCopy);
 	char bloc[BLOCKSIZE];
 	do
@@ -73,8 +69,7 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix
 		read(fd_dest,bloc,512);
 	} while (bloc[0] != 0);
 
-
-	memcpy(ph->name, name, strlen(name));
+	printMessageTsh(ph->name);
 	set_checksum(ph);
 
 	lseek(fd_dest,-512,SEEK_CUR);

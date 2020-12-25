@@ -9,7 +9,7 @@
  * @param name : name of the file to be copied
  * @return int : return 1 if copy has been made, -1 if not
  */
-int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *name) {
+int cpTar (pathStruct *pathData, pathStruct *pathLocation, int op, char *name) {
 	char *dataToCopy;
 	struct posix_header *ph = malloc(sizeof(struct posix_header));
 	int res;
@@ -19,11 +19,13 @@ int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *nam
 		if (typeFile(pathData->path,pathData->nameInTar) == '5') {
 			if (!op) {
 				printMessageTsh("Vous ne pouvez copier des dossiers qu'en indicant l'option -r");
+				free(dataToCopy);
+				free(ph);
 				return -1;
 			}
 			else {
 				if (pathData->nameInTar[strlen(name) - 1] != '/') {
-					pathData->nameInTar = realloc(pathData->nameInTar,strlen(name) + 2);
+					pathData->nameInTar = realloc(pathData->nameInTar,strlen(pathData->nameInTar) + 2);
 					strcat(pathData->nameInTar,"/");
 					res = copyFolder(pathData,pathLocation,name,ph);
 				}
@@ -39,11 +41,15 @@ int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *nam
 		struct stat sb;
 		if (stat(pathData->path,&sb) != 0) {
 			printMessageTsh("Erreur lors de l'ouverture d'un fichier");
+			free(dataToCopy);
+			free(ph);
 			return -1;
 		}
 		if (S_ISDIR(sb.st_mode)) {
 			if (!op) {
 				printMessageTsh("Vous ne pouvez copier des dossiers qu'en indicant l'option -r");
+				free(ph);
+				free(dataToCopy);
 				return -1;
 			}
 			else {
@@ -59,7 +65,7 @@ int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *nam
 	if (pathLocation->isTarIndicated) {
 		if (pathLocation->isTarBrowsed) {
 			char *nameFull = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 1);
-			strcat(nameFull,pathLocation->nameInTar);
+			strcpy(nameFull,pathLocation->nameInTar);
 			strcat(nameFull,name);
 			res = copyFileInTar(dataToCopy,nameFull,pathLocation->path,ph);
 			free(nameFull);
@@ -103,7 +109,7 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 		strcat(nameDirInTar,"/");
 		char *data = malloc(1);
 		data[0] = '\0';
-		copyFileInTar(data,nameDirInTar,pathLocation->path,ph);
+		res = copyFileInTar(data,nameDirInTar,pathLocation->path,ph);
 		free(data);
 		free(nameDirInTar);
 	}
@@ -116,23 +122,20 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 			int i = 0;
 			while (nameSubFiles[i] != NULL)
 			{
-				printMessageTsh("Copie : ");
-				printMessageTsh(nameSubFiles[i]);
 				pathStruct *pathDataNew = malloc(sizeof(pathStruct));
 				pathDataNew->isTarBrowsed = 1;
 				pathDataNew->isTarIndicated = 1;
 				pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 2);
 
-				memcpy(pathDataNew->nameInTar,pathData->nameInTar,strlen(pathData->nameInTar));
+				strcpy(pathDataNew->nameInTar,pathData->nameInTar);
 				strcat(pathDataNew->nameInTar,nameSubFiles[i]);
 
 				pathDataNew->path = malloc(strlen(pathData->path) + 1);
-				memcpy(pathDataNew->path, pathData->path,strlen(pathData->path));
+				strcpy(pathDataNew->path, pathData->path);
 
-				cpTarTest(pathDataNew,pathLocationNew,1,nameSubFiles[i]);
+				cpTar(pathDataNew,pathLocationNew,1,nameSubFiles[i]);
 				free(nameSubFiles[i]);
 				free(pathDataNew->path);
-				memset(pathDataNew->nameInTar, 0, strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 2);
 				free(pathDataNew->nameInTar);
 				free(pathDataNew);
 				i++;
@@ -141,7 +144,7 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 		}
 		else {
 			DIR *dir = opendir(pathData->path);
-			struct dirent *dirent = malloc (sizeof(struct dirent));
+			struct dirent *dirent ;
 
 			while ((dirent = readdir(dir)) != NULL)
 			{
@@ -152,7 +155,7 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 					pathDataNew->nameInTar = NULL;
 					pathDataNew->path = concatPathName(pathData->path,dirent->d_name);
 
-					cpTarTest(pathDataNew,pathLocationNew,1,dirent->d_name);
+					cpTar(pathDataNew,pathLocationNew,1,dirent->d_name);
 					free(pathDataNew->path);
 					free(pathDataNew);
 				}
@@ -160,7 +163,6 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 			closedir(dir);
 			
 		}
-
 		freeStruct(pathLocationNew);
 		
 	}
@@ -201,16 +203,12 @@ long int decimalToOctal(long int decimalnum)
 {
     long int octalnum = 0, temp = 1;
 
-	printf("num decim : %ld\n",decimalnum);
-
     while (decimalnum != 0)
     {
     	octalnum = octalnum + (decimalnum % 8) * temp;
     	decimalnum = decimalnum / 8;
         temp = temp * 10;
     }
-
-	printf("num octa : %ld\n",octalnum);
     return octalnum;
 }
 
@@ -349,6 +347,7 @@ char *getLast (char **charArray) {
 pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name) {
 	pathStruct *res = malloc(sizeof(pathStruct));
 	res->isTarIndicated = pathLocation->isTarIndicated;
+	res->name = NULL;
 
 	if (res->isTarIndicated) {
 
@@ -386,5 +385,6 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name) {
 void freeStruct (pathStruct *path) {
 	if (path->nameInTar != NULL) free(path->nameInTar);
 	free(path->path);
+	if (path->name != NULL) free(path->name);
 	free(path);
 }

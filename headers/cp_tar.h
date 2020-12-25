@@ -9,8 +9,7 @@
 #include <dirent.h>
 
 
-int cp_tar (char ***path1, char ***path2, int op,char *beforeName);
-int cpTarTest (pathStruct *pathData, pathStruct *pathLocation, int op, char *name);
+int cpTar (pathStruct *pathData, pathStruct *pathLocation, int op, char *name);
 int cpyDataFileNotInTar (char * path, char *data, struct posix_header *ph);
 int copyFolder (struct pathStruct *pathData, struct pathStruct *pathLocation, char *name, struct posix_header *ph);
 char *concatPathBeforeTarPathTar (char **pathBefore, char *name, int op);

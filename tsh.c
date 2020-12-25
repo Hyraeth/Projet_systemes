@@ -602,54 +602,6 @@ int tsh_exit(SimpleCommand_t *cmd) {
     return 0;
 }
 
-/**int tsh_cp (SimpleCommand_t *cmd) {
-    if (cmd->nbargs < 3) {
-        printMessageTsh("Il faut 3 arguments pour la fonction cp");
-        return -1;
-    }
-
-    int isTarBrowsed = 0;
-    for (int i = 1; i < cmd->nbargs; i++)
-    {
-        if (isTar(cmd->args[i])) isTarBrowsed = 1;
-    }
-    if (!isTarBrowsed) return call_existing_command(cmd->args);
-    if (cmd->nb_options > 2 || (cmd->nb_options == 1 && ! (strcmp(cmd->args[1],"-r") == 0))) {
-        printMessageTsh("Veuillez indiquer aucune option ou l'option -r lorsque vous utilisez la focntion cp avec des tar");
-        return -1;
-    }
-
-    char *pwd = get_pwd();
-    char **pathToArr = parsePathAbsolute(cmd->args[cmd->nbargs - 1],pwd);
-    free(pwd);
-    char ***pathFolder = path_to_tar_file_path_new(pathToArr);
-
-    int beginIndex = (cmd->nb_options == 1) ? 2 : 1;
-    int option = (cmd->nb_options == 1) ? 1 : 0;
-
-    printMessageTsh("Odede");
-
-    for (int i = beginIndex; i < cmd->nbargs - 1 ; i++)
-    {
-        char *pwd2 = get_pwd();
-        char **pathFromArr = parsePathAbsolute(cmd->args[i],pwd2);
-        printMessageTsh("Ode");
-        free(pwd2);
-        char ***pathFile = path_to_tar_file_path_new(pathFromArr);
-        int res = cp_tar(pathFile,pathFolder,option,NULL);
-        printMessageTsh("Oups");
-        freeArr3D(pathFile);
-        if (res == -1) {
-            freeArr3D(pathFolder);
-            return -1;
-        }
-    }
-
-    /*freeArr3D(pathFolder);
-
-    return 1;
-}**/
-
 int tsh_cp (SimpleCommand_t *cmd) {
     if (cmd->nbargs < 3) {
         printMessageTsh("Il faut 3 arguments pour la fonction cp");
@@ -683,11 +635,11 @@ int tsh_cp (SimpleCommand_t *cmd) {
 
     for (int i = beginIndex; i < cmd->nbargs - 1 ; i++)
     {
-        int res = cpTarTest(tabStructPathData[i - beginIndex],pathLocation,cmd->nb_options,tabStructPathData[i - beginIndex]->name);
+        int res = cpTar(tabStructPathData[i - beginIndex],pathLocation,cmd->nb_options,tabStructPathData[i - beginIndex]->name);
         freeStruct(tabStructPathData[i - beginIndex]);
         
         if (res == -1) {
-            for (int j = i; j < cmd->nbargs - 1 ; j++){
+            for (int j = i + 1; j < cmd->nbargs - 1 ; j++){
                 freeStruct(tabStructPathData[j - beginIndex]);
             }
             free(tabStructPathData);
