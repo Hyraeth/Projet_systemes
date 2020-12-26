@@ -1282,7 +1282,7 @@ int tsh_cp(SimpleCommand_t *cmd)
                     args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
                     memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
                 }
-                args[cmd->nb_options + 1] = malloc(strlen(pathDest->path) + 1);
+                args[cmd->nb_options + 1] = malloc(strlen(pathSrc->path) + 1);
                 memcpy(args[cmd->nb_options + 1], pathSrc->path, strlen(pathSrc->path) + 1);
                 args[cmd->nb_options + 2] = malloc(strlen(pathDest->path) + 1);
                 memcpy(args[cmd->nb_options + 2], pathDest->path, strlen(pathDest->path) + 1);
@@ -1304,31 +1304,52 @@ int tsh_cp(SimpleCommand_t *cmd)
 
 int tsh_rm(SimpleCommand_t *cmd)
 {
-    if (cmd->nbargs < 2)
+    if (cmd->nbargs - cmd->nb_options < 2)
     {
-        write(STDOUT_FILENO, "Il faut 2 arguments pour la fonction cp\n", strlen("Il faut 2 arguments pour la fonction cp\n"));
+        printMessageTsh("Il faut 2 arguments pour la fonction rm");
         return -1;
     }
 
-    char *pwd = get_pwd();
-    char **pathFromArr = parsePathAbsolute(cmd->args[1], pwd);
+    int opt = has_correct_option(cmd->options, "-r");
+    for (size_t i = 1; i < cmd->nbargs; i++)
+    {
+        if (!is_an_option(cmd->args[i]))
+        {
+            pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
+            if (pathSrc->isTarBrowsed)
+            {
+                if (rm_tar(pathSrc, opt) == -1)
+                {
+                    freeStruct(pathSrc);
+                    return -1;
+                }
+            }
+            else
+            {
+                //allocate memory for "cp": cp, the options, and the path_src
+                char **args = malloc((cmd->nb_options + 3) * sizeof(char *));
+                args[0] = malloc(strlen(cmd->args[0]) + 1);
+                memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+                for (size_t i = 0; i < cmd->nb_options; i++)
+                {
+                    args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
+                    memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                }
+                args[cmd->nb_options + 1] = malloc(strlen(pathSrc->path) + 1);
+                memcpy(args[cmd->nb_options + 1], pathSrc->path, strlen(pathSrc->path) + 1);
+                args[cmd->nb_options + 2] = NULL;
 
-    free(pwd);
-
-    char ***path = path_to_tar_file_path_new(pathFromArr);
-
-    if (path[1] == NULL || path[2][0] == NULL)
-        return call_existing_command(cmd->args);
-
-    free(pathFromArr);
-
-    if (cmd->nb_options == 0 && cmd->nbargs == 2)
-        return rm_tar(path, 0);
-    if (cmd->nb_options == 1 && cmd->options[0] == "-r" && cmd->nbargs == 3)
-        return rm_tar(path, 1);
-
-    write(STDOUT_FILENO, "Il faut moins d'arguments pour la fonction cp\n", strlen("Il faut moins d'arguments pour la fonction cp\n"));
-    return -1;
+                call_existing_command(args);
+                for (size_t i = 0; i < cmd->nb_options + 3; i++)
+                {
+                    free(args[i]);
+                }
+                free(args);
+            }
+            freeStruct(pathSrc);
+        }
+    }
+    return 1;
 }
 
 pathStruct *makeStructFromPath(char *path)

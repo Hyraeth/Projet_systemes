@@ -117,7 +117,7 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 		pathStruct *pathLocationNew = makeNewLocationStruct(pathLocation,name);
 
 		if (pathData->isTarBrowsed) {
-			char **nameSubFiles = findSubFiles(pathData->path,pathData->nameInTar);
+			char **nameSubFiles = findSubFiles(pathData->path,pathData->nameInTar,1);
 			int i = 0;
 			while (nameSubFiles[i] != NULL)
 			{
@@ -377,8 +377,6 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name) {
 		res->nameInTar = NULL;
 		res->path = concatPathName(pathLocation->path,name);
 	}
-
-	printf("Old : %p and new : %p\n",pathLocation->path,res->path);
 
 	return res;
 }

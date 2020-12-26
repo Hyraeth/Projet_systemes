@@ -100,7 +100,7 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix
 int deleteFileInTar (char *name_file, char *path_tar) {
     int src = open(path_tar,O_RDWR);
     if (src == -1) {
-        perror("tsh");
+        printMessageTsh("Erreur lors de l'ouverture du tar");
         close(src);
         return 0;
     }
@@ -135,7 +135,6 @@ int deleteFileInTar (char *name_file, char *path_tar) {
         int sizeFullTar = lseek(src,0,SEEK_END);
         lseek(src,emplacement,SEEK_SET);
 
-        printf("%d\n",sizeToDelete );
         for (int i = 0; i < sizeToDelete; i++)
         {
         	write(src,'\0',1);
@@ -143,7 +142,10 @@ int deleteFileInTar (char *name_file, char *path_tar) {
         }
         int sizeToCopy = sizeFullTar - emplacement - sizeToDelete;
         char dataToMove[sizeToCopy];
-        if (read(src,dataToMove,sizeToCopy) == -1 ) perror("tsh");
+        if (read(src,dataToMove,sizeToCopy) == -1 ) {
+			printMessageTsh("Erreur lors de la suppression d'un fichier dans le tar");
+			return -1;
+		}
         lseek(src,emplacement,SEEK_SET);
         write(src,dataToMove,sizeToCopy);
         ftruncate(src,emplacement+sizeToCopy);
@@ -152,15 +154,52 @@ int deleteFileInTar (char *name_file, char *path_tar) {
         return 1;
     }
 
-    perror("Le fichier à supprimer n'existe pas");
+    printMessageTsh("Le fichier à supprimer n'existe pas");
     close(src);
     return -1;
 }
 
-char **findSubFiles (char *path_tar, char *path_in_tar) {
+int rmWithOptionTar (char *path_to_tar, char *path_in_tar) {
+	char **subFiles = findSubFiles(path_to_tar,path_in_tar,0);
+	int i = 0;
+	while (subFiles[i] != NULL)
+	{
+		char *fullName = malloc(strlen(path_in_tar) + strlen(subFiles[i]) + 1);
+		strcpy(fullName,path_in_tar);
+		strcat(fullName,subFiles[i]);
+		if (deleteFileInTar(fullName,path_to_tar) == -1) {
+			while (subFiles[i] != NULL)
+			{
+				free(subFiles[i]);
+				i++;
+			}
+			free(subFiles);
+			return -1;			
+		}
+		free(subFiles[i]);
+		i++;
+	}
+	free(subFiles);
+	if (i == 0) {
+		printMessageTsh("rm : Le dossier n'existe pas");
+		return -1;
+	}
+	return 1;
+}
+
+/**
+ * @brief Find all subfiles (depending on the depth) of a given folder in a tar 
+ * 
+ * @param path_tar : path to the tar
+ * @param path_in_tar : path to the folder in the tar
+ * @param depth : depth of the files in the folder 
+ * (1 equals to directly in the folder, 0 equals to any subfile whether it's directly in the folder or not)
+ * @return char** : array with the name of all the files in the folder
+ */
+char **findSubFiles (char *path_tar, char *path_in_tar, int depth) {
 	int src = open(path_tar,O_RDONLY);
     if (src == -1) {
-        perror("tsh");
+        printMessageTsh("Erreur lors de l'ouverture du fichier tar");
         close(src);
         return 0;
     }
@@ -180,7 +219,7 @@ char **findSubFiles (char *path_tar, char *path_in_tar) {
         int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
 		char *nameCopy;
 
-        if ((nameCopy = isSubFile(path_in_tar,name)) != NULL){
+        if ((nameCopy = isSubFile(path_in_tar,name,depth)) != NULL){
             nbSubFiles ++;
 			free(nameCopy);
         }
@@ -203,7 +242,7 @@ char **findSubFiles (char *path_tar, char *path_in_tar) {
         int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
 		char *nameCopy;
 
-        if ((nameCopy = isSubFile(path_in_tar,name)) != NULL){
+        if ((nameCopy = isSubFile(path_in_tar,name,depth)) != NULL){
             res[compteur] = nameCopy;
 			compteur++;
         }
@@ -216,7 +255,7 @@ char **findSubFiles (char *path_tar, char *path_in_tar) {
 	return res;
 }
 
-char *isSubFile (char *s, char *toVerify) {
+char *isSubFile (char *s, char *toVerify,int depth) {
 	if (strlen(toVerify) <= strlen(s)) return NULL;
 	for (size_t i = 0; i < strlen(s); i++)
 	{
@@ -227,7 +266,7 @@ char *isSubFile (char *s, char *toVerify) {
 	{
 		if (toVerify[i] == '/') {
 			nbSlash += 1;
-			if (nbSlash > 1) return NULL;
+			if (depth != 0 && nbSlash > depth) return NULL;
 		}
 	}
 
@@ -235,7 +274,6 @@ char *isSubFile (char *s, char *toVerify) {
 	memcpy(name,&toVerify[strlen(s)],strlen(toVerify) - strlen(s));
 	name[strlen(toVerify) - strlen(s)] = '\0';
 	return name;
-	
 }
 
 /**

@@ -23,8 +23,9 @@ char *fileDataInTar (char *name_file, char *path_tar, struct posix_header *ph);
 int isTarFolder (char *folder, char**path);
 char typeFile (char *path_tar, char *pathInTar) ;
 int deleteFileInTar (char *name_file, char *path_tar);
-char *isSubFile (char *s, char *toVerify);
-char **findSubFiles (char *path_tar, char *path_in_tar);
+int rmWithOptionTar (char *path_to_tar, char *path_in_tar);
+char *isSubFile (char *s, char *toVerify,int depth);
+char **findSubFiles (char *path_tar, char *path_in_tar,int depth);
 int strcmpTar (char *path_file, char *path_in_tar);
 int octalToDecimal (long int octal);
 
