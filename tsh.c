@@ -9,7 +9,10 @@
 #include <stdbool.h>
 #include "headers/tar_fun.h"
 #include "headers/ls_tar.h"
+#include "headers/cat_tar.h"
 #include "headers/tsh_fun.h"
+#include "headers/cp_tar.h"
+#include "headers/rm_tar.h"
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -56,15 +59,23 @@ int exec_cmd(SimpleCommand_t *cmd);
 int exec_complexcmd(ComplexCommand_t *cmd);
 int call_existing_command(char **args);
 char *get_pwd();
+pathStruct *makeStructFromPath(char *path);
+int has_correct_option(char **optionlist, const char *option);
 
 int tsh_cd(SimpleCommand_t *cmd);
+int tsh_cat(SimpleCommand_t *cmd);
 int tsh_ls(SimpleCommand_t *cmd);
 int tsh_pwd(SimpleCommand_t *cmd);
 int tsh_exit(SimpleCommand_t *cmd);
+int tsh_cp(SimpleCommand_t *cmd);
+int tsh_rm(SimpleCommand_t *cmd);
 
 char *builtin_str[] = {
     "cd",
+    "cat",
     "ls",
+    "cp",
+    "rm",
     "pwd",
     "exit"};
 
@@ -74,7 +85,10 @@ char *builtin_str[] = {
  */
 int (*builtin_func[])(SimpleCommand_t *cmd) = {
     &tsh_cd,
+    &tsh_cat,
     &tsh_ls,
+    &tsh_cp,
+    &tsh_rm,
     &tsh_pwd,
     &tsh_exit};
 
@@ -536,7 +550,7 @@ int exec_cmd(SimpleCommand_t *cmd)
     {
         return 1;
     }
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 7; i++)
     {
         if (strcmp(cmd->args[0], builtin_str[i]) == 0)
         {
@@ -899,6 +913,97 @@ int tsh_cd(SimpleCommand_t *cmd)
     return cd_tar(cmd->args[1]);
 }
 
+int tsh_cat(SimpleCommand_t *cmd)
+{
+    if ((cmd->nbargs - cmd->nb_options) == 1)
+        call_existing_command(cmd->args);
+    else
+    {
+        for (size_t i = 1; i < cmd->nbargs; i++)
+        {
+            if (!is_an_option(cmd->args[i]))
+            {
+                //get the absolute path of the path given in form of array of string
+                char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd());
+                if (abs_path_array == NULL)
+                    return -1;
+                remove_escape_char_array(abs_path_array);
+
+                //split the absolute path in 3 array of string corresponding to the path before the tar, the name of the tar and the path after
+                char ***abs_path_split = path_to_tar_file_path_new(abs_path_array);
+                //if we are going in a tar
+                if (abs_path_split[1] != NULL)
+                {
+                    //turn the array of string in the form of a string
+                    char *path_to_open = array_to_path(abs_path_split[0], 1);
+                    //add more memory to add the tar to open in the path
+                    if ((path_to_open = realloc(path_to_open, strlen(path_to_open) + strlen(abs_path_split[1][0]) + 1)) == NULL)
+                        perror("tsh: ls");
+                    strcat(path_to_open, "/");
+                    strcat(path_to_open, abs_path_split[1][0]);
+                    //get the path to ls inside the tar
+                    char *path_in_tar = array_to_path(abs_path_split[2], 0);
+                    cat(path_to_open, path_in_tar);
+                    free(path_to_open);
+                    free(path_in_tar);
+                }
+                else
+                {
+                    //get the path to cat
+                    char *path_to_cat = array_to_path(abs_path_array, 1);
+                    if (strcmp(path_to_cat, "") == 0)
+                        path_to_cat[0] = '/';
+                    //allocate memory for "cat", the options, and the path
+                    char **args = malloc((cmd->nb_options + 3) * sizeof(char *));
+                    args[0] = malloc(strlen(cmd->args[0]) + 1);
+                    memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+                    for (size_t i = 0; i < cmd->nb_options; i++)
+                    {
+                        args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
+                        memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                    }
+                    args[cmd->nb_options + 1] = malloc(strlen(path_to_cat) + 1);
+                    memcpy(args[cmd->nb_options + 1], path_to_cat, strlen(path_to_cat) + 1);
+                    args[cmd->nb_options + 2] = NULL;
+                    //write(1, path_to_ls, strlen(path_to_ls));
+                    free(path_to_cat);
+
+                    call_existing_command(args);
+                    for (size_t i = 0; i < cmd->nb_options + 3; i++)
+                    {
+                        free(args[i]);
+                    }
+                    free(args);
+                }
+                int i = 0;
+                while (abs_path_array[i] != NULL)
+                {
+                    free(abs_path_array[i]);
+                    i++;
+                }
+
+                free(abs_path_array);
+                for (size_t j = 0; j <= 2; j++)
+                {
+
+                    if (abs_path_split[j] != NULL)
+                    {
+                        int k = 0;
+                        while (abs_path_split[j][k] != NULL)
+                        {
+                            //free(abs_path_split[j][k]);
+                            k++;
+                        }
+                        free(abs_path_split[j]);
+                    }
+                }
+                free(abs_path_split);
+            }
+        }
+    }
+    return 1;
+}
+
 /**
  * @brief Execute the command "ls".  
  * 
@@ -993,6 +1098,11 @@ int tsh_ls(SimpleCommand_t *cmd)
                     free(path_to_ls);
 
                     call_existing_command(args);
+                    for (size_t i = 0; i < cmd->nb_options + 3; i++)
+                    {
+                        free(args[i]);
+                    }
+                    free(args);
                 }
                 int i = 0;
                 while (abs_path_array[i] != NULL)
@@ -1075,5 +1185,221 @@ int tsh_pwd(SimpleCommand_t *cmd)
  */
 int tsh_exit(SimpleCommand_t *cmd)
 {
+    return 0;
+}
+/*
+int tsh_cp(SimpleCommand_t *cmd)
+{
+    if (cmd->nbargs < 3)
+    {
+        printMessageTsh("Il faut 3 arguments pour la fonction cp");
+        return -1;
+    }
+
+    int beginIndex = (cmd->nb_options == 1) ? 2 : 1;
+    int isTarBrowsed = 0;
+
+    pathStruct **tabStructPathData = malloc((cmd->nbargs - beginIndex - 1) * (sizeof(pathStruct *)));
+
+    for (int i = beginIndex; i < cmd->nbargs - 1; i++)
+    {
+        tabStructPathData[i - beginIndex] = makeStructFromPath(cmd->args[i]);
+        if (tabStructPathData[i - beginIndex]->isTarBrowsed)
+        {
+            isTarBrowsed = 1;
+        }
+    }
+
+    pathStruct *pathLocation = makeStructFromPath(cmd->args[cmd->nbargs - 1]);
+    if (pathLocation->isTarIndicated)
+        isTarBrowsed = 1;
+
+    if (!isTarBrowsed)
+    {
+        return call_existing_command(cmd->args);
+    }
+
+    if (cmd->nb_options > 2 || (cmd->nb_options == 1 && !(strcmp(cmd->args[1], "-r") == 0)))
+    {
+        printMessageTsh("Veuillez indiquer aucune option ou l'option -r lorsque vous utilisez la focntion cp avec des tar");
+        return -1;
+    }
+
+    for (int i = beginIndex; i < cmd->nbargs - 1; i++)
+    {
+        int res = cpTar(tabStructPathData[i - beginIndex], pathLocation, cmd->nb_options, tabStructPathData[i - beginIndex]->name);
+        freeStruct(tabStructPathData[i - beginIndex]);
+
+        if (res == -1)
+        {
+            for (int j = i + 1; j < cmd->nbargs - 1; j++)
+            {
+                freeStruct(tabStructPathData[j - beginIndex]);
+            }
+            free(tabStructPathData);
+
+            freeStruct(pathLocation);
+            return -1;
+        }
+    }
+
+    free(tabStructPathData);
+
+    return 1;
+}
+*/
+int tsh_cp(SimpleCommand_t *cmd)
+{
+    if (cmd->nbargs - cmd->nb_options < 3)
+    {
+        printMessageTsh("Il faut 3 arguments pour la fonction cp");
+        return -1;
+    }
+    int opt = has_correct_option(cmd->options, "-r");
+    pathStruct *pathDest = makeStructFromPath(cmd->args[cmd->nbargs - 1]);
+    for (size_t i = 1; i < cmd->nbargs - 1; i++)
+    {
+        if (!is_an_option(cmd->args[i]))
+        {
+            pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
+            if (pathSrc->isTarBrowsed || pathDest->isTarIndicated)
+            {
+                if (cpTar(pathSrc, pathDest, opt, pathSrc->name) == -1)
+                {
+                    freeStruct(pathSrc);
+                    freeStruct(pathDest);
+                    return -1;
+                }
+            }
+            else
+            {
+                //allocate memory for "cp": cp, the options, and the path_src, the path_dst
+                char **args = malloc((cmd->nb_options + 4) * sizeof(char *));
+                args[0] = malloc(strlen(cmd->args[0]) + 1);
+                memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+                for (size_t i = 0; i < cmd->nb_options; i++)
+                {
+                    args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
+                    memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                }
+                args[cmd->nb_options + 1] = malloc(strlen(pathSrc->path) + 1);
+                memcpy(args[cmd->nb_options + 1], pathSrc->path, strlen(pathSrc->path) + 1);
+                args[cmd->nb_options + 2] = malloc(strlen(pathDest->path) + 1);
+                memcpy(args[cmd->nb_options + 2], pathDest->path, strlen(pathDest->path) + 1);
+                args[cmd->nb_options + 3] = NULL;
+
+                call_existing_command(args);
+                for (size_t i = 0; i < cmd->nb_options + 4; i++)
+                {
+                    free(args[i]);
+                }
+                free(args);
+            }
+            freeStruct(pathSrc);
+        }
+    }
+    freeStruct(pathDest);
+    return 1;
+}
+
+int tsh_rm(SimpleCommand_t *cmd)
+{
+    if (cmd->nbargs - cmd->nb_options < 2)
+    {
+        printMessageTsh("Il faut 2 arguments pour la fonction rm");
+        return -1;
+    }
+
+    int opt = has_correct_option(cmd->options, "-r");
+    for (size_t i = 1; i < cmd->nbargs; i++)
+    {
+        if (!is_an_option(cmd->args[i]))
+        {
+            pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
+            if (pathSrc->isTarBrowsed)
+            {
+                if (rm_tar(pathSrc, opt) == -1)
+                {
+                    freeStruct(pathSrc);
+                    return -1;
+                }
+            }
+            else
+            {
+                //allocate memory for "cp": cp, the options, and the path_src
+                char **args = malloc((cmd->nb_options + 3) * sizeof(char *));
+                args[0] = malloc(strlen(cmd->args[0]) + 1);
+                memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+                for (size_t i = 0; i < cmd->nb_options; i++)
+                {
+                    args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
+                    memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                }
+                args[cmd->nb_options + 1] = malloc(strlen(pathSrc->path) + 1);
+                memcpy(args[cmd->nb_options + 1], pathSrc->path, strlen(pathSrc->path) + 1);
+                args[cmd->nb_options + 2] = NULL;
+
+                call_existing_command(args);
+                for (size_t i = 0; i < cmd->nb_options + 3; i++)
+                {
+                    free(args[i]);
+                }
+                free(args);
+            }
+            freeStruct(pathSrc);
+        }
+    }
+    return 1;
+}
+
+pathStruct *makeStructFromPath(char *path)
+{
+    char *pwd = get_pwd();
+    char **pathToArr = parsePathAbsolute(path, pwd);
+    free(pwd);
+    char ***path3D = path_to_tar_file_path_new(pathToArr);
+
+    pathStruct *pathRes = malloc(sizeof(pathStruct));
+
+    if (path3D[1] == NULL)
+    {
+        pathRes->isTarBrowsed = 0;
+        pathRes->isTarIndicated = 0;
+        pathRes->path = array_to_path(path3D[0], 1);
+        pathRes->nameInTar = NULL;
+    }
+    else
+    {
+        if (path3D[2][0] == NULL)
+        {
+            pathRes->isTarBrowsed = 0;
+        }
+        else
+        {
+            pathRes->isTarBrowsed = 1;
+        }
+        pathRes->isTarIndicated = 1;
+        pathRes->path = concatPathName(array_to_path(path3D[0], 1), path3D[1][0]);
+        pathRes->nameInTar = array_to_path(path3D[2], 0);
+    }
+
+    pathRes->name = getLast(pathToArr);
+
+    int i = 0;
+    freeArr3D(path3D);
+
+    return pathRes;
+}
+
+int has_correct_option(char **optionlist, const char *option)
+{
+    int i = 0;
+    while (optionlist[i] != NULL)
+    {
+        if (strcmp(optionlist[i], option) == 0)
+        {
+            return 1;
+        }
+    }
     return 0;
 }
