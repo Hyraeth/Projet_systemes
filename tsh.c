@@ -950,9 +950,9 @@ int tsh_cat(SimpleCommand_t *cmd)
                 else
                 {
                     //get the path to cat
-                    char *path_to_ls = array_to_path(abs_path_array, 1);
-                    if (strcmp(path_to_ls, "") == 0)
-                        path_to_ls[0] = '/';
+                    char *path_to_cat = array_to_path(abs_path_array, 1);
+                    if (strcmp(path_to_cat, "") == 0)
+                        path_to_cat[0] = '/';
                     //allocate memory for "cat", the options, and the path
                     char **args = malloc((cmd->nb_options + 3) * sizeof(char *));
                     args[0] = malloc(strlen(cmd->args[0]) + 1);
@@ -962,13 +962,18 @@ int tsh_cat(SimpleCommand_t *cmd)
                         args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
                         memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
                     }
-                    args[cmd->nb_options + 1] = malloc(strlen(path_to_ls) + 1);
-                    memcpy(args[cmd->nb_options + 1], path_to_ls, strlen(path_to_ls) + 1);
+                    args[cmd->nb_options + 1] = malloc(strlen(path_to_cat) + 1);
+                    memcpy(args[cmd->nb_options + 1], path_to_cat, strlen(path_to_cat) + 1);
                     args[cmd->nb_options + 2] = NULL;
                     //write(1, path_to_ls, strlen(path_to_ls));
-                    free(path_to_ls);
+                    free(path_to_cat);
 
                     call_existing_command(args);
+                    for (size_t i = 0; i < cmd->nb_options + 3; i++)
+                    {
+                        free(args[i]);
+                    }
+                    free(args);
                 }
                 int i = 0;
                 while (abs_path_array[i] != NULL)
