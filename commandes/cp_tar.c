@@ -80,7 +80,6 @@ int cpTar (pathStruct *pathData, pathStruct *pathLocation, int op, char *name) {
 
 	free(dataToCopy);
 	free(ph);
-
 	return res;
 }
 
@@ -155,16 +154,18 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 					pathDataNew->nameInTar = NULL;
 					pathDataNew->path = concatPathName(pathData->path,dirent->d_name);
 
-					cpTar(pathDataNew,pathLocationNew,1,dirent->d_name);
+					if (cpTar(pathDataNew,pathLocationNew,1,dirent->d_name) == -1) {
+						freeStruct(pathLocationNew);
+						closedir(dir);
+						return -1;
+					}
 					free(pathDataNew->path);
 					free(pathDataNew);
 				}
 			}
 			closedir(dir);
-			
 		}
 		freeStruct(pathLocationNew);
-		
 	}
 	else {
 		printMessageTsh("Erreur lors de la créature du dossier pour cp");
@@ -331,7 +332,7 @@ char *getLast (char **charArray) {
 	if (i == 0) return NULL;
 	else {
 		char *res = malloc(strlen(charArray[i-1]) + 1);
-		memcpy(res,charArray[i - 1],strlen(charArray[i - 1]));
+		strcpy(res,charArray[i - 1]);
 		return res;
 	}
 }
@@ -352,17 +353,18 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name) {
 	if (res->isTarIndicated) {
 
 		res->path = malloc(strlen(pathLocation->path) + 1);
-		memcpy(res->path,pathLocation->path,strlen(pathLocation->path));
+		strcpy(res->path,pathLocation->path);
 
 		char *nameDirInTar;
 		if (pathLocation->isTarBrowsed){
 			nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
-			strcat(nameDirInTar,pathLocation->nameInTar);
+			strcpy(nameDirInTar,pathLocation->nameInTar);
+			strcat(nameDirInTar,name);
 		} 
 		else {
 			nameDirInTar = malloc(strlen(name) + 2);
+			strcpy(nameDirInTar,name);
 		}
-		memcpy(nameDirInTar,name,strlen(name));
 		strcat(nameDirInTar,"/");
 
 		res->nameInTar = nameDirInTar;
@@ -375,6 +377,10 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name) {
 		res->nameInTar = NULL;
 		res->path = concatPathName(pathLocation->path,name);
 	}
+
+	printf("Old : %p and new : %p\n",pathLocation->path,res->path);
+
+	return res;
 }
 
 /**
@@ -382,9 +388,9 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name) {
  * 
  * @param path 
  */
-void freeStruct (pathStruct *path) {
-	if (path->nameInTar != NULL) free(path->nameInTar);
-	free(path->path);
-	if (path->name != NULL) free(path->name);
-	free(path);
+void freeStruct (pathStruct *pathToFree) {
+	if (pathToFree->nameInTar != NULL) free(pathToFree->nameInTar);
+	free(pathToFree->path);
+	if (pathToFree->name != NULL) free(pathToFree->name);
+	free(pathToFree);
 }

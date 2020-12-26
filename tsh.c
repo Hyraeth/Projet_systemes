@@ -1262,7 +1262,7 @@ int tsh_cp(SimpleCommand_t *cmd)
         if (!is_an_option(cmd->args[i]))
         {
             pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
-            if (pathSrc->isTarIndicated || pathDest->isTarIndicated)
+            if (pathSrc->isTarBrowsed || pathDest->isTarIndicated)
             {
                 if (cpTar(pathSrc, pathDest, opt, pathSrc->name) == -1)
                 {

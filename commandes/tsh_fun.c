@@ -199,7 +199,7 @@ char *concatPathName (char *path, char *name) {
     int len = strlen(path) + strlen(name) + 2;
     char *pathRes;
 	if ((pathRes = malloc(len)) == NULL) return NULL;
-    strcat(pathRes,path);
+    strcpy(pathRes,path);
     strcat(pathRes, "/");
     strcat(pathRes, name);
     return pathRes;
