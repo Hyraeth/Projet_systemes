@@ -60,6 +60,7 @@ int exec_complexcmd(ComplexCommand_t *cmd);
 int call_existing_command(char **args);
 char *get_pwd();
 pathStruct *makeStructFromPath(char *path);
+int has_correct_option(char **optionlist, const char *option);
 
 int tsh_cd(SimpleCommand_t *cmd);
 int tsh_cat(SimpleCommand_t *cmd);
@@ -1092,6 +1093,11 @@ int tsh_ls(SimpleCommand_t *cmd)
                     free(path_to_ls);
 
                     call_existing_command(args);
+                    for (size_t i = 0; i < cmd->nb_options + 3; i++)
+                    {
+                        free(args[i]);
+                    }
+                    free(args);
                 }
                 int i = 0;
                 while (abs_path_array[i] != NULL)
@@ -1176,7 +1182,7 @@ int tsh_exit(SimpleCommand_t *cmd)
 {
     return 0;
 }
-
+/*
 int tsh_cp(SimpleCommand_t *cmd)
 {
     if (cmd->nbargs < 3)
@@ -1234,6 +1240,60 @@ int tsh_cp(SimpleCommand_t *cmd)
 
     free(tabStructPathData);
 
+    return 1;
+}
+*/
+int tsh_cp(SimpleCommand_t *cmd)
+{
+    if (cmd->nbargs - cmd->nb_options < 3)
+    {
+        printMessageTsh("Il faut 3 arguments pour la fonction cp");
+        return -1;
+    }
+    int opt = has_correct_option(cmd->options, "-r");
+    pathStruct *pathDest = makeStructFromPath(cmd->args[cmd->nbargs - 1]);
+    for (size_t i = 1; i < cmd->nbargs - 1; i++)
+    {
+        if (!is_an_option(cmd->args[i]))
+        {
+            pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
+            if (pathSrc->isTarIndicated || pathDest->isTarIndicated)
+            {
+                if (cpTar(pathSrc, pathDest, opt, pathSrc->name) == -1)
+                {
+                    freeStruct(pathSrc);
+                    freeStruct(pathDest);
+                    return -1;
+                }
+            }
+            else
+            {
+                //allocate memory for "cp": cp, the options, and the path_src, the path_dst
+                char **args = malloc((cmd->nb_options + 4) * sizeof(char *));
+                args[0] = malloc(strlen(cmd->args[0]) + 1);
+                memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+                for (size_t i = 0; i < cmd->nb_options; i++)
+                {
+                    args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
+                    memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                }
+                args[cmd->nb_options + 1] = malloc(strlen(pathDest->path) + 1);
+                memcpy(args[cmd->nb_options + 1], pathSrc->path, strlen(pathSrc->path) + 1);
+                args[cmd->nb_options + 2] = malloc(strlen(pathDest->path) + 1);
+                memcpy(args[cmd->nb_options + 2], pathDest->path, strlen(pathDest->path) + 1);
+                args[cmd->nb_options + 3] = NULL;
+
+                call_existing_command(args);
+                for (size_t i = 0; i < cmd->nb_options + 4; i++)
+                {
+                    free(args[i]);
+                }
+                free(args);
+            }
+            freeStruct(pathSrc);
+        }
+    }
+    freeStruct(pathDest);
     return 1;
 }
 
@@ -1303,4 +1363,17 @@ pathStruct *makeStructFromPath(char *path)
     freeArr3D(path3D);
 
     return pathRes;
+}
+
+int has_correct_option(char **optionlist, const char *option)
+{
+    int i = 0;
+    while (optionlist[i] != NULL)
+    {
+        if (strcmp(optionlist[i], option) == 0)
+        {
+            return 1;
+        }
+    }
+    return 0;
 }
