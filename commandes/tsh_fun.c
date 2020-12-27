@@ -152,8 +152,9 @@ char ***path_to_tar_file_path_new (char **path) {
         path_res[0] = (char **) malloc((index_tar + 1) * sizeof(char *) );
         memcpy(path_res[0], path, index_tar * sizeof(char *));
         path_res[0][index_tar] = NULL;
-        path_res[1] = (char **) malloc(1 * sizeof(char *) );
+        path_res[1] = (char **) malloc(2 * sizeof(char *) );
         path_res[1][0] = path[index_tar];
+        path_res[1][1] = NULL;
         path_res[2] = (char **) malloc((size - index_tar) * sizeof(char *) );
         memcpy(path_res[2], &path[index_tar + 1], (size - index_tar) * sizeof(char *));
         path_res[2][size - index_tar - 1] = NULL;
