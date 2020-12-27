@@ -106,10 +106,7 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 		strcat(nameDirInTar,pathLocation->nameInTar);
 		strcat(nameDirInTar,name);
 		strcat(nameDirInTar,"/");
-		char *data = malloc(1);
-		data[0] = '\0';
-		res = copyFileInTar(data,nameDirInTar,pathLocation->path,ph);
-		free(data);
+		mkdirInTar(pathLocation->path,nameDirInTar,ph);
 		free(nameDirInTar);
 	}
 
@@ -198,19 +195,6 @@ char *fileDataNotInTar (char *path,struct posix_header *ph) {
 	read(fd,data,sb.st_size);
 	close(fd);
 	return data;
-}
-
-long int decimalToOctal(long int decimalnum)
-{
-    long int octalnum = 0, temp = 1;
-
-    while (decimalnum != 0)
-    {
-    	octalnum = octalnum + (decimalnum % 8) * temp;
-    	decimalnum = decimalnum / 8;
-        temp = temp * 10;
-    }
-    return octalnum;
 }
 
 /**

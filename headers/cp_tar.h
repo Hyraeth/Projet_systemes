@@ -1,8 +1,6 @@
 #include "tsh_fun.h"
 #include "tar_fun.h"
 #include "tar.h"
-#include <pwd.h>
-#include <grp.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
