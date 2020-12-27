@@ -3,8 +3,14 @@
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-//return true if s is in string at the begining
+/**
+ * @brief check if a character chain contain an other character chain, at the beginning
+ * 
+ * @return true if s is in string
+ * @return false s isn't in string
+ */
 bool s_is_in_string(char * string, char * s) {
+  if (strlen(s) > strlen(string)) return false;
   for (int i=0; i<strlen(s); i++) {
     if (string[i] != s[i])
       return false;
@@ -12,7 +18,14 @@ bool s_is_in_string(char * string, char * s) {
   return true;
 }
 
-//retun true if c is in s
+/**
+ * @brief check if a character is in a character chain
+ * 
+ * @param s the character chain
+ * @param c the char
+ * @return true if c is in s
+ * @return false if c is not in s
+ */
 bool contain_char(char * s, char c) {
   for (int i=0; i<strlen(s); i++) {
     if (s[i] == c)
@@ -21,7 +34,14 @@ bool contain_char(char * s, char c) {
   return false;
 }
 
-//return true if there is juste one time, at the end, c in s
+/**
+ * @brief check if there is juste one time, and at the end, a character in a character chain
+ * 
+ * @param s the character chain
+ * @param c the character
+ * @return true if c is at the end
+ * @return false if it isn't
+ */
 bool contain_one_char(char * s, char c) {
   for (int i=0; i<strlen(s); i++) {
     if (s[i] == c) return (i==strlen(s)-1) ? true : false;
@@ -29,13 +49,21 @@ bool contain_one_char(char * s, char c) {
   return false;
 }
 
+/**
+ * @brief print some space
+ * 
+ * @param n number of space
+ */
 void print_space(int n){
   for (int i=0; i<n; i++) {
     write(STDOUT_FILENO, " ", strlen(" "));
   }
 }
 
-//affiche le nom d'un fichier
+/**
+ * @brief print the name of a file
+ * 
+ */
 void print_name_file(struct posix_header * header, char * path) {
   if(strlen(path) != 0) write(STDOUT_FILENO, (header->name + strlen(path) + 1), strlen(header->name) - strlen(path) - 1);
   else write(STDOUT_FILENO, header->name, strlen(header->name));
@@ -43,6 +71,10 @@ void print_name_file(struct posix_header * header, char * path) {
 }
 
 //affiche le nom d'un repertoir (avec de la couleur)
+/**
+ * @brief print the name of a repertoire
+ * 
+ */
 void print_name_rep(struct posix_header * header, char * path) {
   write(STDOUT_FILENO, ANSI_COLOR_GREEN"", strlen(ANSI_COLOR_GREEN""));
   if(strlen(path) != 0) write(STDOUT_FILENO, (header->name + strlen(path) + 1), strlen(header->name) - strlen(path) - 2);
@@ -50,15 +82,22 @@ void print_name_rep(struct posix_header * header, char * path) {
   write(STDOUT_FILENO, ANSI_COLOR_RESET" ", strlen(ANSI_COLOR_RESET" "));
 }
 
-//affiche le type du fichier
+/**
+ * @brief print the type of file
+ * 
+ */
 void print_type (struct posix_header * header) {
   switch (header->typeflag) {
     case '0' : write(STDOUT_FILENO, "-", 1); break;
     case '5' : write(STDOUT_FILENO, "d", 1); break;
-    default : write(STDOUT_FILENO, "i", 1); break;
+    default : write(STDOUT_FILENO, "i", 1); break; //type du fichier inconnu
   }
 }
-//affiche les droit du FILE
+
+/**
+ * @brief print the rights of the file
+ * 
+ */
 void print_right(struct posix_header * header) {
   for (int i=0; i<3; i++) {
     switch((header->mode + 4)[i]) {
@@ -73,11 +112,19 @@ void print_right(struct posix_header * header) {
     }
   }
 }
-//affiche le nombre de lien physique
+
+/**
+ * @brief print the number of physical links
+ * 
+ */
 void print_nb_link(struct posix_header * header) {
-  
+  write(STDOUT_FILENO, "1", 1);
 }
-//affiche la taille du fichier
+
+/**
+ * @brief print the size of the file
+ * 
+ */
 void print_size(struct posix_header * header) {
   int taille;
   sscanf(header->size,"%o",&taille);
@@ -88,6 +135,10 @@ void print_size(struct posix_header * header) {
   write(STDOUT_FILENO, buffer, strlen(buffer));
 }
 
+/**
+ * @brief print the time of the last modification on the file
+ * 
+ */
 void print_time(struct posix_header * header) {
   unsigned long taille;
   sscanf(header->mtime,"%lo",&taille);
@@ -99,7 +150,10 @@ void print_time(struct posix_header * header) {
   write(STDOUT_FILENO, buffer, strlen(buffer));
 }
 
-//affiche toute les info supplementaire de la commande "ls -l" autre que le nom
+/**
+ * @brief print the information of the command "ls -l" exept the name
+ * 
+ */
 void print_ls_l (struct posix_header * header) {
   print_type(header); //affiche le type du fichier
   print_right(header); //affiche les droits
@@ -117,6 +171,13 @@ void print_ls_l (struct posix_header * header) {
 }
 
 //affiche ce qu'affiche ls sur un FILE en fonction de la commande
+/**
+ * @brief print what "ls" or "ls -l" print on one file
+ * 
+ * @param op the option "-l" or not of the "ls"
+ * @param header header of the file
+ * @param path path of the file
+ */
 void print_header_name (char *op, struct posix_header * header, char * path) {
   if (contain_one_char(header->name + strlen(path) + 1, '/')) {
     if(op == NULL) {
@@ -145,6 +206,14 @@ void print_header_name (char *op, struct posix_header * header, char * path) {
 }
 
 //fonction ls with option -l or not
+/**
+ * @brief command "ls" and "ls -l" in a tar file
+ * 
+ * @param op option "-l" or not
+ * @param path 
+ * @param fd 
+ * @return int -1 if it faled and 1 if not
+ */
 int ls_tar(char *op, char *path, int fd) {
   struct posix_header * header = malloc(sizeof(struct posix_header));
   assert(header);
