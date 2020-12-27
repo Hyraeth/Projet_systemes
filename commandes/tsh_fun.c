@@ -143,6 +143,7 @@ char ***path_to_tar_file_path_new (char **path) {
         else {
             path_res[0] = (char **) malloc((size + 1) * sizeof(char *) );
             memcpy(path_res[0], path, size * sizeof(char *));
+            path_res[0][size] = NULL;
         }
         path_res[1] = NULL;
         path_res[2] = NULL;
