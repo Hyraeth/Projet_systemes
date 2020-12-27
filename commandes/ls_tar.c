@@ -117,8 +117,14 @@ void print_right(struct posix_header * header) {
  * @brief print the number of physical links
  * 
  */
-void print_nb_link(struct posix_header * header) {
-  write(STDOUT_FILENO, "1", 1);
+void print_nb_link(struct posix_header * header, int nb_link) {
+  if (header->typeflag == '5') {
+    char str[12];
+    sprintf(str, "%d", nb_link);
+    write(STDOUT_FILENO, str, strlen(str));
+  } else {
+    write(STDOUT_FILENO, "1", 1);
+  }
 }
 
 /**
@@ -154,11 +160,11 @@ void print_time(struct posix_header * header) {
  * @brief print the information of the command "ls -l" exept the name
  * 
  */
-void print_ls_l (struct posix_header * header) {
+void print_ls_l (struct posix_header * header, int nb_link) {
   print_type(header); //affiche le type du fichier
   print_right(header); //affiche les droits
   print_space(1);
-  print_nb_link(header);
+  print_nb_link(header, nb_link);
   print_space(1);
   write(STDOUT_FILENO, header->uname, strlen(header->uname)); //affiche le nom du propriétaire
   print_space(1);
@@ -170,6 +176,30 @@ void print_ls_l (struct posix_header * header) {
   print_space(1);
 }
 
+int nb_link(struct posix_header * header, char * path, int fd) {
+  off_t save = lseek(fd, 0, SEEK_CUR);
+  lseek(fd, 0, SEEK_SET);
+
+  int nb_link = 2;
+  struct posix_header * headerLink = malloc(sizeof(struct posix_header));
+  assert(headerLink);
+  int n = 0;
+  while((n=read(fd, headerLink, BLOCKSIZE))>0){
+    if (s_is_in_string(headerLink->name, header->name) && contain_one_char(headerLink->name + strlen(header->name), '/')) {
+      nb_link ++;
+    }
+    int taille = 0;
+    int *ptaille = &taille;
+    sscanf(headerLink->size, "%o", ptaille);
+    int filesize = ((*ptaille + 512-1)/512);
+    lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
+  }
+  
+  lseek(fd, save, SEEK_SET);
+  free(headerLink);
+  return nb_link;
+}
+
 //affiche ce qu'affiche ls sur un FILE en fonction de la commande
 /**
  * @brief print what "ls" or "ls -l" print on one file
@@ -178,13 +208,13 @@ void print_ls_l (struct posix_header * header) {
  * @param header header of the file
  * @param path path of the file
  */
-void print_header_name (char *op, struct posix_header * header, char * path) {
-  if (contain_one_char(header->name + strlen(path) + 1, '/')) {
-    if(op == NULL) {
+void print_header_name (char *op, struct posix_header * header, char * path, int fd) {
+  if (contain_one_char(header->name + strlen(path) + 1, '/')) {  //Si c'est un rep
+    if(op == NULL) {                                                //Si pas d'option et rep
       print_name_rep(header,path);
     }
-    else if (strcmp(op,"-l") == 0){
-      print_ls_l(header);
+    else if (strcmp(op,"-l") == 0){                                 //Si option et rep
+      print_ls_l(header,nb_link(header,path,fd));
       print_name_rep(header,path);
       write(STDOUT_FILENO, "\n", strlen("\n"));
     }
@@ -196,7 +226,7 @@ void print_header_name (char *op, struct posix_header * header, char * path) {
       print_name_file(header,path);
     }
     else if (strcmp(op,"-l") == 0){
-      print_ls_l(header);
+      print_ls_l(header, 1);
       print_name_file(header,path);
       write(STDOUT_FILENO, "\n", strlen("\n"));
     }
@@ -222,15 +252,24 @@ int ls_tar(char *op, char *path, int fd) {
     return -1;
   }
   int n = 0;
+  int error = 0;
   while((n=read(fd, header, BLOCKSIZE))>0){
     if (s_is_in_string(header->name, path)) {
-      print_header_name(op,header,path);
+      error = 1;
+      print_header_name(op,header,path,fd);
     }
     int taille = 0;
     int *ptaille = &taille;
     sscanf(header->size, "%o", ptaille);
     int filesize = ((*ptaille + 512-1)/512);
     lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
+  }
+  if (error == 0) {
+    write(STDERR_FILENO, "chemin invalide\n", strlen("chemin invalide\n"));
+    write(STDOUT_FILENO, "\n", strlen("\n"));
+    lseek(fd, 0, SEEK_SET);
+    free(header);
+    return -1;
   }
   write(STDOUT_FILENO, "\n", strlen("\n"));
   lseek(fd, 0, SEEK_SET);
