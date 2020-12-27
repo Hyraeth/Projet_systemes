@@ -13,6 +13,7 @@
 #include "headers/tsh_fun.h"
 #include "headers/cp_tar.h"
 #include "headers/rm_tar.h"
+#include "headers/mkdir_tar.h"
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -69,6 +70,7 @@ int tsh_pwd(SimpleCommand_t *cmd);
 int tsh_exit(SimpleCommand_t *cmd);
 int tsh_cp(SimpleCommand_t *cmd);
 int tsh_rm(SimpleCommand_t *cmd);
+int tsh_mkdir(SimpleCommand_t *cmd);
 
 char *builtin_str[] = {
     "cd",
@@ -77,6 +79,7 @@ char *builtin_str[] = {
     "cp",
     "rm",
     "pwd",
+    "mkdir",
     "exit"};
 
 /**
@@ -90,6 +93,7 @@ int (*builtin_func[])(SimpleCommand_t *cmd) = {
     &tsh_cp,
     &tsh_rm,
     &tsh_pwd,
+    &tsh_mkdir,
     &tsh_exit};
 
 int main(int argc, char const *argv[])
@@ -550,7 +554,7 @@ int exec_cmd(SimpleCommand_t *cmd)
     {
         return 1;
     }
-    for (size_t i = 0; i < 7; i++)
+    for (size_t i = 0; i < 8; i++)
     {
         if (strcmp(cmd->args[0], builtin_str[i]) == 0)
         {
@@ -1352,7 +1356,7 @@ int tsh_rm(SimpleCommand_t *cmd)
     return 1;
 }
 
-/**int tsh_mkdir(SimpleCommand_t *cmd)
+int tsh_mkdir(SimpleCommand_t *cmd)
 {
     if (cmd->nbargs - cmd->nb_options < 1)
     {
@@ -1367,7 +1371,7 @@ int tsh_rm(SimpleCommand_t *cmd)
             pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
             if (pathSrc->isTarBrowsed)
             {
-                if (rm_tar(pathSrc, opt) == -1)
+                if (mkdirTar(pathSrc) == -1)
                 {
                     freeStruct(pathSrc);
                     return -1;
@@ -1399,7 +1403,7 @@ int tsh_rm(SimpleCommand_t *cmd)
         }
     }
     return 1;
-}*/
+}
 
 pathStruct *makeStructFromPath(char *path)
 {

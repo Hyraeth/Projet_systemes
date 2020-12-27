@@ -4,6 +4,6 @@
 #include "tsh_fun.h"
 #include "tar_fun.h"
 
-int mkdir_tar(pathStruct *pathSrc);
+int mkdirTar(pathStruct *pathSrc);
 
 #endif //MKDIR_TAR_H

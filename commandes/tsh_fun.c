@@ -239,7 +239,6 @@ void freeArr3D (char ***arr) {
     int i = 0;
     while (arr[i] != NULL && i < 3)
     {
-        printMessageTsh("0");
        freeArr2D(arr[i]);
        i++;
     }
@@ -248,15 +247,11 @@ void freeArr3D (char ***arr) {
 
 void freeArr2D (char **arr) {
     int i = 0;
-    printMessageTsh("In");
     while (arr[i] != NULL)
     {
-        printMessageTsh(arr[i]);
-        printMessageTsh("Tourne");
        free(arr[i]);
        i++;
     }
-    printMessageTsh("Out");
     free(arr);
 }
 

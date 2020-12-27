@@ -90,13 +90,39 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix
 	return 1;
 }
 
-int mkdirInTar (char *path_tar, char *path_in_tar, struct posix_header *ph, char *name) {
-	if (ph == NULL) {
+int mkdirInTar (char *path_tar, char *path_in_tar, struct posix_header *ph) {
+	char *data = malloc(1);
+	data[0] = '\0';
 
+	if (ph == NULL) {
+		struct posix_header *ph = malloc(sizeof(struct posix_header));
+		sprintf(ph->mode,"0000700");
+		sprintf(ph->size,"%011lo",strlen(data));
+		ph->typeflag = '5';
+
+		memcpy(ph->magic, TMAGIC, strlen(TMAGIC));
+		memcpy(ph->version, TVERSION, strlen(TVERSION));
+
+		sprintf(ph->mtime,"%011lo",time(NULL));
+		int uid = getuid();
+		int gid = getgid();
+		sprintf(ph->uid,"%07d",uid);
+		sprintf(ph->gid,"%07d",gid);
+
+		struct passwd *pwd;
+		pwd = getpwuid(uid);
+		memcpy(ph->uname, pwd->pw_name, strlen(pwd->pw_name));
+
+
+		struct group *grp;
+		grp = getgrgid(gid);
+		memcpy(ph->gname, grp->gr_name, strlen(grp->gr_name));
+
+		int res = copyFileInTar(data,path_in_tar,path_tar,ph);
+		free(data);
+		return res;
 	}
 	else {
-		char *data = malloc(1);
-		data[0] = '\0';
 		int res = copyFileInTar(data,path_in_tar,path_tar,ph);
 		free(data);
 		return res;
@@ -389,5 +415,18 @@ int octalToDecimal (long int octal) {
 		base = base * 8;
     }
 	return decimal;
+}
+
+long int decimalToOctal(long int decimalnum)
+{
+    long int octalnum = 0, temp = 1;
+
+    while (decimalnum != 0)
+    {
+    	octalnum = octalnum + (decimalnum % 8) * temp;
+    	decimalnum = decimalnum / 8;
+        temp = temp * 10;
+    }
+    return octalnum;
 }
 
