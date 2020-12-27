@@ -106,10 +106,7 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 		strcat(nameDirInTar,pathLocation->nameInTar);
 		strcat(nameDirInTar,name);
 		strcat(nameDirInTar,"/");
-		char *data = malloc(1);
-		data[0] = '\0';
-		res = copyFileInTar(data,nameDirInTar,pathLocation->path,ph);
-		free(data);
+		mkdirInTar(pathLocation->path,nameDirInTar,ph,NULL);
 		free(nameDirInTar);
 	}
 

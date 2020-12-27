@@ -90,6 +90,19 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix
 	return 1;
 }
 
+int mkdirInTar (char *path_tar, char *path_in_tar, struct posix_header *ph, char *name) {
+	if (ph == NULL) {
+
+	}
+	else {
+		char *data = malloc(1);
+		data[0] = '\0';
+		int res = copyFileInTar(data,path_in_tar,path_tar,ph);
+		free(data);
+		return res;
+	}
+}
+
 /**
  * @brief Delete a file in a tar
  * 
@@ -98,12 +111,16 @@ int copyFileInTar (char *dataToCopy, char *name, char *path_to_tar, struct posix
  * @return -1 if there was an error, else return 1 
  */
 int deleteFileInTar (char *name_file, char *path_tar) {
+	printMessageTsh("Ici0");
     int src = open(path_tar,O_RDWR);
     if (src == -1) {
         printMessageTsh("Erreur lors de l'ouverture du tar");
         close(src);
         return 0;
     }
+
+	printMessageTsh("Ici");
+
     char bloc[BLOCKSIZE];
     read(src,bloc,512);
     char name[100];

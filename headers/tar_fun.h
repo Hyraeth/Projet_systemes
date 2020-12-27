@@ -28,5 +28,6 @@ char *isSubFile (char *s, char *toVerify,int depth);
 char **findSubFiles (char *path_tar, char *path_in_tar,int depth);
 int strcmpTar (char *path_file, char *path_in_tar);
 int octalToDecimal (long int octal);
+int mkdirInTar (char *path_tar, char *path_in_tar, struct posix_header *ph, char *name);
 
 #endif //TAR_FUN_H

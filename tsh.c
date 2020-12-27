@@ -1352,6 +1352,55 @@ int tsh_rm(SimpleCommand_t *cmd)
     return 1;
 }
 
+/**int tsh_mkdir(SimpleCommand_t *cmd)
+{
+    if (cmd->nbargs - cmd->nb_options < 1)
+    {
+        printMessageTsh("Il faut au moins 1 argument pour la fonction mkdir");
+        return -1;
+    }
+
+    for (size_t i = 1; i < cmd->nbargs; i++)
+    {
+        if (!is_an_option(cmd->args[i]))
+        {
+            pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
+            if (pathSrc->isTarBrowsed)
+            {
+                if (rm_tar(pathSrc, opt) == -1)
+                {
+                    freeStruct(pathSrc);
+                    return -1;
+                }
+            }
+            else
+            {
+                //allocate memory for "cp": cp, the options, and the path_src
+                char **args = malloc((cmd->nb_options + 3) * sizeof(char *));
+                args[0] = malloc(strlen(cmd->args[0]) + 1);
+                memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+                for (size_t i = 0; i < cmd->nb_options; i++)
+                {
+                    args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
+                    memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                }
+                args[cmd->nb_options + 1] = malloc(strlen(pathSrc->path) + 1);
+                memcpy(args[cmd->nb_options + 1], pathSrc->path, strlen(pathSrc->path) + 1);
+                args[cmd->nb_options + 2] = NULL;
+
+                call_existing_command(args);
+                for (size_t i = 0; i < cmd->nb_options + 3; i++)
+                {
+                    free(args[i]);
+                }
+                free(args);
+            }
+            freeStruct(pathSrc);
+        }
+    }
+    return 1;
+}*/
+
 pathStruct *makeStructFromPath(char *path)
 {
     char *pwd = get_pwd();
