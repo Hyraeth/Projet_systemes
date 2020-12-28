@@ -14,6 +14,7 @@
 #include "headers/cp_tar.h"
 #include "headers/rm_tar.h"
 #include "headers/mkdir_tar.h"
+#include "headers/rmdir_tar.h"
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -81,6 +82,7 @@ int tsh_pwd(SimpleCommand_t *cmd);
 int tsh_exit(SimpleCommand_t *cmd);
 int tsh_cp(SimpleCommand_t *cmd);
 int tsh_rm(SimpleCommand_t *cmd);
+int tsh_rmdir(SimpleCommand_t *cmd);
 int tsh_mkdir(SimpleCommand_t *cmd);
 
 char *builtin_str[] = {
@@ -91,6 +93,7 @@ char *builtin_str[] = {
     "rm",
     "pwd",
     "mkdir",
+    "rmdir",
     "exit"};
 
 /**
@@ -105,6 +108,7 @@ int (*builtin_func[])(SimpleCommand_t *cmd) = {
     &tsh_rm,
     &tsh_pwd,
     &tsh_mkdir,
+    &tsh_rmdir,
     &tsh_exit};
 
 int main(int argc, char const *argv[])
@@ -602,7 +606,7 @@ int exec_cmd(SimpleCommand_t *cmd)
     {
         return 1;
     }
-    for (size_t i = 0; i < 8; i++)
+    for (size_t i = 0; i < 9; i++)
     {
         if (strcmp(cmd->args[0], builtin_str[i]) == 0)
         {
@@ -1361,11 +1365,17 @@ int tsh_rm(SimpleCommand_t *cmd)
             pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
             if (pathSrc->isTarBrowsed) //if the file/folder we want to copy is a tar or go through a tar
             {
-                if (rm_tar(pathSrc, opt) == -1)
+                if (rm_in_tar(pathSrc, opt) == -1)
                 {
                     freeStruct(pathSrc);
                     return -1;
                 }
+            }
+            else if (pathSrc->isTarIndicated)
+            {
+                printMessageTsh(STDERR_FILENO, "Pour supprimer un dossier, veuillez utiliser l'option -r ou la commande rmdir");
+                freeStruct(pathSrc);
+                return -1;
             }
             else
             {
@@ -1417,6 +1427,71 @@ int tsh_mkdir(SimpleCommand_t *cmd)
             if (pathSrc->isTarBrowsed)
             {
                 if (mkdirTar(pathSrc) == -1)
+                {
+                    freeStruct(pathSrc);
+                    return -1;
+                }
+            }
+            else if (pathSrc->isTarIndicated)
+            {
+                if (mkTarEmpty(pathSrc->path) == -1)
+                {
+                    freeStruct(pathSrc);
+                    return -1;
+                }
+            }
+            else
+            {
+                //allocate memory for "cp": cp, the options, and the path_src
+                char **args = malloc((cmd->nb_options + 3) * sizeof(char *));
+                args[0] = malloc(strlen(cmd->args[0]) + 1);
+                memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+                for (size_t i = 0; i < cmd->nb_options; i++)
+                {
+                    args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
+                    memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                }
+                args[cmd->nb_options + 1] = malloc(strlen(pathSrc->path) + 1);
+                memcpy(args[cmd->nb_options + 1], pathSrc->path, strlen(pathSrc->path) + 1);
+                args[cmd->nb_options + 2] = NULL;
+
+                call_existing_command(args);
+                for (size_t i = 0; i < cmd->nb_options + 3; i++)
+                {
+                    free(args[i]);
+                }
+                free(args);
+            }
+            freeStruct(pathSrc);
+        }
+    }
+    return 1;
+}
+
+int tsh_rmdir(SimpleCommand_t *cmd)
+{
+    if (cmd->nbargs - cmd->nb_options < 2)
+    {
+        printMessageTsh(STDERR_FILENO, "Il faut 2 arguments pour la fonction rm");
+        return -1;
+    }
+
+    for (size_t i = 1; i < cmd->nbargs; i++)
+    {
+        if (!is_an_option(cmd->args[i]))
+        {
+            pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
+            if (pathSrc->isTarBrowsed)
+            {
+                if (rmdirInTar(pathSrc) == -1)
+                {
+                    freeStruct(pathSrc);
+                    return -1;
+                }
+            }
+            else if (pathSrc->isTarIndicated)
+            {
+                if (rmdirTar(pathSrc->path) == -1)
                 {
                     freeStruct(pathSrc);
                     return -1;

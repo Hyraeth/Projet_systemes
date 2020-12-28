@@ -5,6 +5,12 @@ int mkdirTar(pathStruct *pathSrc)
     int size;
     int res;
 
+    if (!doesTarExist(pathSrc->path))
+    {
+        printMessageTsh(STDERR_FILENO, "Vérifiez que le tar où vous voulez créer le dossier existe bien");
+        return -1;
+    }
+
     char *copyNameInTar = malloc(strlen(pathSrc->nameInTar) + 1);
     strcpy(copyNameInTar, pathSrc->nameInTar);
     char **arrInTarName = parse_path_array(copyNameInTar, &size);
@@ -14,7 +20,15 @@ int mkdirTar(pathStruct *pathSrc)
 
     if (size == 2)
     {
-        res = mkdirInTar(pathSrc->path, pathSrc->nameInTar, NULL);
+        if (typeFile(pathSrc->path, pathSrc->nameInTar) != '9')
+        {
+            printMessageTsh(STDERR_FILENO, "Le dossier que vous voulez créer existe déjà");
+            res = -1;
+        }
+        else
+        {
+            res = mkdirInTar(pathSrc->path, pathSrc->nameInTar, NULL);
+        }
         freeArr2D(arrInTarName);
         free(copyNameInTar);
         return res;
@@ -33,7 +47,15 @@ int mkdirTar(pathStruct *pathSrc)
     char c = typeFile(pathSrc->path, path);
     if (c == '5')
     {
-        res = mkdirInTar(pathSrc->path, pathSrc->nameInTar, NULL);
+        if (typeFile(pathSrc->path, pathSrc->nameInTar) != '9')
+        {
+            printMessageTsh(STDERR_FILENO, "Le dossier que vous voulez créer existe déjà");
+            res = -1;
+        }
+        else
+        {
+            res = mkdirInTar(pathSrc->path, pathSrc->nameInTar, NULL);
+        }
     }
     else if (c == '9')
     {
@@ -49,4 +71,17 @@ int mkdirTar(pathStruct *pathSrc)
     free(copyNameInTar);
 
     return res;
+}
+
+int mkTarEmpty(char *path)
+{
+    if (doesTarExist(path))
+    {
+        printMessageTsh(STDERR_FILENO, "Le dossier tar que vous essayez de créer existe déjà");
+        return -1;
+    }
+    else
+    {
+        return makeEmptyTar(path);
+    }
 }
