@@ -1,10 +1,36 @@
 #include "../headers/rm_tar.h"
 
-int rm_tar (pathStruct *pathToDelete,int op) {
-	if (op == 0) {
-		return deleteFileInTar (pathToDelete->nameInTar, pathToDelete->path);
+int rm_in_tar(pathStruct *pathToDelete, int op)
+{
+	char c = typeFile(pathToDelete->path, pathToDelete->nameInTar);
+	if (c == '9')
+	{
+		printMessageTsh(STDERR_FILENO, "Veuillez vérifier que le fichier que vous voulez supprimer existe bien");
+		return -1;
 	}
-	else {
-		return rmWithOptionTar(pathToDelete->path,pathToDelete->nameInTar);
+
+	if (op == 0)
+	{
+		if (c == '5')
+		{
+			printMessageTsh(STDERR_FILENO, "Pour supprimer un dossier, veuillez utiliser l'option -r ou la commande rmdir");
+			return -1;
+		}
+		return deleteFileInTar(pathToDelete->nameInTar, pathToDelete->path);
+	}
+	else
+	{
+		return rmWithOptionTar(pathToDelete->path, pathToDelete->nameInTar);
+	}
+}
+
+int rm_tar(char *path)
+{
+	if (isEmptyTar(path))
+	{
+	}
+	else
+	{
+		printMessageTsh(STDERR_FILENO, "Le tar que vous voulez supprimer n'est pas vide");
 	}
 }

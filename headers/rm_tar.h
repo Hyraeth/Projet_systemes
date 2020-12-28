@@ -5,6 +5,7 @@
 #include "tsh_fun.h"
 #include "tar_fun.h"
 
-int rm_tar (pathStruct *pathToDelete, int op);
+int rm_in_tar (pathStruct *pathToDelete, int op);
+int rm_tar (char *path);
 
 #endif
