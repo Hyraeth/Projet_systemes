@@ -65,7 +65,7 @@ int copyFileInTar(char *dataToCopy, char *name, char *path_to_tar, struct posix_
 	int fd_dest;
 	if ((fd_dest = open(path_to_tar, O_RDWR)) == -1)
 	{
-		printMessageTsh("Erreur lors de l'ouverture du fichier tar d'arrivée");
+		printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture du fichier tar d'arrivée");
 		return -1;
 	}
 
@@ -151,16 +151,16 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
  */
 int deleteFileInTar(char *name_file, char *path_tar)
 {
-	printMessageTsh("Ici0");
+	printMessageTsh(STDERR_FILENO, "Ici0");
 	int src = open(path_tar, O_RDWR);
 	if (src == -1)
 	{
-		printMessageTsh("Erreur lors de l'ouverture du tar");
+		printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture du tar");
 		close(src);
 		return 0;
 	}
 
-	printMessageTsh("Ici");
+	printMessageTsh(STDERR_FILENO, "Ici");
 
 	char bloc[BLOCKSIZE];
 	read(src, bloc, 512);
@@ -205,7 +205,7 @@ int deleteFileInTar(char *name_file, char *path_tar)
 		char dataToMove[sizeToCopy];
 		if (read(src, dataToMove, sizeToCopy) == -1)
 		{
-			printMessageTsh("Erreur lors de la suppression d'un fichier dans le tar");
+			printMessageTsh(STDERR_FILENO, "Erreur lors de la suppression d'un fichier dans le tar");
 			return -1;
 		}
 		lseek(src, emplacement, SEEK_SET);
@@ -216,7 +216,7 @@ int deleteFileInTar(char *name_file, char *path_tar)
 		return 1;
 	}
 
-	printMessageTsh("Le fichier à supprimer n'existe pas");
+	printMessageTsh(STDERR_FILENO, "Le fichier à supprimer n'existe pas");
 	close(src);
 	return -1;
 }
@@ -246,7 +246,7 @@ int rmWithOptionTar(char *path_to_tar, char *path_in_tar)
 	free(subFiles);
 	if (i == 0)
 	{
-		printMessageTsh("rm : Le dossier n'existe pas");
+		printMessageTsh(STDERR_FILENO, "rm : Le dossier n'existe pas");
 		return -1;
 	}
 	return 1;
@@ -266,7 +266,7 @@ char **findSubFiles(char *path_tar, char *path_in_tar, int depth)
 	int src = open(path_tar, O_RDONLY);
 	if (src == -1)
 	{
-		printMessageTsh("Erreur lors de l'ouverture du fichier tar");
+		printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture du fichier tar");
 		close(src);
 		return 0;
 	}
