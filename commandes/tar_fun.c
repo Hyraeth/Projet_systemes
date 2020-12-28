@@ -126,7 +126,8 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 		struct group *grp;
 		grp = getgrgid(gid);
 		memcpy(ph->gname, grp->gr_name, strlen(grp->gr_name));
-		if (path_in_tar[strlen(path_in_tar) - 1] != '/'){
+		if (path_in_tar[strlen(path_in_tar) - 1] != '/')
+		{
 			if ((path_in_tar = realloc(path_in_tar, strlen(path_in_tar) + 2)) == NULL)
 				perror("tsh: realloc mkdirInTar");
 			path_in_tar[strlen(path_in_tar)] = '/';
@@ -144,9 +145,10 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 	}
 }
 
-int makeEmptyTar (char *path) {
+int makeEmptyTar(char *path)
+{
 	int fd_dest;
-	if ((fd_dest = open(path, O_CREAT,0775)) == -1)
+	if ((fd_dest = open(path, O_CREAT, 0775)) == -1)
 	{
 		printMessageTsh("Erreur lors de l'ouverture du fichier tar d'arrivée");
 		return -1;
@@ -156,7 +158,7 @@ int makeEmptyTar (char *path) {
 	{
 		write(fd_dest, "\0", 1);
 	}
-
+	close(fd_dest);
 	return 1;
 }
 
@@ -267,24 +269,28 @@ int rmWithOptionTar(char *path_to_tar, char *path_in_tar)
 	return 1;
 }
 
-int rmEmptyDirTar (char *path_to_tar, char *path_in_tar) {
+int rmEmptyDirTar(char *path_to_tar, char *path_in_tar)
+{
 	char **subFiles = findSubFiles(path_to_tar, path_in_tar, 0);
 	int i = 0;
 	while (subFiles[i] != NULL)
 	{
 		i++;
 	}
-	if (i == 0) {
+	if (i == 0)
+	{
 		printMessageTsh("rm : Le dossier n'existe pas");
 		free(subFiles);
 		return -1;
 	}
-	
+
 	int res;
-	if (i == 1) {
-		int res = deleteFileInTar(path_in_tar,path_to_tar);
+	if (i == 1)
+	{
+		int res = deleteFileInTar(path_in_tar, path_to_tar);
 	}
-	else {
+	else
+	{
 		printMessageTsh("Le dossier que vous voulez supprimer n'est pas vide");
 		res = -1;
 	}
@@ -292,12 +298,11 @@ int rmEmptyDirTar (char *path_to_tar, char *path_in_tar) {
 	i = 0;
 	while (subFiles[i] != NULL)
 	{
-		free (subFiles[i]);
+		free(subFiles[i]);
 		i++;
 	}
 	free(subFiles);
 	return res;
-	
 }
 
 /**
@@ -519,7 +524,8 @@ long int decimalToOctal(long int decimalnum)
 	return octalnum;
 }
 
-int isEmptyTar (char *path) {
+int isEmptyTar(char *path)
+{
 	int src = open(path, O_RDONLY);
 	if (src == -1)
 		perror("Read empty tar");
@@ -530,7 +536,8 @@ int isEmptyTar (char *path) {
 	return (bloc[0] == 0);
 }
 
-int doesTarExist (char *path) {
-    struct stat buffer;
-    return (stat (path,&buffer) == 0);
+int doesTarExist(char *path)
+{
+	struct stat buffer;
+	return (stat(path, &buffer) == 0);
 }
