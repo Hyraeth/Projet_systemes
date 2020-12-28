@@ -209,7 +209,7 @@ int nb_link(struct posix_header * header, char * path, int fd) {
  * @param path path of the file
  */
 void print_header_name (char *op, struct posix_header * header, char * path, int fd) {
-  if (contain_one_char(header->name + strlen(path) + 1, '/')) {  //Si c'est un rep
+  if (contain_one_char(header->name + strlen(path), '/')) {  //Si c'est un rep
     if(op == NULL) {                                                //Si pas d'option et rep
       print_name_rep(header,path);
     }
@@ -221,7 +221,7 @@ void print_header_name (char *op, struct posix_header * header, char * path, int
     else
       print_name_rep(header,path);
   }
-  else if (!contain_char(header->name + strlen(path) + 1, '/') && !(strcmp(header->name + strlen(path) + 1, "\0") == 0)) {
+  else if (!contain_char(header->name + strlen(path), '/') && !(strcmp(header->name + strlen(path), "\0") == 0)) {
     if(op == NULL) {
       print_name_file(header,path);
     }
