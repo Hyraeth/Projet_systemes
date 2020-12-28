@@ -626,11 +626,9 @@ int exec_cmd(SimpleCommand_t *cmd)
     }
     else
     {
-        write(STDERR_FILENO, ANSI_COLOR_RED, strlen(ANSI_COLOR_RED));
         write(STDERR_FILENO, "tsh: can't call ", strlen("tsh: can't call "));
         write(STDERR_FILENO, cmd->args[0], strlen(cmd->args[0]));
         write(STDERR_FILENO, " in a tar. First use cd to get out.\n", strlen(" in a tar. First use cd to get out.\n"));
-        write(STDERR_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
         return -1;
     }
 }
@@ -1263,9 +1261,7 @@ int tsh_ls(SimpleCommand_t *cmd)
             if (!is_an_option(cmd->args[i]))
             {
                 write(STDOUT_FILENO, "\n", strlen("\n"));
-                write(STDOUT_FILENO, ANSI_COLOR_CYAN, strlen(ANSI_COLOR_CYAN));
                 write(STDOUT_FILENO, cmd->args[i], strlen(cmd->args[i])); //write the name of the path to ls
-                write(STDOUT_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
                 write(STDOUT_FILENO, ":\n", strlen(":\n"));
                 //get the absolute path of the path given in form of array of string
                 char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd());
@@ -1389,9 +1385,7 @@ int tsh_pwd(SimpleCommand_t *cmd)
 {
     char *pwd = get_pwd();
 
-    write(STDOUT_FILENO, ANSI_COLOR_CYAN, strlen(ANSI_COLOR_CYAN));
     write(STDOUT_FILENO, pwd, strlen(pwd));
-    write(STDOUT_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
     write(STDOUT_FILENO, "\n", strlen("\n"));
     free(pwd);
     return 1;
