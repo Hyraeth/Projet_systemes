@@ -1490,7 +1490,7 @@ int tsh_rm(SimpleCommand_t *cmd)
                     return -1;
                 }
             }
-            else if (pathSrc->isTarIndicated)
+            else if (pathSrc->isTarIndicated && opt != 1)
             {
                 printMessageTsh(STDERR_FILENO, "Pour supprimer un dossier, veuillez utiliser l'option -r ou la commande rmdir");
                 freeStruct(pathSrc);
