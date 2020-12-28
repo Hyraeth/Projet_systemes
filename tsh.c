@@ -31,7 +31,13 @@ static char **tarDirArray;
 #define PWDLEN 1024
 #define BUFLEN 512
 #define NBARGS 8
-
+/**
+ * @brief Struct for a simple command.
+ * Contains the number of argument in the command (ie the command name, the options and the command args).
+ * As well as a null-terminated array of args.
+ * Also contains the number of option as well as a null terminated array of option.
+ * args also contains the options.
+ */
 typedef struct SimpleCommand_t
 {
     int nbargs;
@@ -40,6 +46,11 @@ typedef struct SimpleCommand_t
     char **options;
 } SimpleCommand_t;
 
+/**
+ * @brief Struct for a complex command
+ * Contains the number of simple command, a null terminated array of simple commands, three strings for the inpuit, output, err path for redirection,
+ * and two ints for the output and err if we want to append.
+ */
 typedef struct ComplexCommand_t
 {
     int nbcmd;
@@ -71,7 +82,7 @@ int tsh_pwd(SimpleCommand_t *cmd);
 int tsh_exit(SimpleCommand_t *cmd);
 int tsh_cp(SimpleCommand_t *cmd);
 int tsh_rm(SimpleCommand_t *cmd);
-int tsh_rmdir (SimpleCommand_t *cmd);
+int tsh_rmdir(SimpleCommand_t *cmd);
 int tsh_mkdir(SimpleCommand_t *cmd);
 
 char *builtin_str[] = {
@@ -163,6 +174,11 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
+/**
+ * @brief Free a SimpleCommand_t
+ * 
+ * @param cmd SimpleCommand_t to be freed
+ */
 void free_simplecmd(SimpleCommand_t *cmd)
 {
     for (size_t i = 0; i <= cmd->nbargs; i++)
@@ -178,14 +194,17 @@ void free_simplecmd(SimpleCommand_t *cmd)
     free(cmd);
 }
 
+/**
+ * @brief Free a ComplexCommand_t
+ * 
+ * @param cmd ComplexCommand_t to be freed
+ */
 void free_complexcmd(ComplexCommand_t *cmd)
 {
 
     free(cmd->input);
-    /*if (cmd->output != NULL)
-        free(cmd->output);
-    if (cmd->err != NULL)
-        free(cmd->err);*/
+    free(cmd->output);
+    free(cmd->err);
     for (size_t i = 0; i < cmd->nbcmd; i++)
     {
         free_simplecmd(cmd->simpCmds[i]);
@@ -229,6 +248,13 @@ char *read_line()
     return line;
 }
 
+/**
+ * @brief Find input path from a string and add it to the ComplexCommand_t if found
+ * If the input char '<' is found, the next word is added to the command and removed from the string.
+ * If nothing is found, an empty string will be added to cmd
+ * @param line String to analyse.
+ * @param ccmd ComplexCommand_t  where the string will be stored.
+ */
 void findInput(char *line, ComplexCommand_t *ccmd)
 {
     int s = 0;
@@ -283,6 +309,14 @@ void findInput(char *line, ComplexCommand_t *ccmd)
     }
 }
 
+/**
+ * @brief Find output path from a string and add it to the ComplexCommand_t if found
+ * If the input char '>' is found, the next word is added to the command and removed from the string.
+ * if ">>" is found, the field appendOut in cmd will be set to 1.
+ * If nothing is found, an empty string will be added to cmd
+ * @param line String to analyse.
+ * @param ccmd ComplexCommand_t  where the string will be stored.
+ */
 void findOutput(char *line, ComplexCommand_t *ccmd)
 {
     int s = 0;
@@ -343,6 +377,14 @@ void findOutput(char *line, ComplexCommand_t *ccmd)
     }
 }
 
+/**
+ * @brief Find err path from a string and add it to the ComplexCommand_t if found
+ * If the input string "2>" is found, the next word is added to the command and removed from the string.
+ * if "2>>" is found, the field appendErr in cmd will be set to 1.
+ * If nothing is found, an empty string will be added to cmd
+ * @param line String to analyse.
+ * @param ccmd ComplexCommand_t  where the string will be stored.
+ */
 void findErr(char *line, ComplexCommand_t *ccmd)
 {
     int s = 0;
@@ -402,6 +444,12 @@ void findErr(char *line, ComplexCommand_t *ccmd)
     }
 }
 
+/**
+ * @brief Parse the line into a null-terminated array of SimpleCommand_t and add it to a ComplexCommand_t struct. 
+ * Also find the input, output and err path for redirection if they exist.
+ * @param line Line to parse
+ * @return a ComplexCommand_t struct
+*/
 ComplexCommand_t *parse_line(char *line)
 {
     int simpCmdArraySize = NBARGS;
@@ -546,7 +594,7 @@ int call_existing_command(char **args)
 }
 
 /**
- * @brief Execute a command. If the command is builtin then call the function to execute it. If it isn't it will try to find the command 
+ * @brief Execute a Simple command. If the command is builtin then call the function to execute it. If it isn't it will try to find the command 
  * in the PATH environnemental variable
  * 
  * @param cmd Command to execute
@@ -576,10 +624,16 @@ int exec_cmd(SimpleCommand_t *cmd)
         write(STDERR_FILENO, cmd->args[0], strlen(cmd->args[0]));
         write(STDERR_FILENO, " in a tar. First use cd to get out.\n", strlen(" in a tar. First use cd to get out.\n"));
         write(STDERR_FILENO, ANSI_COLOR_RESET, strlen(ANSI_COLOR_RESET));
-        return 1;
+        return -1;
     }
 }
 
+/**
+ * @brief Execute a ComplexCommand_t
+ * 
+ * @param cmd Command to execute
+ * @return 1 if successful, -1 if an error was caught 
+ */
 int exec_complexcmd(ComplexCommand_t *cmd)
 {
     int fdin, fdout, fderr, status, retval;
@@ -594,9 +648,24 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     }
     else
     {
-        //todo
-        if ((fdin = open(cmd->input, O_RDONLY, S_IRUSR)) == -1)
-            perror("tsh : open exec_complexcmd");
+        pathStruct *src = makeStructFromPath(cmd->input);
+        if (src->isTarIndicated)
+        {
+            if ((fdin = open("/tmp/tsh_tmp_input", O_RDONLY)) == -1)
+                perror("tsh: open");
+            char *path_dest = malloc(strlen("/tmp/tsh_tmp_input") + 1);
+            strcpy(path_dest, "/tmp/tsh_tmp_input");
+            pathStruct *dest = makeStructFromPath(path_dest);
+            cpTar(src, dest, 0, src->name);
+            freeStruct(src);
+            freeStruct(dest);
+            free(path_dest);
+        }
+        else
+        {
+            if ((fdin = open(cmd->input, O_RDONLY, S_IRUSR)) == -1)
+                perror("tsh : open exec_complexcmd");
+        }
     }
     if (strcmp(cmd->err, "") == 0)
     {
@@ -685,7 +754,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         {
             int fdpipe[2];
             if (pipe(fdpipe) == -1)
-                perror("tsh: exec_complexcmd pipe failed");
+                perror("tsh: exec_complexcmd pipe");
             fdin = fdpipe[0];
             fdout = fdpipe[1];
         }
@@ -694,13 +763,18 @@ int exec_complexcmd(ComplexCommand_t *cmd)
 
         cpid = fork();
         if (cpid == -1)
-            perror("tsh: exec_complexcmd fork failed");
+            perror("tsh: exec_complexcmd fork");
         if (cpid == 0)
         {
             if (exec_cmd(cmd->simpCmds[i]) == 1)
+            {
                 exit(EXIT_SUCCESS);
+            }
             else
+            {
+                retval = -1;
                 exit(EXIT_FAILURE);
+            }
         }
     }
     dup2(tmpin, STDIN_FILENO);
@@ -754,6 +828,12 @@ char **parse_path(char *path)
     return args;
 }
 
+/**
+ * @brief Execute the command "cd" from a path
+ * 
+ * @param path path to the destination.
+ * @return 1 on success, -1 on failure 
+ */
 int cd_tar(char *path)
 {
     //in case there is an error we can go back
@@ -882,6 +962,7 @@ int cd_tar(char *path)
     }
     free(arrayDir);
     free(chemin);
+    //if at one point we encounter an error, go back to the original position
     if (failure)
     {
         chdir(pwdtmp);
@@ -921,6 +1002,12 @@ int tsh_cd(SimpleCommand_t *cmd)
     return cd_tar(cmd->args[1]);
 }
 
+/**
+ * @brief Execute the command "cat".
+ * 
+ * @param cmd Command to execute. Contains the path and options
+ * @return 1 on success 
+ */
 int tsh_cat(SimpleCommand_t *cmd)
 {
     if ((cmd->nbargs - cmd->nb_options) == 1)
@@ -1196,11 +1283,17 @@ int tsh_exit(SimpleCommand_t *cmd)
     return 0;
 }
 
+/**
+ * @brief Execute the command "cp".  
+ * 
+ * @param cmd Command to execute. Contains the path and options
+ * @return 1 on success, -1 on failure
+ */
 int tsh_cp(SimpleCommand_t *cmd)
 {
     if (cmd->nbargs - cmd->nb_options < 3)
     {
-        printMessageTsh("Il faut 3 arguments pour la fonction cp");
+        printMessageTsh(STDERR_FILENO, "Il faut 3 arguments pour la fonction cp");
         return -1;
     }
     int opt = has_correct_option(cmd->options, "-r");
@@ -1210,7 +1303,7 @@ int tsh_cp(SimpleCommand_t *cmd)
         if (!is_an_option(cmd->args[i]))
         {
             pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
-            if (pathSrc->isTarBrowsed || pathDest->isTarIndicated)
+            if (pathSrc->isTarBrowsed || pathDest->isTarIndicated) //if the file/folder we want to copy is a tar or go through a tar
             {
                 if (cpTar(pathSrc, pathDest, opt, pathSrc->name) == -1)
                 {
@@ -1250,11 +1343,17 @@ int tsh_cp(SimpleCommand_t *cmd)
     return 1;
 }
 
+/**
+ * @brief Execute the command "rm".  
+ * 
+ * @param cmd Command to execute. Contains the path and options
+ * @return 1 on success, -1 on failure
+ */
 int tsh_rm(SimpleCommand_t *cmd)
 {
     if (cmd->nbargs - cmd->nb_options < 2)
     {
-        printMessageTsh("Il faut 2 arguments pour la fonction rm");
+        printMessageTsh(STDERR_FILENO, "Il faut 2 arguments pour la fonction rm");
         return -1;
     }
 
@@ -1264,7 +1363,7 @@ int tsh_rm(SimpleCommand_t *cmd)
         if (!is_an_option(cmd->args[i]))
         {
             pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
-            if (pathSrc->isTarBrowsed)
+            if (pathSrc->isTarBrowsed) //if the file/folder we want to copy is a tar or go through a tar
             {
                 if (rm_in_tar(pathSrc, opt) == -1)
                 {
@@ -1272,9 +1371,10 @@ int tsh_rm(SimpleCommand_t *cmd)
                     return -1;
                 }
             }
-            else if (pathSrc->isTarIndicated) {
-                printMessageTsh("Pour supprimer un dossier, veuillez utiliser l'option -r ou la commande rmdir");
-			    freeStruct(pathSrc);
+            else if (pathSrc->isTarIndicated)
+            {
+                printMessageTsh(STDERR_FILENO, "Pour supprimer un dossier, veuillez utiliser l'option -r ou la commande rmdir");
+                freeStruct(pathSrc);
                 return -1;
             }
             else
@@ -1305,11 +1405,17 @@ int tsh_rm(SimpleCommand_t *cmd)
     return 1;
 }
 
+/**
+ * @brief Execute the command "mkdir".  
+ * 
+ * @param cmd Command to execute. Contains the path and options
+ * @return 1 on success, -1 on failure
+ */
 int tsh_mkdir(SimpleCommand_t *cmd)
 {
     if (cmd->nbargs - cmd->nb_options < 1)
     {
-        printMessageTsh("Il faut au moins 1 argument pour la fonction mkdir");
+        printMessageTsh(STDERR_FILENO, "Il faut au moins 1 argument pour la fonction mkdir");
         return -1;
     }
 
@@ -1326,7 +1432,8 @@ int tsh_mkdir(SimpleCommand_t *cmd)
                     return -1;
                 }
             }
-            else if (pathSrc->isTarIndicated) {
+            else if (pathSrc->isTarIndicated)
+            {
                 if (mkTarEmpty(pathSrc->path) == -1)
                 {
                     freeStruct(pathSrc);
@@ -1361,11 +1468,11 @@ int tsh_mkdir(SimpleCommand_t *cmd)
     return 1;
 }
 
-int tsh_rmdir (SimpleCommand_t *cmd)
+int tsh_rmdir(SimpleCommand_t *cmd)
 {
     if (cmd->nbargs - cmd->nb_options < 2)
     {
-        printMessageTsh("Il faut 2 arguments pour la fonction rm");
+        printMessageTsh(STDERR_FILENO, "Il faut 2 arguments pour la fonction rm");
         return -1;
     }
 
@@ -1382,8 +1489,10 @@ int tsh_rmdir (SimpleCommand_t *cmd)
                     return -1;
                 }
             }
-            else if (pathSrc->isTarIndicated) {
-                if (rmdirTar(pathSrc->path) == -1) {
+            else if (pathSrc->isTarIndicated)
+            {
+                if (rmdirTar(pathSrc->path) == -1)
+                {
                     freeStruct(pathSrc);
                     return -1;
                 }
@@ -1416,6 +1525,12 @@ int tsh_rmdir (SimpleCommand_t *cmd)
     return 1;
 }
 
+/**
+ * @brief Construct a pathStruct struct frfom a path.
+ * 
+ * @param path path to construct the struct from.
+ * @return pathStruct pointer
+ */
 pathStruct *makeStructFromPath(char *path)
 {
     char *pwd = get_pwd();
@@ -1455,6 +1570,14 @@ pathStruct *makeStructFromPath(char *path)
     return pathRes;
 }
 
+/**
+ * @brief find if an option is in an option list. Used when calling a command in a tar to see if an option 
+ * that is implemented has been found in the args of the command
+ * 
+ * @param optionlist list of option given.
+ * @param option option to find
+ * @return 1 if the option was found, 0 else
+ */
 int has_correct_option(char **optionlist, const char *option)
 {
     int i = 0;
