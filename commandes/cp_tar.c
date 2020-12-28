@@ -103,7 +103,7 @@ int copyFolder (pathStruct *pathData, pathStruct *pathLocation, char *name, stru
 	}
 	else {
 		char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
-		strcat(nameDirInTar,pathLocation->nameInTar);
+		strcpy(nameDirInTar,pathLocation->nameInTar);
 		strcat(nameDirInTar,name);
 		strcat(nameDirInTar,"/");
 		mkdirInTar(pathLocation->path,nameDirInTar,ph);
