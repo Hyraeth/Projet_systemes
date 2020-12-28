@@ -106,7 +106,7 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 	if (ph == NULL)
 	{
 		struct posix_header *ph = malloc(sizeof(struct posix_header));
-		sprintf(ph->mode, "0000700");
+		sprintf(ph->mode, "0000775");
 		sprintf(ph->size, "%011lo", strlen(data));
 		ph->typeflag = '5';
 
@@ -126,10 +126,12 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 		struct group *grp;
 		grp = getgrgid(gid);
 		memcpy(ph->gname, grp->gr_name, strlen(grp->gr_name));
-		if ((path_in_tar = realloc(path_in_tar, strlen(path_in_tar) + 2)) == NULL)
-			perror("tsh: realloc mkdirInTar");
-		path_in_tar[strlen(path_in_tar)] = '/';
-		path_in_tar[strlen(path_in_tar) + 1] = '\0';
+		if (path_in_tar[strlen(path_in_tar) - 1] != '/'){
+			if ((path_in_tar = realloc(path_in_tar, strlen(path_in_tar) + 2)) == NULL)
+				perror("tsh: realloc mkdirInTar");
+			path_in_tar[strlen(path_in_tar)] = '/';
+			path_in_tar[strlen(path_in_tar) + 1] = '\0';
+		}
 		int res = copyFileInTar(data, path_in_tar, path_tar, ph);
 		free(data);
 		return res;
@@ -142,6 +144,22 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 	}
 }
 
+int makeEmptyTar (char *path) {
+	int fd_dest;
+	if ((fd_dest = open(path, O_CREAT,0775)) == -1)
+	{
+		printMessageTsh("Erreur lors de l'ouverture du fichier tar d'arrivée");
+		return -1;
+	}
+
+	for (int i = 0; i < 2 * BLOCKSIZE; ++i) //On remplit les deux blocs de 0 à la fin du tar
+	{
+		write(fd_dest, "\0", 1);
+	}
+
+	return 1;
+}
+
 /**
  * @brief Delete a file in a tar
  * 
@@ -151,7 +169,6 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
  */
 int deleteFileInTar(char *name_file, char *path_tar)
 {
-	printMessageTsh("Ici0");
 	int src = open(path_tar, O_RDWR);
 	if (src == -1)
 	{
@@ -159,8 +176,6 @@ int deleteFileInTar(char *name_file, char *path_tar)
 		close(src);
 		return 0;
 	}
-
-	printMessageTsh("Ici");
 
 	char bloc[BLOCKSIZE];
 	read(src, bloc, 512);
@@ -250,6 +265,39 @@ int rmWithOptionTar(char *path_to_tar, char *path_in_tar)
 		return -1;
 	}
 	return 1;
+}
+
+int rmEmptyDirTar (char *path_to_tar, char *path_in_tar) {
+	char **subFiles = findSubFiles(path_to_tar, path_in_tar, 0);
+	int i = 0;
+	while (subFiles[i] != NULL)
+	{
+		i++;
+	}
+	if (i == 0) {
+		printMessageTsh("rm : Le dossier n'existe pas");
+		free(subFiles);
+		return -1;
+	}
+	
+	int res;
+	if (i == 1) {
+		int res = deleteFileInTar(path_in_tar,path_to_tar);
+	}
+	else {
+		printMessageTsh("Le dossier que vous voulez supprimer n'est pas vide");
+		res = -1;
+	}
+
+	i = 0;
+	while (subFiles[i] != NULL)
+	{
+		free (subFiles[i]);
+		i++;
+	}
+	free(subFiles);
+	return res;
+	
 }
 
 /**
@@ -469,4 +517,20 @@ long int decimalToOctal(long int decimalnum)
 		temp = temp * 10;
 	}
 	return octalnum;
+}
+
+int isEmptyTar (char *path) {
+	int src = open(path, O_RDONLY);
+	if (src == -1)
+		perror("Read empty tar");
+
+	char bloc[BLOCKSIZE];
+	read(src, bloc, 512);
+
+	return (bloc[0] == 0);
+}
+
+int doesTarExist (char *path) {
+    struct stat buffer;
+    return (stat (path,&buffer) == 0);
 }
