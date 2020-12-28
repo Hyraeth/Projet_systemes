@@ -14,6 +14,7 @@
 #include "headers/cp_tar.h"
 #include "headers/rm_tar.h"
 #include "headers/mkdir_tar.h"
+#include "headers/rmdir_tar.h"
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -70,6 +71,7 @@ int tsh_pwd(SimpleCommand_t *cmd);
 int tsh_exit(SimpleCommand_t *cmd);
 int tsh_cp(SimpleCommand_t *cmd);
 int tsh_rm(SimpleCommand_t *cmd);
+int tsh_rmdir (SimpleCommand_t *cmd);
 int tsh_mkdir(SimpleCommand_t *cmd);
 
 char *builtin_str[] = {
@@ -80,6 +82,7 @@ char *builtin_str[] = {
     "rm",
     "pwd",
     "mkdir",
+    "rmdir",
     "exit"};
 
 /**
@@ -94,6 +97,7 @@ int (*builtin_func[])(SimpleCommand_t *cmd) = {
     &tsh_rm,
     &tsh_pwd,
     &tsh_mkdir,
+    &tsh_rmdir,
     &tsh_exit};
 
 int main(int argc, char const *argv[])
@@ -554,7 +558,7 @@ int exec_cmd(SimpleCommand_t *cmd)
     {
         return 1;
     }
-    for (size_t i = 0; i < 8; i++)
+    for (size_t i = 0; i < 9; i++)
     {
         if (strcmp(cmd->args[0], builtin_str[i]) == 0)
         {
@@ -1191,67 +1195,7 @@ int tsh_exit(SimpleCommand_t *cmd)
 {
     return 0;
 }
-/*
-int tsh_cp(SimpleCommand_t *cmd)
-{
-    if (cmd->nbargs < 3)
-    {
-        printMessageTsh("Il faut 3 arguments pour la fonction cp");
-        return -1;
-    }
 
-    int beginIndex = (cmd->nb_options == 1) ? 2 : 1;
-    int isTarBrowsed = 0;
-
-    pathStruct **tabStructPathData = malloc((cmd->nbargs - beginIndex - 1) * (sizeof(pathStruct *)));
-
-    for (int i = beginIndex; i < cmd->nbargs - 1; i++)
-    {
-        tabStructPathData[i - beginIndex] = makeStructFromPath(cmd->args[i]);
-        if (tabStructPathData[i - beginIndex]->isTarBrowsed)
-        {
-            isTarBrowsed = 1;
-        }
-    }
-
-    pathStruct *pathLocation = makeStructFromPath(cmd->args[cmd->nbargs - 1]);
-    if (pathLocation->isTarIndicated)
-        isTarBrowsed = 1;
-
-    if (!isTarBrowsed)
-    {
-        return call_existing_command(cmd->args);
-    }
-
-    if (cmd->nb_options > 2 || (cmd->nb_options == 1 && !(strcmp(cmd->args[1], "-r") == 0)))
-    {
-        printMessageTsh("Veuillez indiquer aucune option ou l'option -r lorsque vous utilisez la focntion cp avec des tar");
-        return -1;
-    }
-
-    for (int i = beginIndex; i < cmd->nbargs - 1; i++)
-    {
-        int res = cpTar(tabStructPathData[i - beginIndex], pathLocation, cmd->nb_options, tabStructPathData[i - beginIndex]->name);
-        freeStruct(tabStructPathData[i - beginIndex]);
-
-        if (res == -1)
-        {
-            for (int j = i + 1; j < cmd->nbargs - 1; j++)
-            {
-                freeStruct(tabStructPathData[j - beginIndex]);
-            }
-            free(tabStructPathData);
-
-            freeStruct(pathLocation);
-            return -1;
-        }
-    }
-
-    free(tabStructPathData);
-
-    return 1;
-}
-*/
 int tsh_cp(SimpleCommand_t *cmd)
 {
     if (cmd->nbargs - cmd->nb_options < 3)
@@ -1322,11 +1266,16 @@ int tsh_rm(SimpleCommand_t *cmd)
             pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
             if (pathSrc->isTarBrowsed)
             {
-                if (rm_tar(pathSrc, opt) == -1)
+                if (rm_in_tar(pathSrc, opt) == -1)
                 {
                     freeStruct(pathSrc);
                     return -1;
                 }
+            }
+            else if (pathSrc->isTarIndicated) {
+                printMessageTsh("Pour supprimer un dossier, veuillez utiliser l'option -r ou la commande rmdir");
+			    freeStruct(pathSrc);
+                return -1;
             }
             else
             {
@@ -1373,6 +1322,68 @@ int tsh_mkdir(SimpleCommand_t *cmd)
             {
                 if (mkdirTar(pathSrc) == -1)
                 {
+                    freeStruct(pathSrc);
+                    return -1;
+                }
+            }
+            else if (pathSrc->isTarIndicated) {
+                if (mkTarEmpty(pathSrc->path) == -1)
+                {
+                    freeStruct(pathSrc);
+                    return -1;
+                }
+            }
+            else
+            {
+                //allocate memory for "cp": cp, the options, and the path_src
+                char **args = malloc((cmd->nb_options + 3) * sizeof(char *));
+                args[0] = malloc(strlen(cmd->args[0]) + 1);
+                memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+                for (size_t i = 0; i < cmd->nb_options; i++)
+                {
+                    args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
+                    memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                }
+                args[cmd->nb_options + 1] = malloc(strlen(pathSrc->path) + 1);
+                memcpy(args[cmd->nb_options + 1], pathSrc->path, strlen(pathSrc->path) + 1);
+                args[cmd->nb_options + 2] = NULL;
+
+                call_existing_command(args);
+                for (size_t i = 0; i < cmd->nb_options + 3; i++)
+                {
+                    free(args[i]);
+                }
+                free(args);
+            }
+            freeStruct(pathSrc);
+        }
+    }
+    return 1;
+}
+
+int tsh_rmdir (SimpleCommand_t *cmd)
+{
+    if (cmd->nbargs - cmd->nb_options < 2)
+    {
+        printMessageTsh("Il faut 2 arguments pour la fonction rm");
+        return -1;
+    }
+
+    for (size_t i = 1; i < cmd->nbargs; i++)
+    {
+        if (!is_an_option(cmd->args[i]))
+        {
+            pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
+            if (pathSrc->isTarBrowsed)
+            {
+                if (rmdirInTar(pathSrc) == -1)
+                {
+                    freeStruct(pathSrc);
+                    return -1;
+                }
+            }
+            else if (pathSrc->isTarIndicated) {
+                if (rmdirTar(pathSrc->path) == -1) {
                     freeStruct(pathSrc);
                     return -1;
                 }
