@@ -285,7 +285,10 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 void remplirHeader(struct posix_header *ph, struct stat sb)
 {
 	makePermissions(ph, sb);
-	sprintf(ph->size, "%011lo", sb.st_size);
+	if (S_ISDIR(sb.st_mode))
+		sprintf(ph->size, "%011lo", (unsigned long)0);
+	else
+		sprintf(ph->size, "%011lo", sb.st_size);
 
 	switch (sb.st_mode & S_IFMT)
 	{

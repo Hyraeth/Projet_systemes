@@ -69,7 +69,9 @@ int copyFileInTar(char *dataToCopy, char *name, char *path_to_tar, struct posix_
 		return -1;
 	}
 
-	int size = strlen(dataToCopy);
+	int size;
+	sscanf(ph->size, "%o", &size);
+
 	char bloc[BLOCKSIZE];
 	do
 	{
