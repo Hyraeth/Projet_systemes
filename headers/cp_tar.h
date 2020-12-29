@@ -6,14 +6,13 @@
 #include <fcntl.h>
 #include <dirent.h>
 
-
-int cpTar (pathStruct *pathData, pathStruct *pathLocation, int op, char *name);
-int cpyDataFileNotInTar (char * path, char *data, struct posix_header *ph);
-int copyFolder (struct pathStruct *pathData, struct pathStruct *pathLocation, char *name, struct posix_header *ph);
-char *concatPathBeforeTarPathTar (char **pathBefore, char *name, int op);
-char *getLast (char **charArray);
-char *fileDataNotInTar (char *path,struct posix_header *ph);
-void remplirHeader (struct posix_header *ph, struct stat sb);
-void makePermissions (struct posix_header *ph, struct stat sb);
-struct pathStruct *makeNewLocationStruct(struct pathStruct *pathLocation, char *name);
-void freeStruct (struct pathStruct *path);
+int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name);
+int cpyDataFileNotInTar(char *path, char *data, struct posix_header *ph);
+int copyFolder(struct pathStruct *pathData, struct pathStruct *pathLocation, char *name, struct posix_header *ph);
+char *concatPathBeforeTarPathTar(char **pathBefore, char *name, int op);
+char *getLast(char **charArray);
+char *fileDataNotInTar(char *path, struct posix_header *ph);
+void remplirHeader(struct posix_header *ph, struct stat sb);
+void makePermissions(struct posix_header *ph, struct stat sb);
+struct pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int folder_exist);
+void freeStruct(struct pathStruct *path);

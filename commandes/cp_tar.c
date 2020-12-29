@@ -29,7 +29,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			}
 			else
 			{
-				if (pathData->nameInTar[strlen(name) - 1] != '/')
+				if (pathData->nameInTar[strlen(pathData->nameInTar) - 1] != '/')
 				{
 					pathData->nameInTar = realloc(pathData->nameInTar, strlen(pathData->nameInTar) + 2);
 					strcat(pathData->nameInTar, "/");
@@ -49,7 +49,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 		struct stat sb;
 		if (stat(pathData->path, &sb) != 0)
 		{
-			printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture d'un fichier");
+			perror("tsh: cp: cpTar: stat");
 			free(dataToCopy);
 			free(ph);
 			return -1;
@@ -90,7 +90,22 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 	}
 	else
 	{
-		res = cpyDataFileNotInTar(concatPathName(pathLocation->path, name), dataToCopy, ph);
+		struct stat sb;
+		if (stat(pathLocation->path, &sb) != 0)
+		{
+			perror("tsh: cp: cpTar: stat");
+			free(dataToCopy);
+			free(ph);
+			return -1;
+		}
+		if (S_ISDIR(sb.st_mode))
+		{
+			res = cpyDataFileNotInTar(concatPathName(pathLocation->path, name), dataToCopy, ph);
+		}
+		else
+		{
+			res = cpyDataFileNotInTar(pathLocation->path, dataToCopy, ph);
+		}
 	}
 
 	free(dataToCopy);
@@ -111,26 +126,32 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 {
 	int res;
 	mode_t modeDir;
+	int folder_exist;
 
 	if (!pathLocation->isTarIndicated)
 	{
-		char *pathLocationDir = concatPathName(pathLocation->path, name);
-		res = mkdir(pathLocationDir, modeDir);
-		free(pathLocationDir);
+		res = mkdir(pathLocation->path, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
+		if (res == -1)
+		{
+			char *pathLocationDir = concatPathName(pathLocation->path, name);
+			res = mkdir(pathLocationDir, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
+			free(pathLocationDir);
+			folder_exist = 1;
+		}
 	}
 	else
 	{
 		char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
-		strcpy(nameDirInTar,pathLocation->nameInTar);
-		strcat(nameDirInTar,name);
-		strcat(nameDirInTar,"/");
-		mkdirInTar(pathLocation->path,nameDirInTar,ph);
+		strcpy(nameDirInTar, pathLocation->nameInTar);
+		strcat(nameDirInTar, name);
+		strcat(nameDirInTar, "/");
+		mkdirInTar(pathLocation->path, nameDirInTar, ph);
 		free(nameDirInTar);
 	}
 
 	if (res != -1)
 	{
-		pathStruct *pathLocationNew = makeNewLocationStruct(pathLocation, name);
+		pathStruct *pathLocationNew = makeNewLocationStruct(pathLocation, name, folder_exist);
 
 		if (pathData->isTarBrowsed)
 		{
@@ -141,7 +162,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 				pathStruct *pathDataNew = malloc(sizeof(pathStruct));
 				pathDataNew->isTarBrowsed = 1;
 				pathDataNew->isTarIndicated = 1;
-				pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 2);
+				pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 1);
 
 				strcpy(pathDataNew->nameInTar, pathData->nameInTar);
 				strcat(pathDataNew->nameInTar, nameSubFiles[i]);
@@ -188,7 +209,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	}
 	else
 	{
-		printMessageTsh(STDERR_FILENO, "Erreur lors de la créature du dossier pour cp");
+		perror("tsh: cp: copyFolder: mkdir");
 		return -1;
 	}
 
@@ -207,18 +228,31 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 	struct stat sb;
 	if (stat(path, &sb) != 0)
 	{
-		printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture du fichier");
+		perror("tsh: cp: fileDataNotInTar: stat");
 		return NULL;
 	}
-
+	printMessageTsh(1, path);
 	int fd;
-	if ((fd = open(path, O_RDONLY)) == -1)
+	if ((fd = open(path, O_RDONLY, S_IRUSR)) == -1)
+	{
+		perror("tsh: cp: fileDataNotInTar: open");
 		return NULL;
-
+	}
+	lseek(fd, 0, SEEK_SET);
 	remplirHeader(ph, sb);
+	printf("File size: %jd bytes\n", sb.st_size);
 
-	char *data = malloc(sb.st_size);
-	read(fd, data, sb.st_size);
+	int n = 0;
+	int k = 0;
+	char *data = malloc(1024);
+	while ((k = read(fd, data, 1024)) > 0)
+	{
+		n += k;
+		if (k == 1024)
+			if ((data = realloc(data, n + k)) == NULL)
+				perror("tsh: cp: fileDataNotInTar: realloc");
+	}
+	data[n] = '\0';
 	close(fd);
 	return data;
 }
@@ -321,14 +355,20 @@ int cpyDataFileNotInTar(char *path, char *data, struct posix_header *ph)
 {
 	int fd;
 	if ((fd = open(path, O_WRONLY | O_CREAT, 0644)) == -1)
+	{
+		perror("tsh: cp: cpyDataFileNotInTar: open");
 		return -1;
+	}
 
 	int n;
 
 	n = write(fd, data, octalToDecimal(atoi(ph->size)));
 
 	if (n == -1)
+	{
+		perror("tsh: cp: cpyDataFileNotInTar: write");
 		return -1;
+	}
 	return 1;
 }
 
@@ -380,7 +420,7 @@ char *getLast(char **charArray)
  * @return pathStruct* : returns a pointer to the pathStruct created, 
  						used to copy the subfiles of the folder
  */
-pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name)
+pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int folder_exist)
 {
 	pathStruct *res = malloc(sizeof(pathStruct));
 	res->isTarIndicated = pathLocation->isTarIndicated;
@@ -415,7 +455,13 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name)
 	{
 		res->isTarBrowsed = 0;
 		res->nameInTar = NULL;
-		res->path = concatPathName(pathLocation->path, name);
+		if (folder_exist == 1)
+			res->path = concatPathName(pathLocation->path, name);
+		else
+		{
+			res->path = malloc(strlen(pathLocation->path) + 1);
+			memcpy(res->path, pathLocation->path, strlen(pathLocation->path) + 1);
+		}
 	}
 
 	return res;
