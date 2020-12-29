@@ -171,8 +171,12 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	else
 	{
 		char type = typeFile(pathLocation->path, pathLocation->nameInTar);
-		/*printMessageTsh(1, "copy folder");
+		/*printMessageTsh(1, pathData->path);
+		printMessageTsh(1, pathLocation->path);
+		printMessageTsh(1, pathLocation->nameInTar);
 		printMessageTsh(1, &type);
+		printMessageTsh(1, "\n");
+		printMessageTsh(1, "copy folder");
 		printMessageTsh(1, pathData->path);
 		printMessageTsh(1, pathLocation->path);
 		printMessageTsh(1, pathLocation->nameInTar);
@@ -190,6 +194,10 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 		if (type != '9' && strlen(pathLocation->nameInTar) != 0)
 		{
 			folder_exist = -1;
+			strcat(nameDirInTar, name);
+		}
+		if (type == '9' && strlen(pathLocation->nameInTar) == 0)
+		{
 			strcat(nameDirInTar, name);
 		}
 
