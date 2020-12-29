@@ -69,12 +69,22 @@ int copyFileInTar(char *dataToCopy, char *name, char *path_to_tar, struct posix_
 		return -1;
 	}
 
-	int size = strlen(dataToCopy);
+	int size;
+	sscanf(ph->size, "%o", &size);
+
 	char bloc[BLOCKSIZE];
-	do
+	char sizeInChar[12];
+	read(fd_dest, bloc, BLOCKSIZE);
+
+	while (bloc[0] != 0)
 	{
-		read(fd_dest, bloc, 512);
-	} while (bloc[0] != 0);
+		memcpy(sizeInChar, &bloc[124], 12);
+		int filesize;
+		sscanf(sizeInChar, "%o", &filesize);
+		int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
+		lseek(fd_dest, BLOCKSIZE * occupiedBlocks, SEEK_CUR);
+		read(fd_dest, bloc, BLOCKSIZE);
+	}
 
 	strcpy(ph->name, name);
 	set_checksum(ph);
@@ -416,6 +426,7 @@ int isTarFolder(char *folder, char **path)
 {
 	int i = 1;
 	char *path_to_check = malloc(1);
+	path_to_check[0] = '\0';
 	int len = 1;
 	while (path[i] != NULL)
 	{
@@ -432,9 +443,15 @@ int isTarFolder(char *folder, char **path)
 	strcat(path_to_check, "/");
 
 	if (typeFile(path[0], path_to_check) == '5')
+	{
+		free(path_to_check);
 		return 1;
+	}
 	else
+	{
+		free(path_to_check);
 		return 0;
+	}
 }
 
 /**

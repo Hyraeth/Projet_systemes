@@ -77,14 +77,37 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 	{
 		if (pathLocation->isTarBrowsed)
 		{
-			char *nameFull = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 1);
-			strcpy(nameFull, pathLocation->nameInTar);
-			strcat(nameFull, name);
-			res = copyFileInTar(dataToCopy, nameFull, pathLocation->path, ph);
-			free(nameFull);
+			int z = 0;
+			if (pathLocation->nameInTar[strlen(pathLocation->nameInTar) - 1] != '/')
+				z = 1;
+			char typefile = typeFile(pathLocation->path, pathLocation->nameInTar);
+			if (typefile == '5')
+			{
+				char *nameFull = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 1 + z);
+				strcpy(nameFull, pathLocation->nameInTar);
+				if (z)
+					strcat(nameFull, "/");
+				strcat(nameFull, name);
+				//printMessageTsh(1, nameFull);
+				//printMessageTsh(1, dataToCopy);
+				//printMessageTsh(1, "\n");
+				//printMessageTsh(1, pathLocation->path);
+				res = copyFileInTar(dataToCopy, nameFull, pathLocation->path, ph);
+				free(nameFull);
+			}
+			else if (typefile == '9')
+			{
+				res = copyFileInTar(dataToCopy, pathLocation->nameInTar, pathLocation->path, ph);
+			}
+			else
+			{
+				//todo rm then cp
+				printMessageTsh(STDERR_FILENO, "Le fichier existe déja faire rm pour supprimer");
+			}
 		}
 		else
 		{
+			char typefile = typeFile(pathLocation->path, name);
 			res = copyFileInTar(dataToCopy, name, pathLocation->path, ph);
 		}
 	}
@@ -141,10 +164,26 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	}
 	else
 	{
-		char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
+		char type = typeFile(pathLocation->path, pathLocation->nameInTar);
+		printMessageTsh(1, pathLocation->path);
+		printMessageTsh(1, pathLocation->nameInTar);
+		int z = 0;
+		if (type == '5')
+		{
+			folder_exist = 1;
+			z = 1;
+		}
+		char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2 + z);
 		strcpy(nameDirInTar, pathLocation->nameInTar);
-		strcat(nameDirInTar, name);
+		if (type == '5' && pathLocation->nameInTar[strlen(pathLocation->nameInTar) - 1] != '/')
+			strcat(nameDirInTar, "/");
+		if (type != '9')
+		{
+			folder_exist = -1;
+			strcat(nameDirInTar, name);
+		}
 		strcat(nameDirInTar, "/");
+		printMessageTsh(1, nameDirInTar);
 		mkdirInTar(pathLocation->path, nameDirInTar, ph);
 		free(nameDirInTar);
 	}
@@ -192,6 +231,10 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 					pathDataNew->isTarIndicated = 0;
 					pathDataNew->nameInTar = NULL;
 					pathDataNew->path = concatPathName(pathData->path, dirent->d_name);
+					//printMessageTsh(1, pathDataNew->path);
+					//printMessageTsh(1, pathLocationNew->path);
+					//printMessageTsh(1, pathLocationNew->nameInTar);
+					//printMessageTsh(1, dirent->d_name);
 
 					if (cpTar(pathDataNew, pathLocationNew, 1, dirent->d_name) == -1)
 					{
@@ -231,8 +274,8 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 		perror("tsh: cp: fileDataNotInTar: stat");
 		return NULL;
 	}
-	printMessageTsh(1, path);
 	int fd;
+
 	if ((fd = open(path, O_RDONLY, S_IRUSR)) == -1)
 	{
 		perror("tsh: cp: fileDataNotInTar: open");
@@ -240,19 +283,12 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 	}
 	lseek(fd, 0, SEEK_SET);
 	remplirHeader(ph, sb);
-	printf("File size: %jd bytes\n", sb.st_size);
 
 	int n = 0;
 	int k = 0;
-	char *data = malloc(1024);
-	while ((k = read(fd, data, 1024)) > 0)
-	{
-		n += k;
-		if (k == 1024)
-			if ((data = realloc(data, n + k)) == NULL)
-				perror("tsh: cp: fileDataNotInTar: realloc");
-	}
-	data[n] = '\0';
+	char *data = malloc(sb.st_size);
+	read(fd, data, sb.st_size);
+
 	close(fd);
 	return data;
 }
@@ -266,7 +302,10 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 void remplirHeader(struct posix_header *ph, struct stat sb)
 {
 	makePermissions(ph, sb);
-	sprintf(ph->size, "%011lo", sb.st_size);
+	if (S_ISDIR(sb.st_mode))
+		sprintf(ph->size, "%011lo", (unsigned long)0);
+	else
+		sprintf(ph->size, "%011lo", sb.st_size);
 
 	switch (sb.st_mode & S_IFMT)
 	{
@@ -428,16 +467,18 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int fold
 
 	if (res->isTarIndicated)
 	{
-
 		res->path = malloc(strlen(pathLocation->path) + 1);
-		strcpy(res->path, pathLocation->path);
+		memcpy(res->path, pathLocation->path, strlen(pathLocation->path) + 1);
 
 		char *nameDirInTar;
 		if (pathLocation->isTarBrowsed)
 		{
-			nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
+			nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2 + folder_exist);
 			strcpy(nameDirInTar, pathLocation->nameInTar);
-			strcat(nameDirInTar, name);
+			if (folder_exist && pathLocation->nameInTar[strlen(pathLocation->nameInTar) - 1] != '/')
+				strcat(nameDirInTar, "/");
+			if (folder_exist == -1)
+				strcat(nameDirInTar, name);
 		}
 		else
 		{
@@ -447,7 +488,6 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int fold
 		strcat(nameDirInTar, "/");
 
 		res->nameInTar = nameDirInTar;
-
 		res->isTarBrowsed = 1;
 	}
 
