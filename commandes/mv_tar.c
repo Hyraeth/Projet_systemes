@@ -2,6 +2,19 @@
 
 int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
     if (pathSrc->isTarBrowsed) {
+        if (!doesTarExist(pathSrc->path)) {
+            printMessageTsh(STDERR_FILENO,"Un chemin impliquant un tar n'existe pas");
+            return -1;
+        }
+    }
+    if (pathLocation->isTarBrowsed) {
+        if (!doesTarExist(pathLocation->path)) {
+            printMessageTsh(STDERR_FILENO,"Un chemin impliquant un tar n'existe pas");
+            return -1;
+        }
+    }
+
+    if (pathSrc->isTarBrowsed) {
         char c = typeFile(pathSrc->path,pathSrc->nameInTar);
         if (c == '9') {
             printMessageTsh(STDERR_FILENO,"Veuillez vérifier que le fichier que vous voulez déplacer ou renommer existe bien");
@@ -25,12 +38,12 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
                     return -1;
                 }
                 else {
-                    struct stat *buffer;
-                    if (stat(pathLocation->path,buffer) != 0) {
+                    struct stat buffer;
+                    if (stat(pathLocation->path,&buffer) != 0) {
                         printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
                         return -1;
                     }
-                    if (S_ISDIR(buffer->st_mode)) {
+                    if (S_ISDIR(buffer.st_mode)) {
                         if (cpTar(pathSrc,pathLocation,1,pathSrc->name) == -1) {
                             return -1;
                         }
@@ -49,12 +62,13 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
         }
         else {
             if (pathLocation->isTarBrowsed) {
-                char c = typeFile(pathLocation->name,pathLocation->nameInTar);
-                if (c == '5') {
+                char cLocation = typeFile(pathLocation->path,pathLocation->nameInTar);
+                if (cLocation == '5') {
 
                 }
-                else if (c == '9') {
+                else if (cLocation == '9') {
                     if (isInSameFolder(pathSrc,pathLocation)) {
+                        printMessageTsh(1,"2");
                         return renameInTar(pathSrc->path,pathSrc->nameInTar,pathLocation->nameInTar);
                     }
                 }
@@ -64,8 +78,8 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
                 }
             }
             else if (!pathLocation->isTarIndicated) {
-                struct stat *buffer;
-                if (stat(pathSrc->path,buffer) != 0 || !S_ISDIR(buffer->st_mode)) {
+                struct stat buffer;
+                if (stat(pathLocation->path,&buffer) != 0 || !S_ISDIR(buffer.st_mode)) {
                     printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
                     return -1;
                 }
@@ -90,8 +104,8 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
             return -1;
         }
         else {
-            struct stat *buffer;
-            if (stat(pathSrc->path,buffer) != 0 || !S_ISDIR(buffer->st_mode)) {
+            struct stat buffer;
+            if (stat(pathSrc->path,&buffer) != 0 || !S_ISDIR(buffer.st_mode)) {
                 printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
                 return -1;
             }
@@ -105,12 +119,12 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
         }
     }
     else {
-        struct stat *buffer;
-        if (stat(pathSrc->path,buffer) != 0) {
+        struct stat buffer;
+        if (stat(pathSrc->path,&buffer) != 0) {
             printMessageTsh(STDERR_FILENO,"Veuillez vérifier que le fichier que vous voulez déplacer ou renommer existe bien");
             return -1;
         }
-        if (S_ISDIR(buffer->st_mode)) {
+        if (S_ISDIR(buffer.st_mode)) {
             DIR *dir = opendir(pathLocation->path);
 			struct dirent *dirent;
 

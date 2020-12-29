@@ -584,13 +584,13 @@ int renameInTar (char *path_to_tar, char *oldName, char *newName) {
 }
 
 int isADirectory (pathStruct *pathSrc) {
-	struct stat *buffer;
+	struct stat buffer;
 	if (pathSrc->isTarBrowsed) {
 		return (typeFile(pathSrc->path,pathSrc->nameInTar) == '5');
 	}
 	if (pathSrc->isTarIndicated) return 1;
-	if (stat(pathSrc->path,buffer)) {
+	if (stat(pathSrc->path,&buffer)) {
 		return 0;
 	}
-	else return S_ISDIR(buffer->st_mode);
+	else return S_ISDIR(buffer.st_mode);
 }
