@@ -23,7 +23,8 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			if (!op)
 			{
 				printMessageTsh(STDERR_FILENO, "Vous ne pouvez copier des dossiers qu'en indicant l'option -r");
-				free(dataToCopy);
+				if (dataToCopy != NULL)
+					free(dataToCopy);
 				free(ph);
 				return -1;
 			}
@@ -37,7 +38,8 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 				}
 				else
 					res = copyFolder(pathData, pathLocation, name, ph);
-				free(dataToCopy);
+				if (dataToCopy != NULL)
+					free(dataToCopy);
 				free(ph);
 				return res;
 			}
@@ -50,7 +52,8 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 		if (stat(pathData->path, &sb) != 0)
 		{
 			perror("tsh: cp: cpTar: stat");
-			free(dataToCopy);
+			if (dataToCopy != NULL)
+				free(dataToCopy);
 			free(ph);
 			return -1;
 		}
@@ -60,13 +63,15 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			{
 				printMessageTsh(STDERR_FILENO, "Vous ne pouvez copier des dossiers qu'en indicant l'option -r");
 				free(ph);
-				free(dataToCopy);
+				if (dataToCopy != NULL)
+					free(dataToCopy);
 				return -1;
 			}
 			else
 			{
 				res = copyFolder(pathData, pathLocation, name, ph);
-				free(dataToCopy);
+				if (dataToCopy != NULL)
+					free(dataToCopy);
 				free(ph);
 				return res;
 			}
@@ -107,7 +112,6 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 		}
 		else
 		{
-			char typefile = typeFile(pathLocation->path, name);
 			res = copyFileInTar(dataToCopy, name, pathLocation->path, ph);
 		}
 	}
@@ -117,7 +121,8 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 		if (stat(pathLocation->path, &sb) != 0)
 		{
 			perror("tsh: cp: cpTar: stat");
-			free(dataToCopy);
+			if (dataToCopy != NULL)
+				free(dataToCopy);
 			free(ph);
 			return -1;
 		}
@@ -131,7 +136,8 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 		}
 	}
 
-	free(dataToCopy);
+	if (dataToCopy != NULL)
+		free(dataToCopy);
 	free(ph);
 	return res;
 }
@@ -165,8 +171,16 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	else
 	{
 		char type = typeFile(pathLocation->path, pathLocation->nameInTar);
+		/*printMessageTsh(1, pathData->path);
 		printMessageTsh(1, pathLocation->path);
 		printMessageTsh(1, pathLocation->nameInTar);
+		printMessageTsh(1, &type);
+		printMessageTsh(1, "\n");
+		printMessageTsh(1, "copy folder");
+		printMessageTsh(1, pathData->path);
+		printMessageTsh(1, pathLocation->path);
+		printMessageTsh(1, pathLocation->nameInTar);
+		printMessageTsh(1, name);*/
 		int z = 0;
 		if (type == '5')
 		{
@@ -177,13 +191,24 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 		strcpy(nameDirInTar, pathLocation->nameInTar);
 		if (type == '5' && pathLocation->nameInTar[strlen(pathLocation->nameInTar) - 1] != '/')
 			strcat(nameDirInTar, "/");
-		if (type != '9')
+		if (type != '9' && strlen(pathLocation->nameInTar) != 0)
 		{
 			folder_exist = -1;
 			strcat(nameDirInTar, name);
 		}
+		if (type == '9' && strlen(pathLocation->nameInTar) == 0)
+		{
+			strcat(nameDirInTar, name);
+		}
+
 		strcat(nameDirInTar, "/");
-		printMessageTsh(1, nameDirInTar);
+		/*printMessageTsh(1, nameDirInTar);
+		printMessageTsh(1, "end mkdir\n");*/
+		if (typeFile(pathLocation->path, nameDirInTar) == '5')
+		{
+			printMessageTsh(STDERR_FILENO, "Le fichier/dossier existe déja faire rm pour supprimer");
+			return -1;
+		}
 		mkdirInTar(pathLocation->path, nameDirInTar, ph);
 		free(nameDirInTar);
 	}
@@ -221,7 +246,8 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 		{
 			DIR *dir = opendir(pathData->path);
 			struct dirent *dirent;
-
+			/*printMessageTsh(1, "start while\n");
+			printMessageTsh(1, pathData->path);*/
 			while ((dirent = readdir(dir)) != NULL)
 			{
 				if (strcmp(".", dirent->d_name) != 0 && strcmp("..", dirent->d_name) != 0)
@@ -231,22 +257,28 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 					pathDataNew->isTarIndicated = 0;
 					pathDataNew->nameInTar = NULL;
 					pathDataNew->path = concatPathName(pathData->path, dirent->d_name);
-					//printMessageTsh(1, pathDataNew->path);
-					//printMessageTsh(1, pathLocationNew->path);
-					//printMessageTsh(1, pathLocationNew->nameInTar);
-					//printMessageTsh(1, dirent->d_name);
+					/*printMessageTsh(1, "start cp\n");
+					printMessageTsh(1, pathDataNew->path);
+					printMessageTsh(1, pathLocationNew->path);
+					printMessageTsh(1, pathLocationNew->nameInTar);
+					printMessageTsh(1, dirent->d_name);*/
 
 					if (cpTar(pathDataNew, pathLocationNew, 1, dirent->d_name) == -1)
 					{
+						//printMessageTsh(2, "cp failed\n");
 						freeStruct(pathLocationNew);
 						closedir(dir);
 						return -1;
 					}
 					free(pathDataNew->path);
 					free(pathDataNew);
+					//printMessageTsh(1, "end cp\n");
 				}
 			}
 			closedir(dir);
+			/*printMessageTsh(1, pathData->path);
+			printMessageTsh(1, pathLocationNew->nameInTar);
+			printMessageTsh(1, "end while\n");*/
 		}
 		freeStruct(pathLocationNew);
 	}
@@ -471,9 +503,10 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int fold
 		memcpy(res->path, pathLocation->path, strlen(pathLocation->path) + 1);
 
 		char *nameDirInTar;
+
 		if (pathLocation->isTarBrowsed)
 		{
-			nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2 + folder_exist);
+			nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 3);
 			strcpy(nameDirInTar, pathLocation->nameInTar);
 			if (folder_exist && pathLocation->nameInTar[strlen(pathLocation->nameInTar) - 1] != '/')
 				strcat(nameDirInTar, "/");
@@ -516,7 +549,8 @@ void freeStruct(pathStruct *pathToFree)
 {
 	if (pathToFree->nameInTar != NULL)
 		free(pathToFree->nameInTar);
-	free(pathToFree->path);
+	if (pathToFree->path != NULL)
+		free(pathToFree->path);
 	if (pathToFree->name != NULL)
 		free(pathToFree->name);
 	free(pathToFree);
