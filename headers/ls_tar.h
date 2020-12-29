@@ -5,6 +5,7 @@
 
 
 bool s_is_in_string(char * string, char * s);
+int isInFolder(char *s, char *toVerify);
 bool contain_char(char * s, char c);
 bool contain_one_char(char * s, char c);
 void print_space(int n);
