@@ -179,9 +179,26 @@ void print_size(struct posix_header * header, char * path, int fd) {
     lseek(fd, save, SEEK_SET);
     free(headerSize);
   }
-  sprintf(buffer,"%d",size);
-  print_space(8-strlen(buffer)); //tant pis si la taille depace 8 carractère
-  write(STDOUT_FILENO, buffer, strlen(buffer));
+  if (size <= 1000) {
+    sprintf(buffer,"%d",size);
+    print_space(8-strlen(buffer));
+    write(STDOUT_FILENO, buffer, strlen(buffer));
+  } else if (size <= 1000000) {
+    sprintf(buffer,"%d",1 + size/1000);
+    print_space(5-strlen(buffer));
+    write(STDOUT_FILENO, buffer, strlen(buffer));
+    write(STDOUT_FILENO, " ko", 3);
+  } else if (size <= 1000000000){
+    sprintf(buffer,"%d",1 + size/1000000);
+    print_space(5-strlen(buffer));
+    write(STDOUT_FILENO, buffer, strlen(buffer));
+    write(STDOUT_FILENO, " Mo", 3);
+  } else {
+    sprintf(buffer,"%d",1 + size/1000000000);
+    print_space(5-strlen(buffer));
+    write(STDOUT_FILENO, buffer, strlen(buffer));
+    write(STDOUT_FILENO, " Go", 3); // je vais m'arrêter là.
+  }
 }
 
 /**
