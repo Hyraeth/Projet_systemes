@@ -85,7 +85,9 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			if (z)
 				strcat(nameFull, "/");
 			strcat(nameFull, name);
-			//printMessageTsh(1, nameFull);
+			printMessageTsh(1, nameFull);
+			printMessageTsh(1, dataToCopy);
+			printMessageTsh(1, "\n");
 			//printMessageTsh(1, pathLocation->path);
 			res = copyFileInTar(dataToCopy, nameFull, pathLocation->path, ph);
 			free(nameFull);
@@ -200,6 +202,9 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 					pathDataNew->nameInTar = NULL;
 					pathDataNew->path = concatPathName(pathData->path, dirent->d_name);
 					printMessageTsh(1, pathDataNew->path);
+					printMessageTsh(1, pathLocationNew->path);
+					printMessageTsh(1, pathLocationNew->nameInTar);
+					printMessageTsh(1, dirent->d_name);
 
 					if (cpTar(pathDataNew, pathLocationNew, 1, dirent->d_name) == -1)
 					{
@@ -429,9 +434,8 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int fold
 
 	if (res->isTarIndicated)
 	{
-
 		res->path = malloc(strlen(pathLocation->path) + 1);
-		strcpy(res->path, pathLocation->path);
+		memcpy(res->path, pathLocation->path, strlen(pathLocation->path) + 1);
 
 		char *nameDirInTar;
 		if (pathLocation->isTarBrowsed)
@@ -448,7 +452,6 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int fold
 		strcat(nameDirInTar, "/");
 
 		res->nameInTar = nameDirInTar;
-
 		res->isTarBrowsed = 1;
 	}
 
