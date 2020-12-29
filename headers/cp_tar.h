@@ -16,3 +16,5 @@ void remplirHeader(struct posix_header *ph, struct stat sb);
 void makePermissions(struct posix_header *ph, struct stat sb);
 struct pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int folder_exist);
 void freeStruct(struct pathStruct *path);
+int subFolderExistNotInTar (char *path);
+int subFolderExistInTar (char *path_to_tar, char *path_in_tar);
