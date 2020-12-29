@@ -642,6 +642,7 @@ int exec_cmd(SimpleCommand_t *cmd)
 int exec_complexcmd(ComplexCommand_t *cmd)
 {
     int fdin, fdout, fderr, status, retval;
+    pid_t cpid, wpid;
     //save current file descriptor
     int tmpin = dup(STDIN_FILENO);
     int tmpout = dup(STDOUT_FILENO);
@@ -755,6 +756,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         {
             char *path_src_out = malloc(strlen("/tmp/tsh_tmp_out") + 1);
             strcpy(path_src_out, "/tmp/tsh_tmp_out");
+
             pathStruct *tmp_output = makeStructFromPath(path_src_out); //turn a const string into a string
             if (cmd->appendOut)
             {
@@ -766,7 +768,6 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                 cpTar(tmp_output, true_output, 0, tmp_output->name); //copy the content of the tmp file into the tar at the correct location
             }
             freeStruct(tmp_output);
-            free(path_src_out);
         }
         freeStruct(true_output);
 
@@ -784,14 +785,12 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                 cpTar(tmp_err, true_err, 0, tmp_err->name);
             }
             freeStruct(tmp_err);
-            free(path_src_err);
         }
         freeStruct(true_err);
 
         return retval;
     }
     //if there is more than one simple command
-    pid_t cpid, wpid;
     char *path_outStruct = malloc(strlen(cmd->output) + 1);
     memcpy(path_outStruct, cmd->output, strlen(cmd->output) + 1);
     pathStruct *true_output = makeStructFromPath(path_outStruct);
@@ -870,6 +869,11 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     dup2(tmperr, STDERR_FILENO);
     close(tmperr);
 
+    do
+    {
+        wpid = waitpid(cpid, &status, WUNTRACED);
+    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
     if (strcmp(cmd->output, "") != 0 && true_output->isTarIndicated) //if the output redirection was in a tar (tmp file was opened)
     {
         char *path_src_out = malloc(strlen("/tmp/tsh_tmp_out") + 1);
@@ -885,7 +889,6 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             cpTar(tmp_output, true_output, 0, tmp_output->name); //copy the content of the tmp file into the tar at the correct location
         }
         freeStruct(tmp_output);
-        free(path_src_out);
     }
     freeStruct(true_output);
 
@@ -903,14 +906,9 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             cpTar(tmp_err, true_err, 0, tmp_err->name);
         }
         freeStruct(tmp_err);
-        free(path_src_err);
     }
     freeStruct(true_err);
 
-    do
-    {
-        wpid = waitpid(cpid, &status, WUNTRACED);
-    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
     return retval;
 }
 

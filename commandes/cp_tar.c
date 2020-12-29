@@ -45,7 +45,10 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 	}
 	else
 	{
+		printMessageTsh(1, pathData->path);
+		printMessageTsh(1, pathData->name);
 		dataToCopy = fileDataNotInTar(pathData->path, ph);
+		printMessageTsh(1, dataToCopy);
 		struct stat sb;
 		if (stat(pathData->path, &sb) != 0)
 		{
@@ -90,7 +93,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 	}
 	else
 	{
-		res = cpyDataFileNotInTar(concatPathName(pathLocation->path, name), dataToCopy, ph);
+		res = cpyDataFileNotInTar(pathLocation->path, dataToCopy, ph);
 	}
 
 	free(dataToCopy);
@@ -121,10 +124,10 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	else
 	{
 		char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
-		strcpy(nameDirInTar,pathLocation->nameInTar);
-		strcat(nameDirInTar,name);
-		strcat(nameDirInTar,"/");
-		mkdirInTar(pathLocation->path,nameDirInTar,ph);
+		strcpy(nameDirInTar, pathLocation->nameInTar);
+		strcat(nameDirInTar, name);
+		strcat(nameDirInTar, "/");
+		mkdirInTar(pathLocation->path, nameDirInTar, ph);
 		free(nameDirInTar);
 	}
 
@@ -210,15 +213,25 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 		printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture du fichier");
 		return NULL;
 	}
-
+	printMessageTsh(1, path);
 	int fd;
-	if ((fd = open(path, O_RDONLY)) == -1)
+	if ((fd = open(path, O_RDONLY, S_IRUSR)) == -1)
 		return NULL;
-
+	lseek(fd, 0, SEEK_SET);
 	remplirHeader(ph, sb);
+	printf("File size: %jd bytes\n", sb.st_size);
 
-	char *data = malloc(sb.st_size);
-	read(fd, data, sb.st_size);
+	int n = 0;
+	int k = 0;
+	char *data = malloc(1024);
+	while ((k = read(fd, data, 1024)) > 0)
+	{
+		n += k;
+		if (k == 1024)
+			if ((data = realloc(data, n + k)) == NULL)
+				perror("tsh: cp: realloc");
+	}
+	data[n] = '\0';
 	close(fd);
 	return data;
 }
