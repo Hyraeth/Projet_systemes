@@ -228,8 +228,10 @@ int deleteFileInTar(char *name_file, char *path_tar)
 			write(src, '\0', 1);
 			lseek(src, 1, SEEK_CUR);
 		}
+
 		int sizeToCopy = sizeFullTar - emplacement - sizeToDelete;
-		char dataToMove[sizeToCopy];
+		char *dataToMove = malloc(sizeToCopy);
+
 		if (read(src, dataToMove, sizeToCopy) == -1)
 		{
 			printMessageTsh(STDERR_FILENO, "Erreur lors de la suppression d'un fichier dans le tar");
@@ -279,7 +281,7 @@ int rmWithOptionTar(char *path_to_tar, char *path_in_tar)
 	return 1;
 }
 
-int rmEmptyDirTar(char *path_to_tar, char *path_in_tar)
+int isEmptyDirTar (char *path_to_tar, char *path_in_tar)
 {
 	char **subFiles = findSubFiles(path_to_tar, path_in_tar, 0);
 	int i = 0;
@@ -287,23 +289,8 @@ int rmEmptyDirTar(char *path_to_tar, char *path_in_tar)
 	{
 		i++;
 	}
-	if (i == 0)
-	{
-		printMessageTsh(STDERR_FILENO, "rm : Le dossier n'existe pas");
-		free(subFiles);
-		return -1;
-	}
 
-	int res;
-	if (i == 1)
-	{
-		int res = deleteFileInTar(path_in_tar, path_to_tar);
-	}
-	else
-	{
-		printMessageTsh(STDERR_FILENO, "Le dossier que vous voulez supprimer n'est pas vide");
-		res = -1;
-	}
+	int res = (i == 1) ;
 
 	i = 0;
 	while (subFiles[i] != NULL)
@@ -314,6 +301,7 @@ int rmEmptyDirTar(char *path_to_tar, char *path_in_tar)
 	free(subFiles);
 	return res;
 }
+
 
 /**
  * @brief Find all subfiles (depending on the depth) of a given folder in a tar 
@@ -557,4 +545,54 @@ int doesTarExist(char *path)
 {
 	struct stat buffer;
 	return (stat(path, &buffer) == 0);
+}
+
+int renameInTar (char *path_to_tar, char *oldName, char *newName) {
+	int src = open(path_to_tar, O_RDONLY);
+	if (src == -1)
+		perror("tsh");
+	char bloc[BLOCKSIZE];
+	read(src, bloc, 512);
+	char name[100];
+	char size[12];
+
+	while (bloc[0] != 0)
+	{
+
+		memcpy(name, bloc, 100);
+
+		if (strcmpTar(oldName, name))
+		{
+			lseek(src,-BLOCKSIZE,SEEK_CUR);
+			write(src,newName,strlen(newName));
+			for (size_t i = 0; i < 100 - strlen(newName); i++)
+			{
+				write(src,"\0",1);
+			}
+			return 1;
+		}
+
+		memcpy(size, &bloc[124], 12);
+		int filesize;
+		sscanf(size, "%o", &filesize);
+
+		int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
+
+		lseek(src, BLOCKSIZE * occupiedBlocks, SEEK_CUR);
+		read(src, bloc, 512);
+	}
+
+	return -1;
+}
+
+int isADirectory (pathStruct *pathSrc) {
+	struct stat buffer;
+	if (pathSrc->isTarBrowsed) {
+		return (typeFile(pathSrc->path,pathSrc->nameInTar) == '5');
+	}
+	if (pathSrc->isTarIndicated) return 1;
+	if (stat(pathSrc->path,&buffer)) {
+		return 0;
+	}
+	else return S_ISDIR(buffer.st_mode);
 }

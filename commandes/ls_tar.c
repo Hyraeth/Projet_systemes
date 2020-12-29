@@ -198,39 +198,12 @@ void print_size(struct posix_header * header, char * path, int fd) {
   int size;
   sscanf(header->size,"%o",&size);
   char buffer [33];
-  if(header->typeflag == '5'){
-    off_t save = lseek(fd, 0, SEEK_CUR);
-    lseek(fd, 0, SEEK_SET);
-
-    size = 0;
-    int size_tmp = 0;
-    struct posix_header * headerSize = malloc(sizeof(struct posix_header));
-    assert(headerSize);
-    int n = 0;
-    while((n=read(fd, headerSize, BLOCKSIZE))>0){
-      if (s_is_in_string(headerSize->name, header->name) && headerSize->typeflag != '5') {
-        sscanf(headerSize->size,"%o",&size_tmp);
-        size += size_tmp;
-      }
-      int taille = 0;
-      int *ptaille = &taille;
-      sscanf(headerSize->size, "%o", ptaille);
-      int filesize = ((*ptaille + 512-1)/512);
-      lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
-    }
-    
-    lseek(fd, save, SEEK_SET);
-    free(headerSize);
-  }
-  if (size <= 1000) {
+  if(header->typeflag == '5')
+    size = 4096;
+  if (size <= 1000000) {
     sprintf(buffer,"%d",size);
     print_space(8-strlen(buffer));
     write(STDOUT_FILENO, buffer, strlen(buffer));
-  } else if (size <= 1000000) {
-    sprintf(buffer,"%d",1 + size/1000);
-    print_space(5-strlen(buffer));
-    write(STDOUT_FILENO, buffer, strlen(buffer));
-    write(STDOUT_FILENO, " ko", 3);
   } else if (size <= 1000000000){
     sprintf(buffer,"%d",1 + size/1000000);
     print_space(5-strlen(buffer));
