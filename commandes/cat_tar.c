@@ -14,7 +14,7 @@ int cat_tar(struct posix_header *header, int fd)
     sscanf(header->size, "%o", ptaille);
     int filesize = ((*ptaille + BLOCKSIZE - 1) / BLOCKSIZE);
     //block
-    char *block = malloc(sizeof(char) * BLOCKSIZE);
+    char block[BLOCKSIZE];
     int n = 0;
     int k = 0;
     while ((n = read(fd, block, BLOCKSIZE)) > 0)

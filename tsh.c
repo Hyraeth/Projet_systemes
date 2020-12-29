@@ -975,9 +975,15 @@ int cd_tar(char *path)
     }
     int tmpDepth = tarDepth;
     char **tmpTarDir;
-    if ((tmpTarDir = malloc((tarDepth + 1) * sizeof(char *))) == NULL)
+    if ((tmpTarDir = malloc((tarDepth + 2) * sizeof(char *))) == NULL)
         perror("tsh");
-    memcpy(tmpTarDir, tarDirArray, tarDepth + 1);
+    for (size_t i = 0; i < tarDepth + 1; i++)
+    {
+        tmpTarDir[i] = malloc(strlen(tarDirArray[i]));
+        memcpy(tmpTarDir[i], tarDirArray[i], strlen(tarDirArray[i]) + 1);
+    }
+    tmpTarDir[tarDepth + 1] = NULL;
+
     int failure = 0;
 
     int i = 0;
@@ -1091,11 +1097,26 @@ int cd_tar(char *path)
     if (failure)
     {
         chdir(pwdtmp);
-        memcpy(tarDirArray, tmpTarDir, tmpDepth + 1);
+        tarDirArray = malloc((tmpDepth + 2) * sizeof(char *));
+        for (size_t i = 0; i < tmpDepth + 1; i++)
+        {
+            tarDirArray[i] = malloc(strlen(tmpTarDir[i]));
+            memcpy(tarDirArray[i], tmpTarDir[i], strlen(tmpTarDir[i]) + 1);
+        }
+        tarDirArray[tmpDepth + 1] = NULL;
         tarDepth = tmpDepth;
+        for (size_t i = 0; tmpTarDir[i] == NULL; i++)
+        {
+            free(tmpTarDir[i]);
+        }
+        free(tmpTarDir);
         return -1;
     }
     free(pwdtmp);
+    for (size_t i = 0; tmpTarDir[i] == NULL; i++)
+    {
+        free(tmpTarDir[i]);
+    }
     free(tmpTarDir);
     return 1;
 }
