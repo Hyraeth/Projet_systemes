@@ -269,7 +269,7 @@ int rmWithOptionTar(char *path_to_tar, char *path_in_tar)
 	return 1;
 }
 
-int rmEmptyDirTar(char *path_to_tar, char *path_in_tar)
+int isEmptyDirTar (char *path_to_tar, char *path_in_tar)
 {
 	char **subFiles = findSubFiles(path_to_tar, path_in_tar, 0);
 	int i = 0;
@@ -277,25 +277,10 @@ int rmEmptyDirTar(char *path_to_tar, char *path_in_tar)
 	{
 		i++;
 	}
-	if (i == 0)
-	{
-		printMessageTsh(STDERR_FILENO, "rm : Le dossier n'existe pas");
-		free(subFiles);
-		return -1;
-	}
 
-	int res;
-	if (i == 1)
-	{
-		int res = deleteFileInTar(path_in_tar, path_to_tar);
-	}
-	else
-	{
-		printMessageTsh(STDERR_FILENO, "Le dossier que vous voulez supprimer n'est pas vide");
-		res = -1;
-	}
+	int res = (i == 1) ;
 
-	i = 0;
+	int i = 0;
 	while (subFiles[i] != NULL)
 	{
 		free(subFiles[i]);
@@ -304,6 +289,7 @@ int rmEmptyDirTar(char *path_to_tar, char *path_in_tar)
 	free(subFiles);
 	return res;
 }
+
 
 /**
  * @brief Find all subfiles (depending on the depth) of a given folder in a tar 
@@ -540,4 +526,8 @@ int doesTarExist(char *path)
 {
 	struct stat buffer;
 	return (stat(path, &buffer) == 0);
+}
+
+int renameInTar (char *path_to_tar, char *oldName, char *newName) {
+	
 }
