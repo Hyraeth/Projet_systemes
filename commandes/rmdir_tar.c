@@ -11,7 +11,13 @@ int rmdirInTar(pathStruct *pathToDelete)
 
     if (c == '5')
     {
-        return rmEmptyDirTar(pathToDelete->path, pathToDelete->nameInTar);
+        if (isEmptyDirTar(pathToDelete->path,pathToDelete->nameInTar)) {
+            return deleteFileInTar(pathToDelete->nameInTar,pathToDelete->path);
+        }
+        else {
+            printMessageTsh(STDERR_FILENO,"Le dossier que vous voulez supprimer n'est pas vide");
+            return -1;
+        } 
     }
     else
     {

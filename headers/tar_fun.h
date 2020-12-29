@@ -35,6 +35,8 @@ int mkdirInTar (char *path_tar, char *path_in_tar, struct posix_header *ph);
 int makeEmptyTar (char *path);
 int isEmptyTar (char *path);
 int doesTarExist (char *path);
-int rmEmptyDirTar (char *path_to_tar, char *path_in_tar);
+int isEmptyDirTar (char *path_to_tar, char *path_in_tar);
+int renameInTar (char *path_to_tar, char *oldName, char *newName);
+int isADirectory (pathStruct *pathSrc);
 
 #endif //TAR_FUN_H
