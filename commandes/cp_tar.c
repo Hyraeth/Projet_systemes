@@ -171,16 +171,14 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	else
 	{
 		char type = typeFile(pathLocation->path, pathLocation->nameInTar);
-		/*printMessageTsh(1, pathData->path);
-		printMessageTsh(1, pathLocation->path);
-		printMessageTsh(1, pathLocation->nameInTar);
-		printMessageTsh(1, &type);
-		printMessageTsh(1, "\n");
 		printMessageTsh(1, "copy folder");
+		printMessageTsh(1, &type);
 		printMessageTsh(1, pathData->path);
+		printMessageTsh(1, pathData->nameInTar);
 		printMessageTsh(1, pathLocation->path);
 		printMessageTsh(1, pathLocation->nameInTar);
-		printMessageTsh(1, name);*/
+		printMessageTsh(1, name);
+		printMessageTsh(1, "\n");
 		int z = 0;
 		if (type == '5')
 		{
@@ -201,9 +199,10 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 			strcat(nameDirInTar, name);
 		}
 
-		strcat(nameDirInTar, "/");
-		/*printMessageTsh(1, nameDirInTar);
-		printMessageTsh(1, "end mkdir\n");*/
+		if (name[strlen(name) - 1] != '/')
+			strcat(nameDirInTar, "/");
+		printMessageTsh(1, nameDirInTar);
+		printMessageTsh(1, "end mkdir\n");
 		if (typeFile(pathLocation->path, nameDirInTar) == '5')
 		{
 			printMessageTsh(STDERR_FILENO, "Le fichier/dossier existe déja faire rm pour supprimer");
@@ -223,6 +222,8 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 			int i = 0;
 			while (nameSubFiles[i] != NULL)
 			{
+				printMessageTsh(1, "cp nameSubFiles[i]");
+				printMessageTsh(1, nameSubFiles[i]);
 				pathStruct *pathDataNew = malloc(sizeof(pathStruct));
 				pathDataNew->isTarBrowsed = 1;
 				pathDataNew->isTarIndicated = 1;
@@ -235,6 +236,9 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 				strcpy(pathDataNew->path, pathData->path);
 
 				cpTar(pathDataNew, pathLocationNew, 1, nameSubFiles[i]);
+
+				printMessageTsh(1, nameSubFiles[i]);
+				printMessageTsh(1, " end cp nameSubFiles[i]");
 				free(nameSubFiles[i]);
 				free(pathDataNew->path);
 				free(pathDataNew->nameInTar);
@@ -518,7 +522,8 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int fold
 			nameDirInTar = malloc(strlen(name) + 2);
 			strcpy(nameDirInTar, name);
 		}
-		strcat(nameDirInTar, "/");
+		if (nameDirInTar[strlen(nameDirInTar) - 1] != '/')
+			strcat(nameDirInTar, "/");
 
 		res->nameInTar = nameDirInTar;
 		res->isTarBrowsed = 1;
