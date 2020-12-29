@@ -387,13 +387,14 @@ char *isSubFile(char *s, char *toVerify, int depth)
 			return NULL;
 	}
 	int nbSlash = 0;
-	for (size_t i = strlen(s); i < strlen(toVerify); i++)
-	{
-		if (toVerify[i] == '/')
+	
+	if (depth !=0){
+		for (size_t i = strlen(s); i < strlen(toVerify); i++)
 		{
-			nbSlash += 1;
-			if (depth != 0 && nbSlash > depth)
+			if (toVerify[i] == '/' && i != strlen(toVerify) - 1)
+			{
 				return NULL;
+			}
 		}
 	}
 
