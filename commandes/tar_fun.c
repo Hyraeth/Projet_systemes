@@ -280,7 +280,7 @@ int isEmptyDirTar (char *path_to_tar, char *path_in_tar)
 
 	int res = (i == 1) ;
 
-	int i = 0;
+	i = 0;
 	while (subFiles[i] != NULL)
 	{
 		free(subFiles[i]);
@@ -529,5 +529,5 @@ int doesTarExist(char *path)
 }
 
 int renameInTar (char *path_to_tar, char *oldName, char *newName) {
-	
+
 }
