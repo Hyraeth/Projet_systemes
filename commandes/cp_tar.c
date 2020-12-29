@@ -88,9 +88,9 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 				if (z)
 					strcat(nameFull, "/");
 				strcat(nameFull, name);
-				printMessageTsh(1, nameFull);
-				printMessageTsh(1, dataToCopy);
-				printMessageTsh(1, "\n");
+				//printMessageTsh(1, nameFull);
+				//printMessageTsh(1, dataToCopy);
+				//printMessageTsh(1, "\n");
 				//printMessageTsh(1, pathLocation->path);
 				res = copyFileInTar(dataToCopy, nameFull, pathLocation->path, ph);
 				free(nameFull);
@@ -107,6 +107,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 		}
 		else
 		{
+			char typefile = typeFile(pathLocation->path, name);
 			res = copyFileInTar(dataToCopy, name, pathLocation->path, ph);
 		}
 	}
@@ -163,10 +164,26 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	}
 	else
 	{
-		char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
+		char type = typeFile(pathLocation->path, pathLocation->nameInTar);
+		printMessageTsh(1, pathLocation->path);
+		printMessageTsh(1, pathLocation->nameInTar);
+		int z = 0;
+		if (type == '5')
+		{
+			folder_exist = 1;
+			z = 1;
+		}
+		char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2 + z);
 		strcpy(nameDirInTar, pathLocation->nameInTar);
-		strcat(nameDirInTar, name);
+		if (type == '5' && pathLocation->nameInTar[strlen(pathLocation->nameInTar) - 1] != '/')
+			strcat(nameDirInTar, "/");
+		if (type != '9')
+		{
+			folder_exist = -1;
+			strcat(nameDirInTar, name);
+		}
 		strcat(nameDirInTar, "/");
+		printMessageTsh(1, nameDirInTar);
 		mkdirInTar(pathLocation->path, nameDirInTar, ph);
 		free(nameDirInTar);
 	}
@@ -214,10 +231,10 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 					pathDataNew->isTarIndicated = 0;
 					pathDataNew->nameInTar = NULL;
 					pathDataNew->path = concatPathName(pathData->path, dirent->d_name);
-					printMessageTsh(1, pathDataNew->path);
-					printMessageTsh(1, pathLocationNew->path);
-					printMessageTsh(1, pathLocationNew->nameInTar);
-					printMessageTsh(1, dirent->d_name);
+					//printMessageTsh(1, pathDataNew->path);
+					//printMessageTsh(1, pathLocationNew->path);
+					//printMessageTsh(1, pathLocationNew->nameInTar);
+					//printMessageTsh(1, dirent->d_name);
 
 					if (cpTar(pathDataNew, pathLocationNew, 1, dirent->d_name) == -1)
 					{
@@ -456,9 +473,12 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int fold
 		char *nameDirInTar;
 		if (pathLocation->isTarBrowsed)
 		{
-			nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
+			nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2 + folder_exist);
 			strcpy(nameDirInTar, pathLocation->nameInTar);
-			strcat(nameDirInTar, name);
+			if (folder_exist && pathLocation->nameInTar[strlen(pathLocation->nameInTar) - 1] != '/')
+				strcat(nameDirInTar, "/");
+			if (folder_exist == -1)
+				strcat(nameDirInTar, name);
 		}
 		else
 		{
