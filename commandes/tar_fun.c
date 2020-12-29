@@ -228,8 +228,10 @@ int deleteFileInTar(char *name_file, char *path_tar)
 			write(src, '\0', 1);
 			lseek(src, 1, SEEK_CUR);
 		}
+
 		int sizeToCopy = sizeFullTar - emplacement - sizeToDelete;
-		char dataToMove[sizeToCopy];
+		char *dataToMove = malloc(sizeToCopy);
+
 		if (read(src, dataToMove, sizeToCopy) == -1)
 		{
 			printMessageTsh(STDERR_FILENO, "Erreur lors de la suppression d'un fichier dans le tar");
