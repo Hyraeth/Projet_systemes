@@ -231,7 +231,6 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 		perror("tsh: cp: fileDataNotInTar: stat");
 		return NULL;
 	}
-	printMessageTsh(1, path);
 	int fd;
 	if ((fd = open(path, O_RDONLY, S_IRUSR)) == -1)
 	{
@@ -240,19 +239,11 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 	}
 	lseek(fd, 0, SEEK_SET);
 	remplirHeader(ph, sb);
-	printf("File size: %jd bytes\n", sb.st_size);
 
 	int n = 0;
 	int k = 0;
-	char *data = malloc(1024);
-	while ((k = read(fd, data, 1024)) > 0)
-	{
-		n += k;
-		if (k == 1024)
-			if ((data = realloc(data, n + k)) == NULL)
-				perror("tsh: cp: fileDataNotInTar: realloc");
-	}
-	data[n] = '\0';
+	char *data = malloc(sb.st_size);
+	read(fd, data, sb.st_size);
 	close(fd);
 	return data;
 }
