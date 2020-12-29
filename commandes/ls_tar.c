@@ -200,15 +200,10 @@ void print_size(struct posix_header * header, char * path, int fd) {
   char buffer [33];
   if(header->typeflag == '5')
     size = 4096;
-  if (size <= 1000) {
+  if (size <= 1000000) {
     sprintf(buffer,"%d",size);
     print_space(8-strlen(buffer));
     write(STDOUT_FILENO, buffer, strlen(buffer));
-  } else if (size <= 1000000) {
-    sprintf(buffer,"%d",1 + size/1000);
-    print_space(5-strlen(buffer));
-    write(STDOUT_FILENO, buffer, strlen(buffer));
-    write(STDOUT_FILENO, " ko", 3);
   } else if (size <= 1000000000){
     sprintf(buffer,"%d",1 + size/1000000);
     print_space(5-strlen(buffer));
