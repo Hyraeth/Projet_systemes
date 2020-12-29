@@ -27,21 +27,29 @@ int isInFolder(char *s, char *toVerify)
 
   for (size_t i = 0; i < strlen(s); i++)
   {
-    if (s[i] != toVerify[i])
-      return 0;
+  if (s[i] != toVerify[i])
+    return 0;
   }
   int beginIndex = strlen(s);
-  if (beginIndex != 0 && s[beginIndex - 1] != '/') {
-    if (toVerify[beginIndex] != '/') return 0;
-    else beginIndex ++;
+  if (beginIndex != 0)
+  {
+    if (s[beginIndex - 1] != '/')
+    {
+      if (toVerify[beginIndex] != '/') return 0;
+      else 
+      {
+        if (strlen(toVerify) == beginIndex + 1) return 0;
+        beginIndex ++;
+      }
+    }
+    else if (beginIndex == strlen(toVerify)) return 0;
   }
   int nbSlash = 0;
   for (size_t i = beginIndex; i < strlen(toVerify); i++)
   {
     if (toVerify[i] == '/')
     {
-      nbSlash += 1;
-      if (nbSlash > 1) return 0;
+      if (i != strlen(toVerify) - 1) return 0;
     }
   }
   return 1;
