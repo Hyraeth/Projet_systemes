@@ -416,6 +416,7 @@ int isTarFolder(char *folder, char **path)
 {
 	int i = 1;
 	char *path_to_check = malloc(1);
+	path_to_check[0] = '\0';
 	int len = 1;
 	while (path[i] != NULL)
 	{
@@ -432,9 +433,15 @@ int isTarFolder(char *folder, char **path)
 	strcat(path_to_check, "/");
 
 	if (typeFile(path[0], path_to_check) == '5')
+	{
+		free(path_to_check);
 		return 1;
+	}
 	else
+	{
+		free(path_to_check);
 		return 0;
+	}
 }
 
 /**

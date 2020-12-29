@@ -77,9 +77,16 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 	{
 		if (pathLocation->isTarBrowsed)
 		{
-			char *nameFull = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 1);
+			int z = 0;
+			if (pathLocation->nameInTar[strlen(pathLocation->nameInTar) - 1] != '/')
+				z = 1;
+			char *nameFull = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 1 + z);
 			strcpy(nameFull, pathLocation->nameInTar);
+			if (z)
+				strcat(nameFull, "/");
 			strcat(nameFull, name);
+			//printMessageTsh(1, nameFull);
+			//printMessageTsh(1, pathLocation->path);
 			res = copyFileInTar(dataToCopy, nameFull, pathLocation->path, ph);
 			free(nameFull);
 		}
@@ -192,6 +199,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 					pathDataNew->isTarIndicated = 0;
 					pathDataNew->nameInTar = NULL;
 					pathDataNew->path = concatPathName(pathData->path, dirent->d_name);
+					printMessageTsh(1, pathDataNew->path);
 
 					if (cpTar(pathDataNew, pathLocationNew, 1, dirent->d_name) == -1)
 					{
@@ -232,6 +240,7 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 		return NULL;
 	}
 	int fd;
+
 	if ((fd = open(path, O_RDONLY, S_IRUSR)) == -1)
 	{
 		perror("tsh: cp: fileDataNotInTar: open");
@@ -244,6 +253,7 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 	int k = 0;
 	char *data = malloc(sb.st_size);
 	read(fd, data, sb.st_size);
+
 	close(fd);
 	return data;
 }
