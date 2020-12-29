@@ -14,7 +14,17 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 	char *dataToCopy;
 	struct posix_header *ph = malloc(sizeof(struct posix_header));
 	int res;
-
+	/*
+	printMessageTsh(1, "pathData");
+	printMessageTsh(1, pathData->path);
+	printMessageTsh(1, pathData->nameInTar);
+	printMessageTsh(1, "\n");
+	printMessageTsh(1, "pathLocation");
+	printMessageTsh(1, pathLocation->path);
+	printMessageTsh(1, "\n");
+	printMessageTsh(1, name);
+	printMessageTsh(1, "\n");
+*/
 	if (pathData->isTarBrowsed)
 	{
 		dataToCopy = fileDataInTar(pathData->nameInTar, pathData->path, ph);
@@ -29,7 +39,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			}
 			else
 			{
-				if (pathData->nameInTar[strlen(name) - 1] != '/')
+				if (pathData->nameInTar[strlen(pathData->nameInTar) - 1] != '/')
 				{
 					pathData->nameInTar = realloc(pathData->nameInTar, strlen(pathData->nameInTar) + 2);
 					strcat(pathData->nameInTar, "/");
@@ -52,7 +62,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 		struct stat sb;
 		if (stat(pathData->path, &sb) != 0)
 		{
-			printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture d'un fichier");
+			perror("tsh: cp: cpTar: stat");
 			free(dataToCopy);
 			free(ph);
 			return -1;
@@ -93,7 +103,22 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 	}
 	else
 	{
-		res = cpyDataFileNotInTar(pathLocation->path, dataToCopy, ph);
+		struct stat sb;
+		if (stat(pathLocation->path, &sb) != 0)
+		{
+			perror("tsh: cp: cpTar: stat");
+			free(dataToCopy);
+			free(ph);
+			return -1;
+		}
+		if (S_ISDIR(sb.st_mode))
+		{
+			res = cpyDataFileNotInTar(concatPathName(pathLocation->path, name), dataToCopy, ph);
+		}
+		else
+		{
+			res = cpyDataFileNotInTar(pathLocation->path, dataToCopy, ph);
+		}
 	}
 
 	free(dataToCopy);
@@ -118,7 +143,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	if (!pathLocation->isTarIndicated)
 	{
 		char *pathLocationDir = concatPathName(pathLocation->path, name);
-		res = mkdir(pathLocationDir, modeDir);
+		res = mkdir(pathLocationDir, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
 		free(pathLocationDir);
 	}
 	else
@@ -138,16 +163,20 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 		if (pathData->isTarBrowsed)
 		{
 			char **nameSubFiles = findSubFiles(pathData->path, pathData->nameInTar, 1);
+			//printMessageTsh(1, pathData->path);
+			//printMessageTsh(1, pathData->nameInTar);
 			int i = 0;
 			while (nameSubFiles[i] != NULL)
 			{
+				printMessageTsh(1, nameSubFiles[i]);
 				pathStruct *pathDataNew = malloc(sizeof(pathStruct));
 				pathDataNew->isTarBrowsed = 1;
 				pathDataNew->isTarIndicated = 1;
-				pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 2);
+				pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 1);
 
 				strcpy(pathDataNew->nameInTar, pathData->nameInTar);
 				strcat(pathDataNew->nameInTar, nameSubFiles[i]);
+				//printMessageTsh(1, pathDataNew->nameInTar);
 
 				pathDataNew->path = malloc(strlen(pathData->path) + 1);
 				strcpy(pathDataNew->path, pathData->path);
@@ -191,7 +220,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	}
 	else
 	{
-		printMessageTsh(STDERR_FILENO, "Erreur lors de la créature du dossier pour cp");
+		perror("tsh: cp: copyFolder: mkdir");
 		return -1;
 	}
 
@@ -210,7 +239,7 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 	struct stat sb;
 	if (stat(path, &sb) != 0)
 	{
-		printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture du fichier");
+		perror("tsh: cp: fileDataNotInTar: stat");
 		return NULL;
 	}
 	printMessageTsh(1, path);
@@ -334,14 +363,20 @@ int cpyDataFileNotInTar(char *path, char *data, struct posix_header *ph)
 {
 	int fd;
 	if ((fd = open(path, O_WRONLY | O_CREAT, 0644)) == -1)
+	{
+		perror("tsh: cp: cpyDataFileNotInTar: open");
 		return -1;
+	}
 
 	int n;
 
 	n = write(fd, data, octalToDecimal(atoi(ph->size)));
 
 	if (n == -1)
+	{
+		perror("tsh: cp: cpyDataFileNotInTar: write");
 		return -1;
+	}
 	return 1;
 }
 
