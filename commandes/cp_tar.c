@@ -80,17 +80,30 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			int z = 0;
 			if (pathLocation->nameInTar[strlen(pathLocation->nameInTar) - 1] != '/')
 				z = 1;
-			char *nameFull = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 1 + z);
-			strcpy(nameFull, pathLocation->nameInTar);
-			if (z)
-				strcat(nameFull, "/");
-			strcat(nameFull, name);
-			printMessageTsh(1, nameFull);
-			printMessageTsh(1, dataToCopy);
-			printMessageTsh(1, "\n");
-			//printMessageTsh(1, pathLocation->path);
-			res = copyFileInTar(dataToCopy, nameFull, pathLocation->path, ph);
-			free(nameFull);
+			char typefile = typeFile(pathLocation->path, pathLocation->nameInTar);
+			if (typefile == '5')
+			{
+				char *nameFull = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 1 + z);
+				strcpy(nameFull, pathLocation->nameInTar);
+				if (z)
+					strcat(nameFull, "/");
+				strcat(nameFull, name);
+				printMessageTsh(1, nameFull);
+				printMessageTsh(1, dataToCopy);
+				printMessageTsh(1, "\n");
+				//printMessageTsh(1, pathLocation->path);
+				res = copyFileInTar(dataToCopy, nameFull, pathLocation->path, ph);
+				free(nameFull);
+			}
+			else if (typefile == '9')
+			{
+				res = copyFileInTar(dataToCopy, pathLocation->nameInTar, pathLocation->path, ph);
+			}
+			else
+			{
+				//todo rm then cp
+				printMessageTsh(STDERR_FILENO, "Le fichier existe déja faire rm pour supprimer");
+			}
 		}
 		else
 		{
