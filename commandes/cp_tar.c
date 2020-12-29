@@ -298,15 +298,24 @@ void remplirHeader(struct posix_header *ph, struct stat sb)
 
 	sprintf(ph->mtime, "%011lo", sb.st_mtime);
 	sprintf(ph->uid, "%07d", sb.st_uid);
+	printf("gid : %d\n",sb.st_gid);
 	sprintf(ph->gid, "%07d", sb.st_gid);
 
+	printMessageTsh(1,"1fterAll");
+
 	struct passwd *pwd;
+	printMessageTsh(1,"Appel uid");
 	pwd = getpwuid(sb.st_uid);
+	printMessageTsh(1,"Fin appel");
 	memcpy(ph->uname, pwd->pw_name, strlen(pwd->pw_name));
 
 	struct group *grp;
+	printMessageTsh(1,"Ivi");
 	grp = getgrgid(sb.st_gid);
+	printMessageTsh(1,"non");
 	memcpy(ph->gname, grp->gr_name, strlen(grp->gr_name));
+
+	printMessageTsh(1,"Osdeded");
 }
 
 /**

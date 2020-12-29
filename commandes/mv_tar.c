@@ -12,7 +12,8 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
                 if (pathLocation->isTarBrowsed) {
                     char c = typeFile(pathLocation->path,pathLocation->nameInTar);
                     if (c == '5') {
-                        //TODO cp and rm
+                        printMessageTsh(STDERR_FILENO,"Le cas des tars imbriqués n'est pas géré");
+                        return -1;
                     }
                     else {
                         printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
@@ -20,7 +21,8 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
                     }
                 }
                 else if (pathLocation->isTarIndicated) {
-                    //TODO tar in tar
+                    printMessageTsh(STDERR_FILENO,"Le cas des tars imbriqués n'est pas géré");
+                    return -1;
                 }
                 else {
                     struct stat *buffer;
@@ -29,7 +31,10 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
                         return -1;
                     }
                     if (S_ISDIR(buffer->st_mode)) {
-                        //TODO cp and rm
+                        if (cpTar(pathSrc,pathLocation,1,pathSrc->name) == -1) {
+                            return -1;
+                        }
+                        return deleteFileInTar(pathSrc->nameInTar,pathSrc->path);
                     }
                     else {
                         printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
@@ -43,11 +48,61 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
             }
         }
         else {
+            if (pathLocation->isTarBrowsed) {
+                char c = typeFile(pathLocation->name,pathLocation->nameInTar);
+                if (c == '5') {
+
+                }
+                else if (c == '9') {
+                    if (isInSameFolder(pathSrc,pathLocation)) {
+                        return renameInTar(pathSrc->path,pathSrc->nameInTar,pathLocation->nameInTar);
+                    }
+                }
+                else {
+                    printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
+                    return -1;
+                }
+            }
+            else if (!pathLocation->isTarIndicated) {
+                struct stat *buffer;
+                if (stat(pathSrc->path,buffer) != 0 || !S_ISDIR(buffer->st_mode)) {
+                    printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
+                    return -1;
+                }
+            }
+            
+            //Si on ne se retrouve pas dans les cas du dessus alors on veut bien déplacer le fichier dans un dossier
+            if (cpTar(pathSrc,pathLocation,0,pathSrc->name) == -1) {
+                return -1;
+            }
+            return deleteFileInTar(pathSrc->nameInTar,pathSrc->path);
 
         }
     }
     else if (pathSrc->isTarIndicated) {
-        //TODO 
+        if (!isEmptyTar(pathSrc->path)) {
+            printMessageTsh(STDERR_FILENO,"Veuillez vérifier que le dossier que vous voulez déplacer est vide");
+            return -1;
+        }
+
+        if (pathLocation->isTarBrowsed) {
+            printMessageTsh(STDERR_FILENO,"Le cas des tars imbriqués n'est pas géré");
+            return -1;
+        }
+        else {
+            struct stat *buffer;
+            if (stat(pathSrc->path,buffer) != 0 || !S_ISDIR(buffer->st_mode)) {
+                printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
+                return -1;
+            }
+            else {
+                if (cpTar(pathSrc,pathLocation,0,pathSrc->name) == -1) {
+                    return -1;
+                }
+                if (remove(pathSrc->path) == 0) return 1;
+                else return 0;
+            }
+        }
     }
     else {
         struct stat *buffer;
@@ -73,7 +128,11 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
             if (pathLocation->isTarBrowsed) {
                 char c = typeFile(pathLocation->path,pathLocation->nameInTar);
                 if (c == '5') {
-                    //TODO rm and cp
+                    if (cpTar(pathSrc,pathLocation,1,pathSrc->name) == -1) {
+                        return -1;
+                    }
+                    if (remove(pathSrc->path) == 0) return 1;
+                    else return 0;
                 }
                 else {
                     printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
@@ -81,43 +140,35 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
                 }
             }
             else if (pathLocation->isTarIndicated) {
-                //TODO rm and cp
-            }
-            else {
-                struct stat *buffer2;
-                if (stat(pathLocation->path,buffer2) != 0) {
-                    printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
+                if (cpTar(pathSrc,pathLocation,1,pathSrc->name) == -1) {
                     return -1;
                 }
-                if (S_ISDIR(buffer2->st_mode)) {
-                    //TODO cp and rm
-                }
-                else {
-                    printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
-                    return -1;
-                }
+                if (remove(pathSrc->path) == 0) return 1;
+                else return 0;
             }
+            //Cas si pathLocation->isTarIndicated == 0 déjà géré
         }
         else {
-            struct stat *buffer2;
-            if (stat(pathLocation->path,buffer2) != 0) {
-                if (isInSameFolder(pathLocation,pathSrc)) {
-                    if (rename(pathSrc->path,pathLocation->path) == 0) {
-                        return 1;
+            if (pathLocation->isTarBrowsed) {
+                char c = typeFile(pathLocation->path,pathLocation->nameInTar);
+                if (c == '5') {
+                    if (cpTar(pathSrc,pathLocation,1,pathSrc->name) == -1) {
+                        return -1;
                     }
-                    else return -1;
+                    if (remove(pathSrc->path) == 0) return 1;
+                    else return 0;
                 }
                 else {
                     printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
                     return -1;
                 }
             }
-            if (S_ISDIR(buffer2->st_mode)) {
-                //TODO rm and cp
-            }
-            else {
-                printMessageTsh(STDERR_FILENO,"Erreur avec les chemins spécifiés, veuillez vérifier");
-                return -1;
+            else if (pathLocation->isTarIndicated) {
+                if (cpTar(pathSrc,pathLocation,1,pathSrc->name) == -1) {
+                    return -1;
+                }
+                if (remove(pathSrc->path) == 0) return 1;
+                else return 0;
             }
         }
     }
