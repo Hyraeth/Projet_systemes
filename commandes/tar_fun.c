@@ -143,8 +143,7 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 		{
 			if ((path_in_tar = realloc(path_in_tar, strlen(path_in_tar) + 2)) == NULL)
 				perror("tsh: realloc mkdirInTar");
-			path_in_tar[strlen(path_in_tar)] = '/';
-			path_in_tar[strlen(path_in_tar) + 1] = '\0';
+			strcat(path_in_tar,"/");
 		}
 
 		int res = copyFileInTar(data, path_in_tar, path_tar, ph);
@@ -153,14 +152,13 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 	}
 	else
 	{
+		printMessageTsh(1,path_in_tar);
 		if (path_in_tar[strlen(path_in_tar) - 1] != '/')
 		{
 			if ((path_in_tar = realloc(path_in_tar, strlen(path_in_tar) + 2)) == NULL)
 				perror("tsh: realloc mkdirInTar");
-			path_in_tar[strlen(path_in_tar)] = '/';
-			path_in_tar[strlen(path_in_tar) + 1] = '\0';
+			strcat(path_in_tar,"/");
 		}
-		//printMessageTsh(1, path_in_tar);
 		int res = copyFileInTar(data, path_in_tar, path_tar, ph);
 		free(data);
 		return res;
