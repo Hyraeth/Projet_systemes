@@ -393,10 +393,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 				free(pathDataNew);
 				i++;
 			}
-		}	 /* //todo
-		else if (pathData->isTarIndicated) 
-		{
-		}*/
+		}
 		else //if what we want to copy is not inside a tar
 		{
 			DIR *dir = opendir(pathData->path);

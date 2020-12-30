@@ -755,6 +755,14 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             }
             else
             {
+                if (!subFolderExistInTar(true_err->path, true_err->nameInTar))
+                {
+                    write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+                    write(STDERR_FILENO, cmd->err, strlen(cmd->err));
+                    write(STDERR_FILENO, ": No such file or directory\n", strlen(": No such file or directory\n"));
+                    freeStruct(true_err);
+                    return -1;
+                }
                 if ((fderr = open("/tmp/tsh_tmp_err", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) == -1)
                 { //open a blank tmp file
                     perror("tsh: open");
@@ -838,6 +846,16 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                 }
                 else
                 {
+                    if (!subFolderExistInTar(true_output->path, true_output->nameInTar))
+                    {
+                        dup2(tmperr, STDERR_FILENO);
+                        close(tmperr);
+                        write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+                        write(STDERR_FILENO, cmd->output, strlen(cmd->output));
+                        write(STDERR_FILENO, ": No such file or directory\n", strlen(": No such file or directory\n"));
+                        freeStruct(true_output);
+                        return -1;
+                    }
                     if ((fdout = open("/tmp/tsh_tmp_out", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) == -1)
                     {
                         perror("tsh: open");
@@ -959,6 +977,16 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                     }
                     else
                     {
+                        if (!subFolderExistInTar(true_output->path, true_output->nameInTar))
+                        {
+                            dup2(tmperr, STDERR_FILENO);
+                            close(tmperr);
+                            write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+                            write(STDERR_FILENO, cmd->output, strlen(cmd->output));
+                            write(STDERR_FILENO, ": No such file or directory\n", strlen(": No such file or directory\n"));
+                            freeStruct(true_output);
+                            return -1;
+                        }
                         if ((fdout = open("/tmp/tsh_tmp_out", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) == -1)
                         {
                             perror("tsh: open");
@@ -1331,7 +1359,7 @@ int tsh_cat(SimpleCommand_t *cmd)
                 //if we are going in a tar
                 if (path->isTarIndicated)
                 {
-                    cat(path->path,path->nameInTar);
+                    cat(path->path, path->nameInTar);
                 }
                 else
                 {
@@ -1595,9 +1623,7 @@ int tsh_cp(SimpleCommand_t *cmd)
                 }
             }
             else if (
-            (pathSrc->isTarIndicated && !pathDest->isTarIndicated && !doesTarExist(pathDest->path))
-            || pathSrc->isTarBrowsed 
-            || pathDest->isTarIndicated) //if the file/folder we want to copy is a tar or go through a tar
+                (pathSrc->isTarIndicated && !pathDest->isTarIndicated && !doesTarExist(pathDest->path)) || pathSrc->isTarBrowsed || pathDest->isTarIndicated) //if the file/folder we want to copy is a tar or go through a tar
             {
                 if (cpTar(pathSrc, pathDest, opt, pathSrc->name) == -1)
                 {
@@ -1902,13 +1928,14 @@ pathStruct *makeStructFromPath(char *path)
 {
     pathStruct *pathRes = malloc(sizeof(pathStruct));
 
-    if (strlen(path) == 0) {
+    if (strlen(path) == 0)
+    {
         pathRes->isTarBrowsed = 0;
         pathRes->isTarIndicated = 0;
         pathRes->nameInTar = NULL;
         pathRes->name = NULL;
         pathRes->path = malloc(2);
-        strcpy(pathRes->path,"/");
+        strcpy(pathRes->path, "/");
         return pathRes;
     }
 
@@ -1921,10 +1948,12 @@ pathStruct *makeStructFromPath(char *path)
     {
         pathRes->isTarBrowsed = 0;
         pathRes->isTarIndicated = 0;
-        if (path3D[0][0] != NULL) pathRes->path = array_to_path(path3D[0], 1);
-        else {
+        if (path3D[0][0] != NULL)
+            pathRes->path = array_to_path(path3D[0], 1);
+        else
+        {
             pathRes->path = malloc(2);
-            strcpy(pathRes->path,"/");
+            strcpy(pathRes->path, "/");
         }
         pathRes->nameInTar = NULL;
     }
