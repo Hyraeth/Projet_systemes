@@ -383,7 +383,7 @@ int ls_tar(char *op, char *path, int fd)
     perror("erreur d'ouverture du fichier");
     return -1;
   }
-  if (typeFileFd(fd, path) == '9')
+  if (strlen(path) != 0 && typeFileFd(fd, path) == '9')
   {
     errno = ENOENT;
     perror("tsh: ls");
