@@ -1428,7 +1428,8 @@ int tsh_ls(SimpleCommand_t *cmd)
             //if the ith argument of the command is not an option
             if (!is_an_option(cmd->args[i]))
             {
-
+                char pathname[strlen(cmd->args[i]) + 1];
+                strncpy(pathname, cmd->args[i], strlen(cmd->args[i]) + 1);
                 //get the absolute path of the path given in form of array of string
                 char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd());
                 if (abs_path_array == NULL)
@@ -1440,7 +1441,7 @@ int tsh_ls(SimpleCommand_t *cmd)
                 //if we are going in a tar
                 if (abs_path_split[1] != NULL)
                 {
-                    write(STDOUT_FILENO, cmd->args[i], strlen(cmd->args[i])); //write the name of the path to ls
+                    write(STDOUT_FILENO, pathname, strlen(pathname)); //write the name of the path to ls
                     write(STDOUT_FILENO, ":\n", strlen(":\n"));
                     //turn the array of string in the form of a string
                     char *path_to_open = array_to_path(abs_path_split[0], 1);

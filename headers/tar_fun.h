@@ -23,6 +23,7 @@ int isTar(char *file);
 int copyFileInTar(char *dataToCopy, char *name, char *path_to_tar, struct posix_header *ph);
 char *fileDataInTar(char *name_file, char *path_tar, struct posix_header *ph);
 int isTarFolder(char *folder, char **path);
+char typeFileFd(int src, char *pathInTar);
 char typeFile(char *path_tar, char *pathInTar);
 int deleteFileInTar(char *name_file, char *path_tar);
 int rmWithOptionTar(char *path_to_tar, char *path_in_tar);

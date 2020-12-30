@@ -324,8 +324,10 @@ int isEmptyDirTar(char *path_to_tar, char *path_in_tar)
 char **findSubFiles(char *path_tar, char *path_in_tar, int depth)
 {
 	char *toVerify;
-	if (path_in_tar != NULL) toVerify = path_in_tar;
-	else {
+	if (path_in_tar != NULL)
+		toVerify = path_in_tar;
+	else
+	{
 		toVerify = "\0";
 	}
 	int src = open(path_tar, O_RDONLY);
@@ -467,10 +469,15 @@ int isTarFolder(char *folder, char **path)
 char typeFile(char *path_tar, char *pathInTar)
 {
 	int src = open(path_tar, O_RDONLY);
+	return typeFileFd(src, pathInTar);
+}
+
+char typeFileFd(int src, char *pathInTar)
+{
 	if (src == -1)
 	{
 		perror("tsh: cp: typeFile");
-		return 9;
+		return '9';
 	}
 	char bloc[BLOCKSIZE];
 	read(src, bloc, 512);
