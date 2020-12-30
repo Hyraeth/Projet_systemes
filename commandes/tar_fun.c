@@ -147,6 +147,7 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 		}
 
 		int res = copyFileInTar(data, path_in_tar, path_tar, ph);
+		free(ph);
 		free(data);
 		return res;
 	}
@@ -234,8 +235,7 @@ int deleteFileInTar(char *name_file, char *path_tar)
 
 		for (int i = 0; i < sizeToDelete; i++)
 		{
-			write(src, '\0', 1);
-			lseek(src, 1, SEEK_CUR);
+			write(src, "\0", 1);
 		}
 
 		int sizeToCopy = sizeFullTar - emplacement - sizeToDelete;

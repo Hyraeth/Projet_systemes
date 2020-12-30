@@ -72,6 +72,7 @@ int mkdirTar(pathStruct *pathSrc)
         errno = ENOTDIR;
         perror("tsh: mkdir");
     }
+    free(path);
     freeArr2D(arrInTarName);
     free(copyNameInTar);
 
