@@ -293,6 +293,20 @@ void print_header_name (char *op, struct posix_header * header, char * path, int
         print_name_file(header,path);
     }
   }
+  else if (strcmpTar(path,header->name) && header->typeflag != '5') {
+    char *newPath = "\0";
+    if(op == NULL)
+    {
+      print_name_file(header,newPath);
+    }
+    else if (strcmp(op,"-l") == 0)
+    {
+      print_ls_l(header,newPath,fd);
+      print_name_file(header,newPath);
+    }
+    else
+      print_name_file(header,path);
+  }
 }
 
 //fonction ls with option -l or not
