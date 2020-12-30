@@ -47,8 +47,11 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
                 }
                 else if (pathLocation->isTarIndicated)
                 {
-                    printMessageTsh(STDERR_FILENO, "Le cas des tars imbriqués n'est pas géré");
-                    return -1;
+                    if (cpTar(pathSrc, pathLocation, 1, pathSrc->name) == -1)
+                    {
+                        return -1;
+                    }
+                    return deleteFileInTar(pathSrc->nameInTar, pathSrc->path);
                 }
                 else
                 {
