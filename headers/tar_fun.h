@@ -31,7 +31,6 @@ char *isSubFile(char *s, char *toVerify, int depth);
 char **findSubFiles(char *path_tar, char *path_in_tar, int depth);
 int strcmpTar(char *path_file, char *path_in_tar);
 int octalToDecimal(long int octal);
-long int decimalToOctal(long int decimalnum);
 int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph);
 int makeEmptyTar(char *path);
 int isEmptyTar(char *path);

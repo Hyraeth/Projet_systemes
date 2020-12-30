@@ -111,6 +111,14 @@ int copyFileInTar(char *dataToCopy, char *name, char *path_to_tar, struct posix_
 	return 1;
 }
 
+/**
+ * @brief makes a folder in a tar
+ * 
+ * @param path_tar : path to the tar
+ * @param path_in_tar : path to the folder we will create in the tar
+ * @param ph : posix_header filled with data of the folder we copy, or equals to NULL if we create a new folder
+ * @return int : 1 if the folder was created, else 0
+ */
 int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 {
 	char *data = malloc(1);
@@ -165,6 +173,12 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 	}
 }
 
+/**
+ * @brief make en empty tar
+ * 
+ * @param path : path to the tar
+ * @return int : 1 if the tar was made, -1 if not
+ */
 int makeEmptyTar(char *path)
 {
 	int fd_dest;
@@ -232,10 +246,12 @@ int deleteFileInTar(char *name_file, char *path_tar)
 	{
 		int sizeFullTar = lseek(src, 0, SEEK_END);
 		lseek(src, emplacement, SEEK_SET);
+		//Get to the location in the tar where the file's data are
 
 		for (int i = 0; i < sizeToDelete; i++)
 		{
 			write(src, "\0", 1);
+			//rewrite the file's data
 		}
 
 		int sizeToCopy = sizeFullTar - emplacement - sizeToDelete;
@@ -244,12 +260,13 @@ int deleteFileInTar(char *name_file, char *path_tar)
 		if (read(src, dataToMove, sizeToCopy) == -1)
 		{
 			perror("tsh: rm");
-			//printMessageTsh(STDERR_FILENO, "Erreur lors de la suppression d'un fichier dans le tar");
 			return -1;
 		}
 		lseek(src, emplacement, SEEK_SET);
 		write(src, dataToMove, sizeToCopy);
+		//Move the data located beyond the file's data 
 		ftruncate(src, emplacement + sizeToCopy);
+		//truncate the file to remove the number of bytes previously used by the removed file
 
 		free(dataToMove);
 		close(src);
@@ -261,6 +278,13 @@ int deleteFileInTar(char *name_file, char *path_tar)
 	return -1;
 }
 
+/**
+ * @brief delete a folder and all the files and folders within it
+ * 
+ * @param path_to_tar : path of the tar
+ * @param path_in_tar : path of the folder in the tar
+ * @return int : 1 if the operation was successful, else -1
+ */
 int rmWithOptionTar(char *path_to_tar, char *path_in_tar)
 {
 	char **subFiles = findSubFiles(path_to_tar, path_in_tar, 0);
@@ -294,6 +318,13 @@ int rmWithOptionTar(char *path_to_tar, char *path_in_tar)
 	return 1;
 }
 
+/**
+ * @brief checks if a folder is empty in a tar
+ * 
+ * @param path_to_tar : path to the tar
+ * @param path_in_tar : path to the folder in the tar
+ * @return int : positive number if it is empty, else 0
+ */
 int isEmptyDirTar(char *path_to_tar, char *path_in_tar)
 {
 	char **subFiles = findSubFiles(path_to_tar, path_in_tar, 0);
@@ -396,6 +427,14 @@ char **findSubFiles(char *path_tar, char *path_in_tar, int depth)
 	return res;
 }
 
+/**
+ * @brief check if a file is a contained in the folder specified in a tar
+ * 
+ * @param s : path to the folder
+ * @param toVerify : path to the file we want to check
+ * @param depth : if not equal to 0, only check the direct subfiles and subfolders, else check for any files or folders directly or not direcly contained in folder specified with s
+ * @return char* : name of the file if it is a subfile, NULL if not 
+ */
 char *isSubFile(char *s, char *toVerify, int depth)
 {
 	if (strlen(toVerify) <= strlen(s))
@@ -476,6 +515,13 @@ char typeFile(char *path_tar, char *pathInTar)
 	return typeFileFd(src, pathInTar);
 }
 
+/**
+ * @brief get the type of a file in a tar
+ * 
+ * @param src : file descriptor for the tar
+ * @param pathInTar : path to the file in the tar
+ * @return char : typeflag in the posix_header corresponding to the file if it exists else '9' if the file doesn't exist
+ */
 char typeFileFd(int src, char *pathInTar)
 {
 	if (src == -1)
@@ -511,6 +557,13 @@ char typeFileFd(int src, char *pathInTar)
 	return '9';
 }
 
+/**
+ * @brief check if two path refer to the same file in a tar
+ * 
+ * @param path_file : path of the file we have
+ * @param path_in_tar : path of the file we want to verify
+ * @return int : positive number if they refer to the same file, 0 if not
+ */
 int strcmpTar(char *path_file, char *path_in_tar)
 {
 	int lenPath1 = strlen(path_file);
@@ -529,6 +582,13 @@ int strcmpTar(char *path_file, char *path_in_tar)
 	return (lenPath1 == lenPath2 || path_in_tar[i] == '/');
 }
 
+
+/**
+ * @brief converts an octal number to a decimal number
+ * 
+ * @param octal : number to be converted
+ * @return int : the number converted
+ */
 int octalToDecimal(long int octal)
 {
 	long int decimal = 0;
@@ -545,19 +605,12 @@ int octalToDecimal(long int octal)
 	return decimal;
 }
 
-long int decimalToOctal(long int decimalnum)
-{
-	long int octalnum = 0, temp = 1;
-
-	while (decimalnum != 0)
-	{
-		octalnum = octalnum + (decimalnum % 8) * temp;
-		decimalnum = decimalnum / 8;
-		temp = temp * 10;
-	}
-	return octalnum;
-}
-
+/**
+ * @brief checks if a tar is empty or not
+ * 
+ * @param path : path to the tar
+ * @return int : a positive number if the tar is empty, 0 if not
+ */
 int isEmptyTar(char *path)
 {
 	int src = open(path, O_RDONLY);
@@ -570,12 +623,27 @@ int isEmptyTar(char *path)
 	return (bloc[0] == 0);
 }
 
+/**
+ * @brief checks if a tar exist (more generally a file)
+ * 
+ * @param path : path to the tar
+ * @return int : a positive number if it exists else 0
+ */
 int doesTarExist(char *path)
 {
 	struct stat buffer;
 	return (stat(path, &buffer) == 0);
 }
 
+
+/**
+ * @brief rename a file in a tar
+ * 
+ * @param path_to_tar path to the tar where is the file
+ * @param oldName : current name of the file
+ * @param newName : new name we will give to the file
+ * @return int : 1 if the file was renamed, -1 if not
+ */
 int renameInTar(char *path_to_tar, char *oldName, char *newName)
 {
 	int src = open(path_to_tar, O_RDONLY);
@@ -615,6 +683,12 @@ int renameInTar(char *path_to_tar, char *oldName, char *newName)
 	return -1;
 }
 
+/**
+ * @brief returns a int to know whether a path indicated by pathSrc is a folder or not
+ * 
+ * @param pathSrc : path we want to investigate
+ * @return int : 1 if it is a folder, 0 if not
+ */
 int isADirectory(pathStruct *pathSrc)
 {
 	struct stat buffer;
