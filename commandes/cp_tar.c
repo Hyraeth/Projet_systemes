@@ -699,8 +699,6 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int fold
 
 /**
  * @brief Free a structure pathStruct
- * 
- * @param path 
  */
 void freeStruct(pathStruct *pathToFree)
 {
@@ -713,6 +711,12 @@ void freeStruct(pathStruct *pathToFree)
 	free(pathToFree);
 }
 
+/**
+ * @brief checks if subfolder exists for a path with no tar indicated or finishing with a tar
+ * 
+ * @param path : given path
+ * @return int : 1 if the subfolder exists, 0 if not
+ */
 int subFolderExistNotInTar(char *path)
 {
 	int nbSlash = 0;
@@ -746,6 +750,13 @@ int subFolderExistNotInTar(char *path)
 	return 0;
 }
 
+/**
+ * @brief checks if the subfolder of a given file exists in a tar
+ * 
+ * @param path_to_tar : path to the tar
+ * @param path_in_tar : path to the given file in the tar
+ * @return int : 1 if it exists, 0 if not
+ */
 int subFolderExistInTar(char *path_to_tar, char *path_in_tar)
 {
 	int nbSlash = 0;
