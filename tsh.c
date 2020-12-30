@@ -978,18 +978,18 @@ int cd_tar(char *path)
     int pwdlen = PWDLEN;
     char *pwdtmp;
     if ((pwdtmp = malloc(pwdlen)) == NULL)
-        perror("tsh");
+        perror("tsh: cd malloc");
     while (getcwd(pwdtmp, pwdlen) == NULL)
     {
         pwdlen *= 2;
         free(pwdtmp);
         if ((pwdtmp = malloc(pwdlen)) == NULL)
-            perror("tsh");
+            perror("tsh: cd malloc");
     }
     int tmpDepth = tarDepth;
     char **tmpTarDir;
     if ((tmpTarDir = malloc((tarDepth + 2) * sizeof(char *))) == NULL)
-        perror("tsh");
+        perror("tsh: cd malloc");
     for (size_t i = 0; i < tarDepth + 1; i++)
     {
         tmpTarDir[i] = malloc(strlen(tarDirArray[i]));
@@ -1005,7 +1005,7 @@ int cd_tar(char *path)
     {
         if (chdir("/") != 0)
         {
-            perror("tsh: cd");
+            perror("tsh: cd chdir");
         }
     }
     //if the parth start with a ~
@@ -1014,13 +1014,13 @@ int cd_tar(char *path)
         char *home = getenv("HOME");
         if (chdir(home) != 0)
         {
-            perror("tsh: cd");
+            perror("tsh: cd chdir");
         }
         i++;
     }
     char *chemin;
     if ((chemin = malloc(strlen(path) + 1)) == NULL)
-        perror("tsh");
+        perror("tsh: cd malloc");
     memcpy(chemin, path, strlen(path) + 1);
     char **arrayDir = parse_path(chemin); //parsing th path into array of folder/file name
     while (arrayDir[i] != NULL)

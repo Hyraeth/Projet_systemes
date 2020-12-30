@@ -22,7 +22,10 @@ char *fileDataInTar(char *name_file, char *path_tar, struct posix_header *ph)
 {
 	int src = open(path_tar, O_RDONLY);
 	if (src == -1)
-		perror("tsh");
+	{
+		perror("tsh: cp: fileDataInTar");
+		return NULL;
+	}
 	char name[100];
 	char size[12];
 
@@ -143,12 +146,21 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 			path_in_tar[strlen(path_in_tar)] = '/';
 			path_in_tar[strlen(path_in_tar) + 1] = '\0';
 		}
+
 		int res = copyFileInTar(data, path_in_tar, path_tar, ph);
 		free(data);
 		return res;
 	}
 	else
 	{
+		if (path_in_tar[strlen(path_in_tar) - 1] != '/')
+		{
+			if ((path_in_tar = realloc(path_in_tar, strlen(path_in_tar) + 2)) == NULL)
+				perror("tsh: realloc mkdirInTar");
+			path_in_tar[strlen(path_in_tar)] = '/';
+			path_in_tar[strlen(path_in_tar) + 1] = '\0';
+		}
+		printMessageTsh(1, path_in_tar);
 		int res = copyFileInTar(data, path_in_tar, path_tar, ph);
 		free(data);
 		return res;
@@ -455,7 +467,10 @@ char typeFile(char *path_tar, char *pathInTar)
 {
 	int src = open(path_tar, O_RDONLY);
 	if (src == -1)
-		perror("tsh");
+	{
+		perror("tsh: cp: typeFile");
+		return 9;
+	}
 	char bloc[BLOCKSIZE];
 	read(src, bloc, 512);
 	char name[100];

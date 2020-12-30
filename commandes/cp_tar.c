@@ -17,8 +17,14 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 
 	if (pathData->isTarBrowsed) //if we want to copy somthing in a tar
 	{
+		if (!doesTarExist(pathData->path))
+		{
+			perror("tsh: cp");
+			return -1;
+		}
 		dataToCopy = fileDataInTar(pathData->nameInTar, pathData->path, ph); //copy into a buffer the content of what we want to copy
-		if (typeFile(pathData->path, pathData->nameInTar) == '5')			 //if what we want to copy is a folder
+
+		if (typeFile(pathData->path, pathData->nameInTar) == '5') //if what we want to copy is a folder
 		{
 			if (!op) //if the option -r is not set
 			{
@@ -75,6 +81,10 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 				free(ph);
 				return res;
 			}
+		}
+		if (isTar(pathData->path))
+		{
+			//todo if have time
 		}
 	}
 
@@ -151,18 +161,17 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
  */
 int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struct posix_header *ph)
 {
-	int res;
+	int res, status;
 	mode_t modeDir;
 	int folder_exist = 1;
-	pid_t cpid;
-
+	pid_t cpid, wpid;
 	if (!pathLocation->isTarIndicated) //if the copy destination is not in a tar
 	{
 		struct stat sb;
 		if (stat(pathLocation->path, &sb) != 0) //if the path to the copy destination doesnt exist
 		{
 			if (!subFolderExistNotInTar(pathLocation->path))
-			{ //if there are no subfolder
+			{ //if there are no subfolder to where we want to cp
 				res = -1;
 			}
 			else
@@ -171,13 +180,13 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 			} //create the directory at the copy location
 			folder_exist = 0;
 		}
-		else if (S_ISDIR(sb.st_mode))
+		else if (S_ISDIR(sb.st_mode)) //if the cp destination is a folder
 		{
-			char *pathLocationDir = concatPathName(pathLocation->path, name);
+			char *pathLocationDir = concatPathName(pathLocation->path, name); //path to the folder to create
 			res = mkdir(pathLocationDir, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
 			if (res == -1 && errno == EEXIST) //if folder exist
 			{
-				cpid = fork();
+				cpid = fork(); //create a child process to delete the folder
 				if (cpid == -1)
 				{
 					perror("tsh: cp");
@@ -185,31 +194,39 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 				}
 				if (cpid == 0)
 				{
-					if (execlp("rm", "rm", "-r", pathLocationDir, NULL) == -1)
+					if (execlp("rm", "rm", "-r", pathLocationDir, NULL) == -1) //delete the folder
 						perror("tsh: call_existing_command execvp failed");
 					exit(EXIT_FAILURE);
 				}
-				wait(&cpid);
-				res = mkdir(pathLocationDir, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
+				do //wait for child to end
+				{
+					wpid = waitpid(cpid, &status, WUNTRACED);
+				} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+				res = mkdir(pathLocationDir, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH); //create the folder after the child is dead
 			}
 			free(pathLocationDir);
 		}
-		else
+		else //if the copy destination is not a folder
 		{
 			printMessageTsh(STDERR_FILENO, "tsh: cp: Cannot overwrite non-directory with directory");
 			return -1;
 		}
 	}
-	else if (pathLocation->isTarBrowsed)
+	else if (pathLocation->isTarBrowsed) //if the copy destination is inside a tar folder (that may or may not need to be created)
 	{
 		char type = typeFile(pathLocation->path, pathLocation->nameInTar);
 		int z = 0;
 		if (type == '9')
 		{
 			if (!subFolderExistInTar(pathLocation->path, pathLocation->nameInTar))
+			{
 				res = -1;
+			}
 			else
+			{
+				printMessageTsh(1, pathLocation->nameInTar);
 				res = mkdirInTar(pathLocation->path, pathLocation->nameInTar, ph);
+			}
 			folder_exist = 0;
 		}
 		else if (type == '5')
@@ -219,6 +236,17 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 			if (nameDirInTar[strlen(nameDirInTar) - 1] != '/')
 				strcat(nameDirInTar, "/");
 			strcat(nameDirInTar, name);
+			char typefile = typeFile(pathLocation->path, nameDirInTar);
+			if (typefile != '5' && typefile != '9') //if the folder we want to copy already exist in the tar and isn't a folder
+			{
+				printMessageTsh(1, "tsh: cp: Cannot overwrite non-directory with directory");
+				free(nameDirInTar);
+				return -1;
+			}
+			if (typefile == '5') //if folder of name nameDir exist at the root of the tar, delete it
+			{
+				rmWithOptionTar(pathLocation->path, nameDirInTar);
+			}
 			if (name[strlen(name) - 1] != '/')
 				strcat(nameDirInTar, "/");
 			res = mkdirInTar(pathLocation->path, nameDirInTar, ph);
@@ -230,26 +258,32 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 			return -1;
 		}
 	}
-	else
+	else //if the copy destination is inside a tar, at the root (ie not is a folder or no rename)
 	{
-		if (doesTarExist(pathLocation->path))
+		if (doesTarExist(pathLocation->path)) //if the tar which is the copy dest exist
 		{
 			char *nameDir = malloc(strlen(name) + 2);
 			strcpy(nameDir, name);
 			if (name[strlen(name) - 1] != '/')
 				strcat(nameDir, "/");
+			char typefile = typeFile(pathLocation->path, nameDir);
+			if (typefile != '5' && typefile != '9') //if the folder we want to copy already exist in the tar and isn't a folder
+			{
+				printMessageTsh(1, "tsh: cp: Cannot overwrite non-directory with directory");
+				free(nameDir);
+				return -1;
+			}
+			if (typefile == '5') //if folder of name nameDir exist at the root of the tar, delete it
+			{
+				rmWithOptionTar(pathLocation->path, name);
+			}
 			res = mkdirInTar(pathLocation->path, nameDir, ph);
 			free(nameDir);
 		}
-		else
+		else //if there is no tar at the destination (ie dest folder is just a tar but it doesn't exist)
 		{
-			if (!subFolderExistNotInTar(pathLocation->path))
-				res = -1;
-			else
-			{
-
-				folder_exist = 0;
-			}
+			res = makeEmptyTar(pathLocation->path);
+			folder_exist = 0;
 		}
 	}
 
@@ -666,10 +700,11 @@ int subFolderExistInTar(char *path_to_tar, char *path_in_tar)
 		if (path_in_tar[i] == '/')
 		{
 			index++;
-			if (index = nbSlash)
+			if (index == nbSlash)
 			{
-				char verifyExist[i];
-				strncpy(verifyExist, path_in_tar, i);
+				char verifyExist[i + 1];
+				strncpy(verifyExist, path_in_tar, i + 1);
+				verifyExist[i] = '\0';
 
 				if (typeFile(path_to_tar, verifyExist) == '5')
 					return 1;
