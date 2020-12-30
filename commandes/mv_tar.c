@@ -154,7 +154,6 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
     }
     else
     {
-        printMessageTsh(1, "yes");
         struct stat buffer;
         if (stat(pathSrc->path, &buffer) != 0)
         {
@@ -163,9 +162,13 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
         }
         if (S_ISDIR(buffer.st_mode))
         {
-            DIR *dir = opendir(pathLocation->path);
+            DIR *dir;
+            printMessageTsh(1, pathLocation->path);
+            if ((dir = opendir(pathSrc->path)) == NULL)
+            {
+                perror("tsh: mv");
+            }
             struct dirent *dirent;
-            printMessageTsh(1, "yes2");
             while ((dirent = readdir(dir)) != NULL)
             {
                 if (strcmp(".", dirent->d_name) != 0 && strcmp("..", dirent->d_name) != 0)
@@ -176,7 +179,6 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
                 }
             }
             closedir(dir);
-            printMessageTsh(1, "yes3");
             if (pathLocation->isTarBrowsed)
             {
                 char c = typeFile(pathLocation->path, pathLocation->nameInTar);
@@ -199,7 +201,6 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
             }
             else if (pathLocation->isTarIndicated)
             {
-                printMessageTsh(1, "yes4");
                 if (cpTar(pathSrc, pathLocation, 1, pathSrc->name) == -1)
                 {
                     return -1;
