@@ -1594,7 +1594,10 @@ int tsh_cp(SimpleCommand_t *cmd)
                     free(args);
                 }
             }
-            else if (pathSrc->isTarIndicated || pathDest->isTarIndicated) //if the file/folder we want to copy is a tar or go through a tar
+            else if (
+            (pathSrc->isTarIndicated && !pathDest->isTarIndicated && !doesTarExist(pathDest->path))
+            || pathSrc->isTarBrowsed 
+            || pathDest->isTarIndicated) //if the file/folder we want to copy is a tar or go through a tar
             {
                 if (cpTar(pathSrc, pathDest, opt, pathSrc->name) == -1)
                 {
@@ -1737,13 +1740,13 @@ int tsh_mkdir(SimpleCommand_t *cmd)
                 char **args = malloc((cmd->nb_options + 3) * sizeof(char *));
                 args[0] = malloc(strlen(cmd->args[0]) + 1);
                 memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
-                for (size_t i = 0; i < cmd->nb_options; i++)
+                for (size_t j = 0; j < cmd->nb_options; j++)
                 {
-                    args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
-                    memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                    args[j + 1] = malloc(strlen(cmd->options[j]) + 1);
+                    memcpy(args[j + 1], cmd->options[j], strlen(cmd->options[j]) + 1);
                 }
-                args[cmd->nb_options + 1] = malloc(strlen(pathSrc->path) + 1);
-                memcpy(args[cmd->nb_options + 1], pathSrc->path, strlen(pathSrc->path) + 1);
+                args[cmd->nb_options + 1] = malloc(strlen(cmd->args[i]) + 1);
+                memcpy(args[cmd->nb_options + 1], cmd->args[i], strlen(cmd->args[i]) + 1);
                 args[cmd->nb_options + 2] = NULL;
 
                 call_existing_command(args);
@@ -1897,18 +1900,32 @@ int tsh_mv(SimpleCommand_t *cmd)
  */
 pathStruct *makeStructFromPath(char *path)
 {
+    pathStruct *pathRes = malloc(sizeof(pathStruct));
+
+    if (strlen(path) == 0) {
+        pathRes->isTarBrowsed = 0;
+        pathRes->isTarIndicated = 0;
+        pathRes->nameInTar = NULL;
+        pathRes->name = NULL;
+        pathRes->path = malloc(2);
+        strcpy(pathRes->path,"/");
+        return pathRes;
+    }
+
     char *pwd = get_pwd();
     char **pathToArr = parsePathAbsolute(path, pwd);
     free(pwd);
     char ***path3D = path_to_tar_file_path_new(pathToArr);
 
-    pathStruct *pathRes = malloc(sizeof(pathStruct));
-
     if (path3D[1] == NULL)
     {
         pathRes->isTarBrowsed = 0;
         pathRes->isTarIndicated = 0;
-        pathRes->path = array_to_path(path3D[0], 1);
+        if (path3D[0][0] == NULL) pathRes->path = array_to_path(path3D[0], 1);
+        else {
+            pathRes->path = malloc(2);
+            strcpy(pathRes->path,"/");
+        }
         pathRes->nameInTar = NULL;
     }
     else

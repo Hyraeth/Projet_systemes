@@ -60,6 +60,37 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			}
 		}
 	}
+	else if (pathData->isTarIndicated) {
+		if (!doesTarExist(pathData->path))
+		{
+			perror("tsh: cp");
+			free(ph);
+			return -1;
+		}
+		if (!op) //if -r has not been set
+		{
+			printMessageTsh(STDERR_FILENO, "Vous ne pouvez copier des dossiers qu'en indicant l'option -r");
+			free(ph);
+			return -1;
+		}
+		if (pathLocation->isTarIndicated) {
+			char *nameWithoutTar = malloc(strlen(pathData->name) - 3);
+			strncpy(nameWithoutTar,pathData->name,strlen(pathData->name) - 4);
+			nameWithoutTar[strlen(pathData->name) - 4] = '\0';
+			ph->typeflag = '5';
+			res = copyFolder(pathData, pathLocation, nameWithoutTar, ph); //copy folder
+			free(ph);
+			free(nameWithoutTar);
+			return res;
+		}
+		else {
+			res = copyFolder(pathData, pathLocation, name, ph); //copy folder
+			if (dataToCopy != NULL)
+				free(dataToCopy);
+			free(ph);
+			return res;
+		}
+	}
 	else //if what we want to copy is not in a tar
 	{
 		dataToCopy = fileDataNotInTar(pathData->path, ph); //copy into a buffer what we want to copy
@@ -72,7 +103,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			free(ph);
 			return -1;
 		}
-		if (S_ISDIR(sb.st_mode) || pathData->isTarIndicated) //if what we want to copy is a folder
+		if (S_ISDIR(sb.st_mode)) //if what we want to copy is a folder
 		{
 			if (!op) //if -r has not been set
 			{
@@ -90,10 +121,6 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 				free(ph);
 				return res;
 			}
-		}
-		if (isTar(pathData->path))
-		{
-			//todo if have time
 		}
 	}
 
@@ -121,6 +148,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 				if (z)
 					strcat(nameFull, "/");
 				strcat(nameFull, name);
+				printMessageTsh(1,nameFull);
 
 				res = copyFileInTar(dataToCopy, nameFull, pathLocation->path, ph);
 				free(nameFull);
@@ -331,10 +359,18 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 				pathStruct *pathDataNew = malloc(sizeof(pathStruct));
 				pathDataNew->isTarBrowsed = 1;
 				pathDataNew->isTarIndicated = 1;
-				pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 1);
 
-				strcpy(pathDataNew->nameInTar, pathData->nameInTar);
-				strcat(pathDataNew->nameInTar, nameSubFiles[i]);
+				if (pathDataNew->nameInTar !=NULL)  {
+					pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 1);
+					strcpy(pathDataNew->nameInTar, pathData->nameInTar);
+					strcat(pathDataNew->nameInTar, nameSubFiles[i]);
+				}
+				else {
+					pathDataNew->nameInTar = malloc(strlen(nameSubFiles[i]) + 1);
+					strcpy(pathDataNew->nameInTar,nameSubFiles[i]);
+				}
+
+				printf("depuis : %s dans %s\n",pathDataNew->nameInTar,pathLocationNew->nameInTar);
 
 				pathDataNew->path = malloc(strlen(pathData->path) + 1);
 				strcpy(pathDataNew->path, pathData->path);
