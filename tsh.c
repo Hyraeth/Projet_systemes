@@ -1902,9 +1902,6 @@ pathStruct *makeStructFromPath(char *path)
 {
     pathStruct *pathRes = malloc(sizeof(pathStruct));
 
-    printMessageTsh(1,"Struct");
-    printMessageTsh(1,path);
-
     if (strlen(path) == 0) {
         pathRes->isTarBrowsed = 0;
         pathRes->isTarIndicated = 0;
