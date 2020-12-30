@@ -20,6 +20,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 		if (!doesTarExist(pathData->path))
 		{
 			perror("tsh: cp");
+			free(ph);
 			return -1;
 		}
 		char typesrc = typeFile(pathData->path, pathData->nameInTar);
@@ -27,6 +28,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 		{
 			errno = ENOENT;
 			perror("tsh: cp");
+			free(ph);
 			return -1;
 		}
 		dataToCopy = fileDataInTar(pathData->nameInTar, pathData->path, ph); //copy into a buffer the content of what we want to copy
@@ -99,6 +101,13 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 	{
 		if (pathLocation->isTarBrowsed) //if the copy destination is inside a tar and a path inside the tar has been given
 		{
+			if (!doesTarExist(pathLocation->path)) {
+				perror("tsh: cp: cpTar: location");
+				if (dataToCopy != NULL)
+					free(dataToCopy);
+				free(ph);
+				return -1;
+			}
 			int z = 0;
 			if (pathLocation->nameInTar[strlen(pathLocation->nameInTar) - 1] != '/') //if the copy destination doesn't end with a '/'
 				z = 1;																 //set z to one to cat '/' to the copy destination
@@ -228,47 +237,52 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	}
 	else if (pathLocation->isTarBrowsed) //if the copy destination is inside a tar folder (that may or may not need to be created)
 	{
-		char type = typeFile(pathLocation->path, pathLocation->nameInTar);
-		int z = 0;
-		if (type == '9')
-		{
-			if (!subFolderExistInTar(pathLocation->path, pathLocation->nameInTar))
+		if (!doesTarExist(pathLocation->path)) {
+			res = -1;
+		}
+		else {
+			char type = typeFile(pathLocation->path, pathLocation->nameInTar);
+			int z = 0;
+			if (type == '9')
 			{
-				res = -1;
+				if (!subFolderExistInTar(pathLocation->path, pathLocation->nameInTar))
+				{
+					res = -1;
+				}
+				else
+				{
+					res = mkdirInTar(pathLocation->path, pathLocation->nameInTar, ph);
+				}
+				folder_exist = 0;
+			}
+			else if (type == '5')
+			{
+				char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 3);
+				strcpy(nameDirInTar, pathLocation->nameInTar);
+				if (nameDirInTar[strlen(nameDirInTar) - 1] != '/')
+					strcat(nameDirInTar, "/");
+				strcat(nameDirInTar, name);
+				char typefile = typeFile(pathLocation->path, nameDirInTar);
+				if (typefile != '5' && typefile != '9') //if the folder we want to copy already exist in the tar and isn't a folder
+				{
+					printMessageTsh(1, "tsh: cp: Cannot overwrite non-directory with directory");
+					free(nameDirInTar);
+					return -1;
+				}
+				if (typefile == '5') //if folder of name nameDir exist at the root of the tar, delete it
+				{
+					rmWithOptionTar(pathLocation->path, nameDirInTar);
+				}
+				if (name[strlen(name) - 1] != '/')
+					strcat(nameDirInTar, "/");
+				res = mkdirInTar(pathLocation->path, nameDirInTar, ph);
+				free(nameDirInTar);
 			}
 			else
 			{
-				res = mkdirInTar(pathLocation->path, pathLocation->nameInTar, ph);
-			}
-			folder_exist = 0;
-		}
-		else if (type == '5')
-		{
-			char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 3);
-			strcpy(nameDirInTar, pathLocation->nameInTar);
-			if (nameDirInTar[strlen(nameDirInTar) - 1] != '/')
-				strcat(nameDirInTar, "/");
-			strcat(nameDirInTar, name);
-			char typefile = typeFile(pathLocation->path, nameDirInTar);
-			if (typefile != '5' && typefile != '9') //if the folder we want to copy already exist in the tar and isn't a folder
-			{
-				printMessageTsh(1, "tsh: cp: Cannot overwrite non-directory with directory");
-				free(nameDirInTar);
+				printMessageTsh(STDERR_FILENO, "tsh: cp: Cannot overwrite non-directory with directory");
 				return -1;
 			}
-			if (typefile == '5') //if folder of name nameDir exist at the root of the tar, delete it
-			{
-				rmWithOptionTar(pathLocation->path, nameDirInTar);
-			}
-			if (name[strlen(name) - 1] != '/')
-				strcat(nameDirInTar, "/");
-			res = mkdirInTar(pathLocation->path, nameDirInTar, ph);
-			free(nameDirInTar);
-		}
-		else
-		{
-			printMessageTsh(STDERR_FILENO, "tsh: cp: Cannot overwrite non-directory with directory");
-			return -1;
 		}
 	}
 	else //if the copy destination is inside a tar, at the root (ie not is a folder or no rename)
