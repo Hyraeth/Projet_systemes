@@ -655,6 +655,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
 
     char *path_inputStruct = malloc(strlen(cmd->input) + 1);
     memcpy(path_inputStruct, cmd->input, strlen(cmd->input) + 1);
+    path_inputStruct[strlen(cmd->input)] = '\0';
     pathStruct *true_input = makeStructFromPath(path_inputStruct);
     free(path_inputStruct);
     if (isADirectory(true_input) && strcmp(cmd->input, "") != 0)
@@ -715,6 +716,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
 
     char *path_errStruct = malloc(strlen(cmd->err) + 1);
     memcpy(path_errStruct, cmd->err, strlen(cmd->err) + 1);
+    path_errStruct[strlen(cmd->err)] = '\0';
     pathStruct *true_err = makeStructFromPath(path_errStruct);
     free(path_errStruct);
     if (isADirectory(true_err) && strcmp(cmd->err, "") != 0)
@@ -795,6 +797,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     {
         char *path_outStruct = malloc(strlen(cmd->output) + 1);
         memcpy(path_outStruct, cmd->output, strlen(cmd->output) + 1);
+        path_outStruct[strlen(cmd->output)] = '\0';
         pathStruct *true_output = makeStructFromPath(path_outStruct);
         free(path_outStruct);
         if (isADirectory(true_output) && strcmp(cmd->output, "") != 0)
@@ -910,6 +913,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     //if there is more than one simple command
     char *path_outStruct = malloc(strlen(cmd->output) + 1);
     memcpy(path_outStruct, cmd->output, strlen(cmd->output) + 1);
+    path_outStruct[strlen(cmd->output)] = '\0';
     pathStruct *true_output = makeStructFromPath(path_outStruct);
     free(path_outStruct);
     if (isADirectory(true_output) && strcmp(cmd->output, "") != 0)
