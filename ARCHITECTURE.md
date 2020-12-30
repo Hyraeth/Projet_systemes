@@ -2,17 +2,18 @@
 
 ## Architecture logicielle
 
-Notre texte est divisé en 2 parties : la partie logique du code, avec toutes les commandes et A REMPLIR
+Notre texte est divisé en 2 parties : une partie sur les commandes qui s'applique dans les tar, et une partie plus générale.
 
-### Les Commandes
+### Partie 1 : Les Commandes dans les tar
 
 Cette partie contient toutes les commandes executables depuis un terminale (cat, cp, ls, mkdir, mv, ....), mais applicable sur les fichier tar, en considèrent ces dernier comme des repertoires.
 Toutes les commades sont rangées dans le répertoire "commandes" et chaque commande est mis dans un fichier différent de la forme "commande_tar.c".
 
+cette partie comprend également le fichier "tar_fun.c" qui contient des fonctions utilisées dans les fichier ci-dessus.
 
-### tsh
+### Partie 2 : Plus générale
 
-A REMPLIR
+Dans cette partie, nous avons tout ce qui se réfère à un shell de base, et qui vas aussi implémenter les commandes de la partie 1.
 
 ## Arbre des fichiers
 
@@ -40,4 +41,6 @@ A remplir
 
 ## Algorithmes implémmentés
 
-A remplir
+### L'algorithme de traitement des chemins
+
+cet algorithme permet séparer le chemin avant le tar, du chemin restant, permettant de traiter les données indépendament.
