@@ -1,21 +1,4 @@
-#include <sys/wait.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <stdbool.h>
-#include "headers/tar_fun.h"
-#include "headers/ls_tar.h"
-#include "headers/cat_tar.h"
-#include "headers/tsh_fun.h"
-#include "headers/cp_tar.h"
-#include "headers/rm_tar.h"
-#include "headers/mkdir_tar.h"
-#include "headers/rmdir_tar.h"
-#include "headers/mv_tar.h"
+#include "headers/tsh.h"
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -29,64 +12,6 @@ static int fdTar;
 static int tarDepth = -1;
 static char **tarDirArray;
 
-#define PWDLEN 1024
-#define BUFLEN 512
-#define NBARGS 8
-/**
- * @brief Struct for a simple command.
- * Contains the number of argument in the command (ie the command name, the options and the command args).
- * As well as a null-terminated array of args.
- * Also contains the number of option as well as a null terminated array of option.
- * args also contains the options.
- */
-typedef struct SimpleCommand_t
-{
-    int nbargs;
-    char **args;
-    int nb_options;
-    char **options;
-} SimpleCommand_t;
-
-/**
- * @brief Struct for a complex command
- * Contains the number of simple command, a null terminated array of simple commands, three strings for the inpuit, output, err path for redirection,
- * and two ints for the output and err if we want to append.
- */
-typedef struct ComplexCommand_t
-{
-    int nbcmd;
-    SimpleCommand_t **simpCmds;
-    char *input;
-    char *output;
-    char *err;
-    int appendOut;
-    int appendErr;
-} ComplexCommand_t;
-
-void free_simplecmd(SimpleCommand_t *cmd);
-void free_complexcmd(ComplexCommand_t *cmd);
-char *read_line();
-ComplexCommand_t *parse_line(char *line);
-SimpleCommand_t *parse_simpCmd(char *line);
-char **parse_path(char *path);
-int exec_cmd(SimpleCommand_t *cmd);
-int exec_complexcmd(ComplexCommand_t *cmd);
-int call_existing_command(char **args);
-char *get_pwd();
-pathStruct *makeStructFromPath(char *path);
-int has_correct_option(char **optionlist, const char *option);
-
-int tsh_cd(SimpleCommand_t *cmd);
-int tsh_cat(SimpleCommand_t *cmd);
-int tsh_ls(SimpleCommand_t *cmd);
-int tsh_pwd(SimpleCommand_t *cmd);
-int tsh_exit(SimpleCommand_t *cmd);
-int tsh_cp(SimpleCommand_t *cmd);
-int tsh_rm(SimpleCommand_t *cmd);
-int tsh_rmdir(SimpleCommand_t *cmd);
-int tsh_mkdir(SimpleCommand_t *cmd);
-int tsh_mv(SimpleCommand_t *cmd);
-
 char *builtin_str[] = {
     "cd",
     "cat",
@@ -98,22 +23,6 @@ char *builtin_str[] = {
     "rmdir",
     "mv",
     "exit"};
-
-/**
- * @brief List of builtin functions currently implemented.
- * 
- */
-int (*builtin_func[])(SimpleCommand_t *cmd) = {
-    &tsh_cd,
-    &tsh_cat,
-    &tsh_ls,
-    &tsh_cp,
-    &tsh_rm,
-    &tsh_pwd,
-    &tsh_mkdir,
-    &tsh_rmdir,
-    &tsh_mv,
-    &tsh_exit};
 
 int main(int argc, char const *argv[])
 {
@@ -149,25 +58,7 @@ int main(int argc, char const *argv[])
         ComplexCommand_t *cmd;
 
         line = read_line();
-        /*
-        write(1, "line read : \n", strlen("line read : \n"));
-        write(1, line, strlen(line));
-        write(1, "\nend line read \n\n", strlen("\nend line read \n\n"));
-        */
         cmd = parse_line(line);
-        /*
-        write(1, "cmd args : \n", strlen("cmd args : \n"));
-        for (size_t i = 0; i < cmd->nbcmd; i++)
-        {
-            for (size_t j = 0; j < cmd->simpCmds[i]->nbargs; j++)
-            {
-                write(1, cmd->simpCmds[i]->args[j], strlen(cmd->simpCmds[i]->args[j]));
-                write(1, " ", 1);
-            }
-            write(1, "\n", 1);
-        }
-        write(1, "end cmd args\n\n", strlen("end cmd args\n\n"));
-        */
         run = exec_complexcmd(cmd);
 
         //free everything
@@ -1046,7 +937,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             }
             else
             {
-                printMessageTsh(1, "exec simple command failed");
+                printMessageTsh(STDERR_FILENO, "exec simple command failed");
                 retval = -1;
                 exit(EXIT_FAILURE);
             }
