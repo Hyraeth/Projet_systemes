@@ -163,7 +163,6 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
         if (S_ISDIR(buffer.st_mode))
         {
             DIR *dir;
-            printMessageTsh(1, pathLocation->path);
             if ((dir = opendir(pathSrc->path)) == NULL)
             {
                 perror("tsh: mv");
