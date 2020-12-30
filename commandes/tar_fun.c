@@ -278,8 +278,10 @@ int rmWithOptionTar(char *path_to_tar, char *path_in_tar)
 				i++;
 			}
 			free(subFiles);
+			free(fullName);
 			return -1;
 		}
+		free(fullName);
 		free(subFiles[i]);
 		i++;
 	}
