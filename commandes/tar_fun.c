@@ -405,6 +405,7 @@ char *isSubFile(char *s, char *toVerify, int depth)
 		if (s[i] != toVerify[i])
 			return NULL;
 	}
+	if (s[strlen(s) - 1] != '/' && toVerify[strlen(s)] != '/') return NULL;
 
 	if (depth != 0)
 	{
