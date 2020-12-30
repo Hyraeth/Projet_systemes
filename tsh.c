@@ -1474,12 +1474,44 @@ int tsh_cp(SimpleCommand_t *cmd)
     }
     int opt = has_correct_option(cmd->options, "-r");
     pathStruct *pathDest = makeStructFromPath(cmd->args[cmd->nbargs - 1]);
+    int dest_exist = 0;
+    if (isTar(pathDest->path))
+        dest_exist = doesTarExist(pathDest->path);
     for (size_t i = 1; i < cmd->nbargs - 1; i++)
     {
         if (!is_an_option(cmd->args[i]))
         {
             pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
-            if (pathSrc->isTarBrowsed || pathDest->isTarIndicated) //if the file/folder we want to copy is a tar or go through a tar
+            if (pathSrc->isTarIndicated && !pathSrc->isTarBrowsed && pathDest->isTarIndicated && !pathDest->isTarBrowsed && !dest_exist && (cmd->nbargs - cmd->nb_options) == 3)
+            { //if we want to cp a tar to another tar that doesn't exist (rename), call cp
+                if (!opt)
+                {
+                    write(STDERR_FILENO, "tsh: cp: -r not specified; ommitting directory '", strlen("tsh: cp: -r not specified; ommitting directory '"));
+                    write(STDERR_FILENO, cmd->args[i], strlen(cmd->args[i]));
+                    write(STDERR_FILENO, "'\n", strlen("'\n"));
+                }
+                else
+                {
+                    //allocate memory for "cp": cp, and the path_src, the path_dst, and NULL
+                    char **args = malloc(4 * sizeof(char *));
+                    args[0] = malloc(strlen(cmd->args[0]) + 1);
+                    memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+
+                    args[1] = malloc(strlen(pathSrc->path) + 1);
+                    memcpy(args[1], pathSrc->path, strlen(pathSrc->path) + 1);
+                    args[2] = malloc(strlen(pathDest->path) + 1);
+                    memcpy(args[2], pathDest->path, strlen(pathDest->path) + 1);
+                    args[3] = NULL;
+
+                    call_existing_command(args);
+                    for (size_t i = 0; i < 4; i++)
+                    {
+                        free(args[i]);
+                    }
+                    free(args);
+                }
+            }
+            else if (pathSrc->isTarBrowsed || pathDest->isTarIndicated) //if the file/folder we want to copy is a tar or go through a tar
             {
                 if (cpTar(pathSrc, pathDest, opt, pathSrc->name) == -1)
                 {
@@ -1705,7 +1737,7 @@ int tsh_mv(SimpleCommand_t *cmd)
 {
     if (cmd->nbargs - cmd->nb_options < 3)
     {
-        printMessageTsh(STDERR_FILENO, "Il faut 3 arguments pour la fonction cp");
+        printMessageTsh(STDERR_FILENO, "Il faut 3 arguments pour la fonction mv");
         return -1;
     }
 
@@ -1717,13 +1749,15 @@ int tsh_mv(SimpleCommand_t *cmd)
     {
         if (!is_an_option(cmd->args[i]))
         {
-            if (nbSources == 1)
+            nbSources++;
+            if (nbSources > 1 && !isDirDest)
             {
-                printMessageTsh(STDERR_FILENO, "Le dernier argument n'est pas un dossier");
+                write(STDERR_FILENO, "tsh: mv: target '", strlen("tsh: mv: target '"));
+                write(STDERR_FILENO, cmd->args[cmd->nbargs - 1], strlen(cmd->args[cmd->nbargs - 1]));
+                write(STDERR_FILENO, "' is not a directory\n", strlen("' is not a directory\n"));
                 freeStruct(pathDest);
                 return -1;
             }
-            nbSources++;
         }
     }
 

@@ -268,7 +268,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 			char typefile = typeFile(pathLocation->path, nameDir);
 			if (typefile != '5' && typefile != '9') //if the folder we want to copy already exist in the tar and isn't a folder
 			{
-				printMessageTsh(1, "tsh: cp: Cannot overwrite non-directory with directory");
+				printMessageTsh(STDERR_FILENO, "tsh: cp: Cannot overwrite non-directory with directory");
 				free(nameDir);
 				return -1;
 			}
@@ -290,11 +290,11 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	{
 		pathStruct *pathLocationNew = makeNewLocationStruct(pathLocation, name, folder_exist);
 
-		if (pathData->isTarBrowsed)
+		if (pathData->isTarBrowsed) //if what we want to copy is inside a tar folder
 		{
-			char **nameSubFiles = findSubFiles(pathData->path, pathData->nameInTar, 1);
+			char **nameSubFiles = findSubFiles(pathData->path, pathData->nameInTar, 1); //find every subfolder/subfiles of the directory pathData->nameInTar
 			int i = 0;
-			while (nameSubFiles[i] != NULL)
+			while (nameSubFiles[i] != NULL) //iterate and call cp
 			{
 				//printMessageTsh(1, "cp nameSubFiles[i]");
 				//printMessageTsh(1, nameSubFiles[i]);
@@ -319,14 +319,17 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 				free(pathDataNew);
 				i++;
 			}
-		}
-		else
+		}	 /* //todo
+		else if (pathData->isTarIndicated) 
+		{
+		}*/
+		else //if what we want to copy is not inside a tar
 		{
 			DIR *dir = opendir(pathData->path);
 			struct dirent *dirent;
 			/*printMessageTsh(1, "start while\n");
 			printMessageTsh(1, pathData->path);*/
-			while ((dirent = readdir(dir)) != NULL)
+			while ((dirent = readdir(dir)) != NULL) //iterate over every subfolder/files of the folder pathData->path
 			{
 				if (strcmp(".", dirent->d_name) != 0 && strcmp("..", dirent->d_name) != 0)
 				{
