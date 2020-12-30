@@ -251,6 +251,7 @@ int deleteFileInTar(char *name_file, char *path_tar)
 		write(src, dataToMove, sizeToCopy);
 		ftruncate(src, emplacement + sizeToCopy);
 
+		free(dataToMove);
 		close(src);
 		return 1;
 	}

@@ -497,7 +497,9 @@ ComplexCommand_t *parse_line(char *line)
     for (size_t i = 0; i < nbcmd; i++)
     {
         simpCmds[i] = parse_simpCmd(simpcmdtoparse[i]);
+        free(simpcmdtoparse[i]);
     }
+    free(simpcmdtoparse);
 
     cmd->simpCmds = simpCmds;
     cmd->nbcmd = nbcmd;
@@ -1431,7 +1433,9 @@ int tsh_ls(SimpleCommand_t *cmd)
                 char pathname[strlen(cmd->args[i]) + 1];
                 strncpy(pathname, cmd->args[i], strlen(cmd->args[i]) + 1);
                 //get the absolute path of the path given in form of array of string
-                char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd());
+                char *pwdCopy = get_pwd();
+                char **abs_path_array = parsePathAbsolute(cmd->args[i], pwdCopy);
+                free(pwdCopy);
                 if (abs_path_array == NULL)
                     return -1;
                 remove_escape_char_array(abs_path_array);
