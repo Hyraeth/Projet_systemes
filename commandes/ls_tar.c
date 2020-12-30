@@ -328,6 +328,8 @@ int ls_tar(char *op, char *path, int fd) {
   int n = 0;
   int error = 0;
   while((n=read(fd, header, BLOCKSIZE))>0){
+    if (strlen(header->name) == 0) break; //It means we have reached the end of the tar
+    
     if (s_is_in_string(header->name, path)) {
       error = 1;
       print_header_name(op,header,path,fd);
