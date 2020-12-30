@@ -60,7 +60,8 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			}
 		}
 	}
-	else if (pathData->isTarIndicated) {
+	else if (pathData->isTarIndicated)
+	{
 		if (!doesTarExist(pathData->path))
 		{
 			perror("tsh: cp");
@@ -74,19 +75,22 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			return -1;
 		}
 		dataToCopy = fileDataNotInTar(pathData->path, ph);
-		if (pathLocation->isTarIndicated) {
+		if (pathLocation->isTarIndicated)
+		{
 			char *nameWithoutTar = malloc(strlen(pathData->name) - 3);
-			strncpy(nameWithoutTar,pathData->name,strlen(pathData->name) - 4);
+			strncpy(nameWithoutTar, pathData->name, strlen(pathData->name) - 4);
 			nameWithoutTar[strlen(pathData->name) - 4] = '\0';
 			ph->typeflag = '5';
-			sprintf(ph->size,"%07d",0);
+			sprintf(ph->size, "%07d", 0);
 			res = copyFolder(pathData, pathLocation, nameWithoutTar, ph); //copy folder
-			if (dataToCopy != NULL) free(dataToCopy);
+			if (dataToCopy != NULL)
+				free(dataToCopy);
 			free(ph);
 			free(nameWithoutTar);
 			return res;
 		}
-		else {
+		else
+		{
 			res = copyFolder(pathData, pathLocation, name, ph); //copy folder
 			if (dataToCopy != NULL)
 				free(dataToCopy);
@@ -151,7 +155,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 				if (z)
 					strcat(nameFull, "/");
 				strcat(nameFull, name);
-				printMessageTsh(1,nameFull);
+				//printMessageTsh(1, nameFull);
 
 				res = copyFileInTar(dataToCopy, nameFull, pathLocation->path, ph);
 				free(nameFull);
@@ -217,6 +221,8 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
  */
 int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struct posix_header *ph)
 {
+	//printMessageTsh(1, "copyfolder");
+	//printMessageTsh(1, pathData->path);
 	int res, status;
 	mode_t modeDir;
 	int folder_exist = 1;
@@ -363,17 +369,19 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 				pathDataNew->isTarBrowsed = 1;
 				pathDataNew->isTarIndicated = 1;
 
-				if (pathDataNew->nameInTar !=NULL)  {
+				if (pathData->nameInTar != NULL)
+				{
 					pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 1);
 					strcpy(pathDataNew->nameInTar, pathData->nameInTar);
 					strcat(pathDataNew->nameInTar, nameSubFiles[i]);
 				}
-				else {
+				else
+				{
 					pathDataNew->nameInTar = malloc(strlen(nameSubFiles[i]) + 1);
-					strcpy(pathDataNew->nameInTar,nameSubFiles[i]);
+					strcpy(pathDataNew->nameInTar, nameSubFiles[i]);
 				}
 
-				printf("depuis : %s dans %s\n",pathDataNew->nameInTar,pathLocationNew->nameInTar);
+				//printf("depuis : %s dans %s\n", pathDataNew->nameInTar, pathLocationNew->nameInTar);
 
 				pathDataNew->path = malloc(strlen(pathData->path) + 1);
 				strcpy(pathDataNew->path, pathData->path);
@@ -403,7 +411,8 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 					pathDataNew->isTarIndicated = 0;
 					pathDataNew->nameInTar = NULL;
 					pathDataNew->path = concatPathName(pathData->path, dirent->d_name);
-
+					//printMessageTsh(1, dirent->d_name);
+					//printMessageTsh(1, "end copy folder");
 					if (cpTar(pathDataNew, pathLocationNew, 1, dirent->d_name) == -1)
 					{
 						freeStruct(pathLocationNew);
