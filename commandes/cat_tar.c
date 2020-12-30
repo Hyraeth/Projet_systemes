@@ -63,14 +63,16 @@ int cat(char *path_tar, char *path)
     int n = 0;
     while ((n = read(fd, header, BLOCKSIZE)) > 0)
     {
-        if (strcmp(header->name, path) == 0)
-        {
-            cat_tar(header, fd);
-            break;
-        }
+        printf("nom : %s et taille string %s\n",header->name,header->size);
         int taille = 0;
         int *ptaille = &taille;
         sscanf(header->size, "%o", ptaille);
+
+        if (strcmpTar(header->name, path))
+        {
+            if (*ptaille != 0) cat_tar(header, fd);
+            break;
+        }
         int filesize = ((*ptaille + 512 - 1) / 512);
         lseek(fd, BLOCKSIZE * filesize, SEEK_CUR);
     }

@@ -328,6 +328,8 @@ int ls_tar(char *op, char *path, int fd) {
   int n = 0;
   int error = 0;
   while((n=read(fd, header, BLOCKSIZE))>0){
+    if (strlen(header->name) == 0) break; //It means we have reached the end of the tar
+
     if (s_is_in_string(header->name, path)) {
       error = 1;
       print_header_name(op,header,path,fd);
@@ -337,13 +339,6 @@ int ls_tar(char *op, char *path, int fd) {
     sscanf(header->size, "%o", ptaille);
     int filesize = ((*ptaille + 512-1)/512);
     lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
-  }
-  if (error == 0) {
-    write(STDERR_FILENO, "chemin invalide\n", strlen("chemin invalide\n"));
-    write(STDOUT_FILENO, "\n", strlen("\n"));
-    lseek(fd, 0, SEEK_SET);
-    free(header);
-    return -1;
   }
   write(STDOUT_FILENO, "\n", strlen("\n"));
   lseek(fd, 0, SEEK_SET);
