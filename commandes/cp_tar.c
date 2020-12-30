@@ -154,22 +154,44 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	int res;
 	mode_t modeDir;
 	int folder_exist = 1;
+	pid_t cpid;
 
 	if (!pathLocation->isTarIndicated) //if the copy destination is not in a tar
 	{
 		struct stat sb;
-		if (stat(pathLocation->path, &sb) != 0) //iff the path to the copy destination doesnt exist
+		if (stat(pathLocation->path, &sb) != 0) //if the path to the copy destination doesnt exist
 		{
-			if (!subFolderExistNotInTar(pathLocation->path)) //todo comment
+			if (!subFolderExistNotInTar(pathLocation->path))
+			{ //if there are no subfolder
 				res = -1;
+			}
 			else
-				res = mkdir(pathLocation->path, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH); //create the directory at the copy location
+			{
+				res = mkdir(pathLocation->path, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
+			} //create the directory at the copy location
 			folder_exist = 0;
 		}
 		else if (S_ISDIR(sb.st_mode))
 		{
 			char *pathLocationDir = concatPathName(pathLocation->path, name);
 			res = mkdir(pathLocationDir, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
+			if (res == -1 && errno == EEXIST) //if folder exist
+			{
+				cpid = fork();
+				if (cpid == -1)
+				{
+					perror("tsh: cp");
+					return -1;
+				}
+				if (cpid == 0)
+				{
+					if (execlp("rm", "rm", "-r", pathLocationDir, NULL) == -1)
+						perror("tsh: call_existing_command execvp failed");
+					exit(EXIT_FAILURE);
+				}
+				wait(&cpid);
+				res = mkdir(pathLocationDir, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
+			}
 			free(pathLocationDir);
 		}
 		else
@@ -611,10 +633,11 @@ int subFolderExistNotInTar(char *path)
 		if (path[i] == '/')
 		{
 			index++;
-			if (index = nbSlash)
+			if (index == nbSlash)
 			{
-				char verifyExist[i];
-				strncpy(verifyExist, path, i);
+				char verifyExist[i + 1];
+				strncpy(verifyExist, path, i + 1);
+				verifyExist[i] = '\0';
 
 				struct stat sb;
 				if (stat(verifyExist, &sb) == 0 && S_ISDIR(sb.st_mode))
