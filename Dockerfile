@@ -17,5 +17,5 @@ COPY headers /home/projet/headers
 COPY test /home/projet/test
 WORKDIR /home/projet
 RUN make
-
+COPY tsh /bin
 
