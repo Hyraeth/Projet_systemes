@@ -692,7 +692,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                 return -1;
             }
             freeStruct(tmp_input);
-            if ((fdin = open("/tmp/tsh_tmp_in", O_RDWR, 0700)) == -1)
+            if ((fdin = open("/tmp/tsh_tmp_in", O_RDWR, S_IRWXU)) == -1)
             {
                 perror("tsh: open");
                 freeStruct(true_input);
@@ -701,7 +701,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         }
         else // if not open the file
         {
-            if ((fdin = open(cmd->input, O_RDWR, 0700)) == -1)
+            if ((fdin = open(cmd->input, O_RDWR, S_IRWXU)) == -1)
             {
                 write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
                 write(STDERR_FILENO, cmd->input, strlen(cmd->input));
@@ -744,7 +744,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
 
                 freeStruct(tmp_err);
                 free(path_src_err);
-                if ((fderr = open("/tmp/tsh_tmp_err", O_RDWR | O_CREAT | O_APPEND, 0700)) == -1) //open a blank tmp file
+                if ((fderr = open("/tmp/tsh_tmp_err", O_RDWR | O_CREAT | O_APPEND, S_IRWXU)) == -1) //open a blank tmp file
                 {
                     perror("tsh: open");
                     freeStruct(true_err);
@@ -753,7 +753,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             }
             else
             {
-                if ((fderr = open("/tmp/tsh_tmp_err", O_RDWR | O_CREAT | O_TRUNC, 0700)) == -1)
+                if ((fderr = open("/tmp/tsh_tmp_err", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) == -1)
                 { //open a blank tmp file
                     perror("tsh: open");
                     freeStruct(true_err);
@@ -765,7 +765,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         {
             if (cmd->appendErr)
             {
-                if ((fderr = open(cmd->err, O_RDWR | O_CREAT | O_APPEND, 0700)) == -1)
+                if ((fderr = open(cmd->err, O_RDWR | O_CREAT | O_APPEND, S_IRWXU)) == -1)
                 {
                     write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
                     write(STDERR_FILENO, cmd->err, strlen(cmd->err));
@@ -776,7 +776,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             }
             else
             {
-                if ((fderr = open(cmd->err, O_RDWR | O_CREAT | O_TRUNC, 0700)) == -1)
+                if ((fderr = open(cmd->err, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) == -1)
                 {
                     write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
                     write(STDERR_FILENO, cmd->err, strlen(cmd->err));
@@ -826,7 +826,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
 
                     freeStruct(tmp_output);
                     free(path_src_out);
-                    if ((fdout = open("/tmp/tsh_tmp_out", O_RDWR | O_CREAT | O_APPEND, 0700)) == -1)
+                    if ((fdout = open("/tmp/tsh_tmp_out", O_RDWR | O_CREAT | O_APPEND, S_IRWXU)) == -1)
                     { //open a blank tmp file
                         perror("tsh: open");
                         freeStruct(true_output);
@@ -835,7 +835,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                 }
                 else
                 {
-                    if ((fdout = open("/tmp/tsh_tmp_out", O_RDWR | O_CREAT | O_TRUNC, 0700)) == -1)
+                    if ((fdout = open("/tmp/tsh_tmp_out", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) == -1)
                     {
                         perror("tsh: open");
                         freeStruct(true_output);
@@ -847,7 +847,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             {
                 if (cmd->appendOut)
                 {
-                    if ((fdout = open(cmd->output, O_RDWR | O_CREAT | O_APPEND, 0700)) == -1)
+                    if ((fdout = open(cmd->output, O_RDWR | O_CREAT | O_APPEND, S_IRWXU)) == -1)
                     {
                         write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
                         write(STDERR_FILENO, cmd->output, strlen(cmd->output));
@@ -858,7 +858,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                 }
                 else
                 {
-                    if ((fdout = open(cmd->output, O_RDWR | O_CREAT | O_TRUNC, 0700)) == -1)
+                    if ((fdout = open(cmd->output, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) == -1)
                     {
                         write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
                         write(STDERR_FILENO, cmd->output, strlen(cmd->output));
@@ -945,7 +945,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
 
                         freeStruct(tmp_output);
                         free(path_src_out);
-                        if ((fdout = open("/tmp/tsh_tmp_out", O_RDWR | O_CREAT | O_APPEND, 0700)) == -1)
+                        if ((fdout = open("/tmp/tsh_tmp_out", O_RDWR | O_CREAT | O_APPEND, S_IRWXU)) == -1)
                         { //open a blank tmp file
                             perror("tsh: open");
                             freeStruct(true_output);
@@ -954,7 +954,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                     }
                     else
                     {
-                        if ((fdout = open("/tmp/tsh_tmp_out", O_RDWR | O_CREAT | O_TRUNC, 0700)) == -1)
+                        if ((fdout = open("/tmp/tsh_tmp_out", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) == -1)
                         {
                             perror("tsh: open");
                             freeStruct(true_output);
@@ -966,7 +966,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                 {
                     if (cmd->appendOut)
                     {
-                        if ((fdout = open(cmd->output, O_RDWR | O_CREAT | O_APPEND, 0700)) == -1)
+                        if ((fdout = open(cmd->output, O_RDWR | O_CREAT | O_APPEND, S_IRWXU)) == -1)
                         {
                             write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
                             write(STDERR_FILENO, cmd->output, strlen(cmd->output));
@@ -977,7 +977,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                     }
                     else
                     {
-                        if ((fdout = open(cmd->output, O_RDWR | O_CREAT | O_TRUNC, 0700)) == -1)
+                        if ((fdout = open(cmd->output, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU)) == -1)
                         {
                             write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
                             write(STDERR_FILENO, cmd->output, strlen(cmd->output));

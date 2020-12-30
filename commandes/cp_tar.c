@@ -101,7 +101,8 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 	{
 		if (pathLocation->isTarBrowsed) //if the copy destination is inside a tar and a path inside the tar has been given
 		{
-			if (!doesTarExist(pathLocation->path)) {
+			if (!doesTarExist(pathLocation->path))
+			{
 				perror("tsh: cp: cpTar: location");
 				if (dataToCopy != NULL)
 					free(dataToCopy);
@@ -237,10 +238,12 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	}
 	else if (pathLocation->isTarBrowsed) //if the copy destination is inside a tar folder (that may or may not need to be created)
 	{
-		if (!doesTarExist(pathLocation->path)) {
+		if (!doesTarExist(pathLocation->path))
+		{
 			res = -1;
 		}
-		else {
+		else
+		{
 			char type = typeFile(pathLocation->path, pathLocation->nameInTar);
 			int z = 0;
 			if (type == '9')
@@ -417,7 +420,7 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 	}
 	int fd;
 
-	if ((fd = open(path, O_RDONLY, S_IRUSR)) == -1)
+	if ((fd = open(path, O_RDONLY, S_IRWXU)) == -1)
 	{
 		perror("tsh: cp: fileDataNotInTar: open");
 		return NULL;
