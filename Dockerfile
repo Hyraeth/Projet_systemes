@@ -17,7 +17,5 @@ COPY headers /home/projet/headers
 COPY test /home/projet/test
 WORKDIR /home/projet
 RUN make
-WORKDIR /
-RUN /bin/bash
 
 
