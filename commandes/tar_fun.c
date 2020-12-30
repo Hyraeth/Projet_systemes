@@ -323,6 +323,11 @@ int isEmptyDirTar(char *path_to_tar, char *path_in_tar)
  */
 char **findSubFiles(char *path_tar, char *path_in_tar, int depth)
 {
+	char *toVerify;
+	if (path_in_tar != NULL) toVerify = path_in_tar;
+	else {
+		toVerify = "\0";
+	}
 	int src = open(path_tar, O_RDONLY);
 	if (src == -1)
 	{
@@ -347,7 +352,7 @@ char **findSubFiles(char *path_tar, char *path_in_tar, int depth)
 		int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
 		char *nameCopy;
 
-		if ((nameCopy = isSubFile(path_in_tar, name, depth)) != NULL)
+		if ((nameCopy = isSubFile(toVerify, name, depth)) != NULL)
 		{
 			nbSubFiles++;
 			free(nameCopy);
@@ -372,7 +377,7 @@ char **findSubFiles(char *path_tar, char *path_in_tar, int depth)
 		int occupiedBlocks = (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
 		char *nameCopy;
 
-		if ((nameCopy = isSubFile(path_in_tar, name, depth)) != NULL)
+		if ((nameCopy = isSubFile(toVerify, name, depth)) != NULL)
 		{
 			res[compteur] = nameCopy;
 			compteur++;
@@ -395,7 +400,6 @@ char *isSubFile(char *s, char *toVerify, int depth)
 		if (s[i] != toVerify[i])
 			return NULL;
 	}
-	int nbSlash = 0;
 
 	if (depth != 0)
 	{

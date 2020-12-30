@@ -1594,7 +1594,7 @@ int tsh_cp(SimpleCommand_t *cmd)
                     free(args);
                 }
             }
-            else if (pathSrc->isTarBrowsed || pathDest->isTarIndicated) //if the file/folder we want to copy is a tar or go through a tar
+            else if (pathSrc->isTarIndicated || pathDest->isTarIndicated) //if the file/folder we want to copy is a tar or go through a tar
             {
                 if (cpTar(pathSrc, pathDest, opt, pathSrc->name) == -1)
                 {

@@ -72,7 +72,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			free(ph);
 			return -1;
 		}
-		if (S_ISDIR(sb.st_mode)) //if what we want to copy is a folder
+		if (S_ISDIR(sb.st_mode) || pathData->isTarIndicated) //if what we want to copy is a folder
 		{
 			if (!op) //if -r has not been set
 			{
@@ -322,7 +322,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	{
 		pathStruct *pathLocationNew = makeNewLocationStruct(pathLocation, name, folder_exist);
 
-		if (pathData->isTarBrowsed) //if what we want to copy is inside a tar folder
+		if (pathData->isTarIndicated) //if what we want to copy is inside a tar folder
 		{
 			char **nameSubFiles = findSubFiles(pathData->path, pathData->nameInTar, 1); //find every subfolder/subfiles of the directory pathData->nameInTar
 			int i = 0;
