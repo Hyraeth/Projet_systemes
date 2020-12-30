@@ -1749,13 +1749,16 @@ int tsh_mv(SimpleCommand_t *cmd)
     {
         if (!is_an_option(cmd->args[i]))
         {
-            if (nbSources == 1)
+            printMessageTsh(1, cmd->args[i]);
+            nbSources++;
+            if (nbSources > 1 && !isDirDest)
             {
-                printMessageTsh(STDERR_FILENO, "Le dernier argument n'est pas un dossier");
+                write(STDERR_FILENO, "tsh: mv: target '", strlen("tsh: mv: target '"));
+                write(STDERR_FILENO, cmd->args[cmd->nbargs - 1], strlen(cmd->args[cmd->nbargs - 1]));
+                write(STDERR_FILENO, "' is not a directory'", strlen("' is not a directory'"));
                 freeStruct(pathDest);
                 return -1;
             }
-            nbSources++;
         }
     }
 
