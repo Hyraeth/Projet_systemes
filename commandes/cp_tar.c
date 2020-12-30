@@ -39,7 +39,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 				if (pathData->nameInTar[strlen(pathData->nameInTar) - 1] != '/') // if the name of the directory to copy does not end with a '/'
 				{
 					pathData->nameInTar = realloc(pathData->nameInTar, strlen(pathData->nameInTar) + 2); //make more space
-					strcat(pathData->nameInTar, "/");													 //add '/' at the end
+					strcat(pathData->nameInTar, "/");		  										     //add '/' at the end
 					res = copyFolder(pathData, pathLocation, name, ph);									 //copy the directory
 				}
 				else													// if the name of the directory to copy does end with a '/
@@ -161,7 +161,6 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
  */
 int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struct posix_header *ph)
 {
-	printMessageTsh(1, pathLocation->nameInTar);
 	int res, status;
 	mode_t modeDir;
 	int folder_exist = 1;

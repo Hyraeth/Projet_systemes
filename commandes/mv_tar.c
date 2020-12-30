@@ -68,7 +68,6 @@ int mvWithTar (pathStruct *pathSrc, pathStruct *pathLocation) {
                 }
                 else if (cLocation == '9') {
                     if (isInSameFolder(pathSrc,pathLocation)) {
-                        printMessageTsh(1,"2");
                         return renameInTar(pathSrc->path,pathSrc->nameInTar,pathLocation->nameInTar);
                     }
                 }
