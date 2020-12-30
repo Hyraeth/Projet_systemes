@@ -81,12 +81,3 @@ int cat(char *path_tar, char *path)
     close(fd);
     return 1;
 }
-
-/*
-int main(int argc, char *argv[]){
-  if(argc <= 1) printf("Pas de fichier\n");
-  else {
-    cat(argv[1], argv[2]);
-    write(STDOUT_FILENO, "\n", strlen("\n"));
-  }
-}*/

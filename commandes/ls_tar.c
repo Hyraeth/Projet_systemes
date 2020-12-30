@@ -412,17 +412,3 @@ int ls_tar(char *op, char *path, int fd)
   free(header);
   return 1;
 }
-/*
-int main(int argc, char *argv[]){
-  if(argc <= 2) printf("Pas de fichier\n");
-  else {
-    int fd = open(argv[1], O_RDONLY);
-    ls_tar('0', argv[2], fd);
-    close(fd);
-    write(STDOUT_FILENO, "\n", strlen("\n"));
-    fd = open(argv[1], O_RDONLY);
-    ls_tar('l', argv[2], fd);
-    close(fd);
-  }
-}
-*/

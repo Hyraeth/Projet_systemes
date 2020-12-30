@@ -1,5 +1,12 @@
 #include "../headers/mv_tar.h"
 
+/**
+ * @brief makes the mv command with tar implicated in pathSrc or pathLocation
+ * 
+ * @param pathSrc : structure for the source path
+ * @param pathLocation : strucutre for the location path
+ * @return int : 1 if mv was successful else 0
+ */
 int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
 {
     if (pathSrc->isTarBrowsed)
@@ -325,6 +332,13 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
     return -1;
 }
 
+/**
+ * @brief checks if the path of the two structures are in the same folder
+ * 
+ * @param pathSrc : path to be compared 1
+ * @param pathLocation : path to be compared 1
+ * @return int 1 if they are in the same folder, else 0
+ */
 int isInSameFolder(pathStruct *pathSrc, pathStruct *pathLocation)
 {
     if (pathSrc->isTarBrowsed && pathLocation->isTarBrowsed)
@@ -346,6 +360,11 @@ int isInSameFolder(pathStruct *pathSrc, pathStruct *pathLocation)
     }
 }
 
+/**
+ * @brief checks if two path are in the same folder
+ *
+ * @return int : 1 if they are, 0 if not
+ */
 int comparePath(char *path1, char *path2)
 {
     int nbSlash1 = nbSlash(path1);
@@ -363,7 +382,7 @@ int comparePath(char *path1, char *path2)
         {
             return 0;
         }
-        if (path2[i] == '/')
+        if (path2[i] == '/') //if all slashes have been crossed in the loop and there has been no difference in the strings then they are in the same folder
         {
             nbSlashCrossed++;
             if (nbSlashCrossed == nbSlash1)
@@ -373,6 +392,9 @@ int comparePath(char *path1, char *path2)
     return 0;
 }
 
+/**
+ * @brief counts the number of slashs in a path
+ */
 int nbSlash(char *path)
 {
     int res = 0;
