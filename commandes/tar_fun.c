@@ -160,7 +160,7 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 			path_in_tar[strlen(path_in_tar)] = '/';
 			path_in_tar[strlen(path_in_tar) + 1] = '\0';
 		}
-		printMessageTsh(1, path_in_tar);
+		//printMessageTsh(1, path_in_tar);
 		int res = copyFileInTar(data, path_in_tar, path_tar, ph);
 		free(data);
 		return res;

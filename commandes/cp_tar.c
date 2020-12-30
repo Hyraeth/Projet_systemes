@@ -161,6 +161,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
  */
 int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struct posix_header *ph)
 {
+	printMessageTsh(1, pathLocation->nameInTar);
 	int res, status;
 	mode_t modeDir;
 	int folder_exist = 1;
@@ -224,7 +225,6 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 			}
 			else
 			{
-				printMessageTsh(1, pathLocation->nameInTar);
 				res = mkdirInTar(pathLocation->path, pathLocation->nameInTar, ph);
 			}
 			folder_exist = 0;
