@@ -646,6 +646,7 @@ int exec_cmd(SimpleCommand_t *cmd)
 int exec_complexcmd(ComplexCommand_t *cmd)
 {
     int fdin, fdout, fderr, status, retval;
+    retval = 1;
     pid_t cpid, wpid;
     //save current file descriptor
     int tmpin = dup(STDIN_FILENO);
@@ -887,6 +888,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             }
             else
             {
+                printMessageTsh(1, "exec simple command failed");
                 retval = -1;
                 exit(EXIT_FAILURE);
             }
@@ -909,15 +911,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         char *path_src_out = malloc(strlen("/tmp/tsh_tmp_out") + 1);
         strcpy(path_src_out, "/tmp/tsh_tmp_out");
         pathStruct *tmp_output = makeStructFromPath(path_src_out); //turn a const string into a string
-        if (cmd->appendOut)
-        {
-            //todo
-            //cpAppendTar(tmp_output, true_output, 0, tmp_output->name);
-        }
-        else
-        {
-            cpTar(tmp_output, true_output, 0, tmp_output->name); //copy the content of the tmp file into the tar at the correct location
-        }
+        cpTar(tmp_output, true_output, 0, tmp_output->name);       //copy the content of the tmp file into the tar at the correct location
         freeStruct(tmp_output);
     }
     freeStruct(true_output);
@@ -927,14 +921,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         char *path_src_err = malloc(strlen("/tmp/tsh_tmp_err") + 1);
         strcpy(path_src_err, "/tmp/tsh_tmp_err");
         pathStruct *tmp_err = makeStructFromPath(path_src_err);
-        if (cmd->appendErr)
-        {
-            //cpAppendTar(tmp_err, true_err, 0, tmp_err->name);
-        }
-        else
-        {
-            cpTar(tmp_err, true_err, 0, tmp_err->name);
-        }
+        cpTar(tmp_err, true_err, 0, tmp_err->name);
         freeStruct(tmp_err);
     }
     freeStruct(true_err);

@@ -155,15 +155,15 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	mode_t modeDir;
 	int folder_exist = 1;
 
-	if (!pathLocation->isTarIndicated)
+	if (!pathLocation->isTarIndicated) //if the copy destination is not in a tar
 	{
 		struct stat sb;
-		if (stat(pathLocation->path, &sb) != 0)
+		if (stat(pathLocation->path, &sb) != 0) //iff the path to the copy destination doesnt exist
 		{
-			if (!subFolderExistNotInTar(pathLocation->path))
+			if (!subFolderExistNotInTar(pathLocation->path)) //todo comment
 				res = -1;
 			else
-				res = mkdir(pathLocation->path, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
+				res = mkdir(pathLocation->path, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH); //create the directory at the copy location
 			folder_exist = 0;
 		}
 		else if (S_ISDIR(sb.st_mode))
@@ -315,7 +315,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 }
 
 /**
- * @brief Get the data from a file and fills its correspondant posix_header structure
+ * @brief Get the data from a file ouside a tar and fills its correspondant posix_header structure
  * 
  * @param path : path to the file we want to copy
  * @param ph : posix_header corresponding to that file
@@ -324,7 +324,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 char *fileDataNotInTar(char *path, struct posix_header *ph)
 {
 	struct stat sb;
-	if (stat(path, &sb) != 0)
+	if (stat(path, &sb) != 0) //if the file doesn't exist or somthing
 	{
 		perror("tsh: cp: fileDataNotInTar: stat");
 		return NULL;
@@ -457,7 +457,7 @@ int cpyDataFileNotInTar(char *path, char *data, struct posix_header *ph)
 
 	int n;
 
-	n = write(fd, data, octalToDecimal(atoi(ph->size)));
+	n = write(fd, data, octalToDecimal(atoi(ph->size))); //write the content of data buffer into fd
 
 	if (n == -1)
 	{

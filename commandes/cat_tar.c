@@ -9,19 +9,20 @@
  */
 int cat_tar(struct posix_header *header, int fd)
 {
-    int taille = 0;
-    int *ptaille = &taille;
-    sscanf(header->size, "%o", ptaille);
-    int filesize = ((*ptaille + BLOCKSIZE - 1) / BLOCKSIZE);
+    int taille = octalToDecimal(atoi(header->size));
+    //sscanf(header->size, "%o", &taille);
+    int nbblock = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
     //block
     char block[BLOCKSIZE];
     int n = 0;
     int k = 0;
-    while ((n = read(fd, block, BLOCKSIZE)) > 0)
+    for (size_t i = 0; i < nbblock - 1; i++)
     {
-        if ((k = write(STDOUT_FILENO, block, strlen(block))) < n)
-            break;
+        n = read(fd, block, BLOCKSIZE);
+        k += write(STDOUT_FILENO, block, n);
     }
+    n = read(fd, block, taille % 512);
+    k += write(STDOUT_FILENO, block, n);
     return k;
 }
 
