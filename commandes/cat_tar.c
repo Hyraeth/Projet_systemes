@@ -37,15 +37,25 @@ int cat(char *path_tar, char *path)
 {
     struct posix_header *header = malloc(sizeof(struct posix_header));
     assert(header);
-    if (typeFile(path_tar, path) != '0')
+    char type = typeFile(path_tar, path);
+    if (strlen(path) == 0)
+        type = '5';
+    if (type == '9')
     {
-        perror("cible non acceptée");
+        errno = ENOENT;
+        perror("tsh: cat");
+        return -1;
+    }
+    else if (type == '5')
+    {
+        errno = EISDIR;
+        perror("tsh: cat");
         return -1;
     }
     int fd = open(path_tar, O_RDONLY);
     if (fd == -1)
     {
-        perror("erreur d'ouverture du fichier");
+        perror("tsh: cat");
         close(fd);
         return -1;
     }

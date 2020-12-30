@@ -1038,21 +1038,30 @@ int cd_tar(char *path)
     char **arrayDir = parse_path(chemin); //parsing th path into array of folder/file name
     while (arrayDir[i] != NULL)
     {
-        //if the destination a tar we add the file name into tarDirArray
+        //if the destination is a tar we add the file name into tarDirArray
         remove_escape_char(arrayDir[i]);
         if (isTar(arrayDir[i]))
         {
             tarDepth++;
             if ((fdTar = open(arrayDir[i], O_RDWR, S_IRUSR | S_IWUSR)) == -1)
             {
-                free(chemin);
                 tarDepth--;
                 perror("tsh: cd");
+                failure = 1;
+                break;
             }
             if ((tarDirArray = malloc((tarDepth + 2) * sizeof(char *))) == NULL)
+            {
                 perror("tsh: cd");
+                failure = 1;
+                break;
+            }
             if ((tarDirArray[tarDepth] = malloc((strlen(arrayDir[i]) + 1) * sizeof(char))) == NULL)
+            {
                 perror("tsh: cd");
+                failure = 1;
+                break;
+            }
             memcpy(tarDirArray[tarDepth], arrayDir[i], strlen(arrayDir[i]) + 1);
             tarDirArray[tarDepth + 1] = NULL;
         }
@@ -1077,7 +1086,11 @@ int cd_tar(char *path)
                     {
                         //we realloc tarDirArray into 1 size smaller
                         if ((tarDirArray = realloc(tarDirArray, (tarDepth + 2) * sizeof(char *))) == NULL)
+                        {
                             perror("tsh: cd");
+                            failure = 1;
+                            break;
+                        }
                         tarDirArray[tarDepth + 1] = NULL;
                     }
                 } //if we go down in the tar
@@ -1086,12 +1099,20 @@ int cd_tar(char *path)
                     //if it is a folder connected from where we are in the tar
                     if (isTarFolder(arrayDir[i], tarDirArray) == 1)
                     {
-                        tarDepth++;                                                                        //increment tardepth to add a new folder
-                        if ((tarDirArray = realloc(tarDirArray, (tarDepth + 2) * sizeof(char *))) == NULL) //realloc one size bigger
+                        tarDepth++; //increment tardepth to add a new folder
+                        if ((tarDirArray = realloc(tarDirArray, (tarDepth + 2) * sizeof(char *))) == NULL)
+                        { //realloc one size bigger
                             perror("tsh: cd");
+                            failure = 1;
+                            break;
+                        }
                         //malloc the space required for the name of the new folder
                         if ((tarDirArray[tarDepth] = malloc((strlen(arrayDir[i]) + 1) * sizeof(char))) == NULL)
+                        {
                             perror("tsh: cd");
+                            failure = 1;
+                            break;
+                        }
                         //copy the name of the folder into the new space
                         memcpy(tarDirArray[tarDepth], arrayDir[i], strlen(arrayDir[i]) + 1);
                         tarDirArray[tarDepth + 1] = NULL;

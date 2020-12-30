@@ -22,7 +22,8 @@ int mkdirTar(pathStruct *pathSrc)
     {
         if (typeFile(pathSrc->path, pathSrc->nameInTar) != '9')
         {
-            printMessageTsh(STDERR_FILENO, "Le dossier que vous voulez créer existe déjà");
+            errno = EEXIST;
+            perror("tsh: mkdir");
             res = -1;
         }
         else
@@ -38,7 +39,7 @@ int mkdirTar(pathStruct *pathSrc)
     {
         if ((path = realloc(path, strlen(path) + strlen(arrInTarName[i]))) == NULL)
         {
-            perror("rm");
+            perror("tsh: mkdir");
             return -1;
         }
         strcat(path, arrInTarName[i]);
@@ -49,7 +50,8 @@ int mkdirTar(pathStruct *pathSrc)
     {
         if (typeFile(pathSrc->path, pathSrc->nameInTar) != '9')
         {
-            printMessageTsh(STDERR_FILENO, "Le dossier que vous voulez créer existe déjà");
+            errno = EEXIST;
+            perror("tsh: mkdir");
             res = -1;
         }
         else
@@ -60,12 +62,15 @@ int mkdirTar(pathStruct *pathSrc)
     else if (c == '9')
     {
         res = -1;
-        printMessageTsh(STDERR_FILENO, "Veuillez vérifier que le dossier dans lequel vous voulez créer un autre dossier existe bien");
+        errno = ENOENT;
+        perror("tsh: mkdir");
+        //printMessageTsh(STDERR_FILENO, "Veuillez vérifier que le dossier dans lequel vous voulez créer un autre dossier existe bien");
     }
     else
     {
         res = -1;
-        printMessageTsh(STDERR_FILENO, "Vous essayez de créer un dossier dans un fichier qui n'est pas un dossier");
+        errno = ENOTDIR;
+        perror("tsh: mkdir");
     }
     freeArr2D(arrInTarName);
     free(copyNameInTar);
@@ -77,7 +82,8 @@ int mkTarEmpty(char *path)
 {
     if (doesTarExist(path))
     {
-        printMessageTsh(STDERR_FILENO, "Le dossier tar que vous essayez de créer existe déjà");
+        errno = EEXIST;
+        perror("tsh: mkdir");
         return -1;
     }
     else

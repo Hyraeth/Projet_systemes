@@ -158,18 +158,23 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 	if (!pathLocation->isTarIndicated)
 	{
 		struct stat sb;
-		if (stat(pathLocation->path,&sb) != 0){
-			if (!subFolderExistNotInTar(pathLocation->path)) res = -1;
-			else res = mkdir(pathLocation->path, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
+		if (stat(pathLocation->path, &sb) != 0)
+		{
+			if (!subFolderExistNotInTar(pathLocation->path))
+				res = -1;
+			else
+				res = mkdir(pathLocation->path, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
 			folder_exist = 0;
 		}
-		else if (S_ISDIR(sb.st_mode)) {
+		else if (S_ISDIR(sb.st_mode))
+		{
 			char *pathLocationDir = concatPathName(pathLocation->path, name);
 			res = mkdir(pathLocationDir, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
 			free(pathLocationDir);
 		}
-		else {
-			printMessageTsh (STDERR_FILENO,"Vous ne pouvez pas copier un dossier dans un fichier");
+		else
+		{
+			printMessageTsh(STDERR_FILENO, "Vous ne pouvez pas copier un dossier dans un fichier");
 			res = -1;
 		}
 	}
@@ -179,35 +184,47 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 		int z = 0;
 		if (type == '9')
 		{
-			if (!subFolderExistInTar(pathLocation->path,pathLocation->nameInTar)) res = -1;
-			else res = mkdirInTar(pathLocation->path,pathLocation->nameInTar,ph);
+			if (!subFolderExistInTar(pathLocation->path, pathLocation->nameInTar))
+				res = -1;
+			else
+				res = mkdirInTar(pathLocation->path, pathLocation->nameInTar, ph);
 			folder_exist = 0;
 		}
-		else if (type == '5') {
+		else if (type == '5')
+		{
 			char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 3);
 			strcpy(nameDirInTar, pathLocation->nameInTar);
-			if (nameDirInTar[strlen(nameDirInTar) - 1] != '/') strcat(nameDirInTar,"/");
-			strcat(nameDirInTar,name);
-			if (name[strlen(name) - 1] != '/') strcat(nameDirInTar,"/");
-			res =  mkdirInTar(pathLocation->path, nameDirInTar, ph);
+			if (nameDirInTar[strlen(nameDirInTar) - 1] != '/')
+				strcat(nameDirInTar, "/");
+			strcat(nameDirInTar, name);
+			if (name[strlen(name) - 1] != '/')
+				strcat(nameDirInTar, "/");
+			res = mkdirInTar(pathLocation->path, nameDirInTar, ph);
 			free(nameDirInTar);
 		}
-		else {
-			printMessageTsh (STDERR_FILENO,"Vous ne pouvez pas copier un dossier dans un fichier");
+		else
+		{
+			printMessageTsh(STDERR_FILENO, "Vous ne pouvez pas copier un dossier dans un fichier");
 			res = -1;
 		}
 	}
-	else {
-		if (doesTarExist(pathLocation->path)) {
+	else
+	{
+		if (doesTarExist(pathLocation->path))
+		{
 			char *nameDir = malloc(strlen(name) + 2);
-			strcpy(nameDir,name);
-			if (name[strlen(name) - 1] != '/') strcat(nameDir,"/");
-			res = mkdirInTar(pathLocation->path,nameDir,ph);	
+			strcpy(nameDir, name);
+			if (name[strlen(name) - 1] != '/')
+				strcat(nameDir, "/");
+			res = mkdirInTar(pathLocation->path, nameDir, ph);
 			free(nameDir);
 		}
-		else {
-			if (!subFolderExistNotInTar(pathLocation->path)) res = -1;
-			else {
+		else
+		{
+			if (!subFolderExistNotInTar(pathLocation->path))
+				res = -1;
+			else
+			{
 
 				folder_exist = 0;
 			}
@@ -378,7 +395,6 @@ void remplirHeader(struct posix_header *ph, struct stat sb)
 	printf("gid : %d\n", sb.st_gid);
 	sprintf(ph->gid, "%07d", sb.st_gid);
 
-
 	struct passwd *pwd;
 	pwd = getpwuid(sb.st_uid);
 	memcpy(ph->uname, pwd->pw_name, strlen(pwd->pw_name));
@@ -515,24 +531,29 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int fold
 
 		if (pathLocation->isTarBrowsed)
 		{
-			if (folder_exist) {
+			if (folder_exist)
+			{
 				nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
-				strcpy(nameDirInTar,pathLocation->nameInTar);
-				if (nameDirInTar[strlen(nameDirInTar) - 1] != '/') strcat(nameDirInTar,"/");
-				strcat(nameDirInTar,name);
+				strcpy(nameDirInTar, pathLocation->nameInTar);
+				if (nameDirInTar[strlen(nameDirInTar) - 1] != '/')
+					strcat(nameDirInTar, "/");
+				strcat(nameDirInTar, name);
 			}
-			else {
+			else
+			{
 				nameDirInTar = malloc(strlen(pathLocation->nameInTar) + 1);
-				strcpy(nameDirInTar,pathLocation->nameInTar);
+				strcpy(nameDirInTar, pathLocation->nameInTar);
 			}
 		}
 		else
 		{
-			if (folder_exist) {
+			if (folder_exist)
+			{
 				nameDirInTar = malloc(strlen(name) + 1);
-				strcpy(nameDirInTar,name);
+				strcpy(nameDirInTar, name);
 			}
-			else {
+			else
+			{
 				nameDirInTar = NULL;
 				res->isTarBrowsed = 0;
 			}
@@ -573,50 +594,62 @@ void freeStruct(pathStruct *pathToFree)
 	free(pathToFree);
 }
 
-int subFolderExistNotInTar (char *path) {
+int subFolderExistNotInTar(char *path)
+{
 	int nbSlash = 0;
 	for (size_t i = 1; i < strlen(path); i++)
 	{
-		if (path[i] == '/' && i != strlen(path) - 1) nbSlash ++;
+		if (path[i] == '/' && i != strlen(path) - 1)
+			nbSlash++;
 	}
 	int index = 0;
-	if (nbSlash == 0) return 1;
+	if (nbSlash == 0)
+		return 1;
 
 	for (size_t i = 1; i < strlen(path); i++)
 	{
-		if (path[i] == '/') {
-			index ++;
-			if (index = nbSlash) {
+		if (path[i] == '/')
+		{
+			index++;
+			if (index == nbSlash)
+			{
 				char verifyExist[i];
-				strncpy(verifyExist,path,i);
+				strncpy(verifyExist, path, i);
 
 				struct stat sb;
-				if (stat(verifyExist,&sb) == 0 && S_ISDIR(sb.st_mode)) return 1;
+				if (stat(verifyExist, &sb) == 0 && S_ISDIR(sb.st_mode))
+					return 1;
 				return 0;
 			}
 		}
 	}
 	return 0;
-} 
+}
 
-int subFolderExistInTar (char *path_to_tar, char *path_in_tar) {
+int subFolderExistInTar(char *path_to_tar, char *path_in_tar)
+{
 	int nbSlash = 0;
 	for (size_t i = 1; i < strlen(path_in_tar); i++)
 	{
-		if (path_in_tar[i] == '/' && i != strlen(path_in_tar) - 1) nbSlash ++;
+		if (path_in_tar[i] == '/' && i != strlen(path_in_tar) - 1)
+			nbSlash++;
 	}
 	int index = 0;
-	if (nbSlash == 0) return 1;
+	if (nbSlash == 0)
+		return 1;
 
 	for (size_t i = 1; i < strlen(path_in_tar); i++)
 	{
-		if (path_in_tar[i] == '/') {
-			index ++;
-			if (index = nbSlash) {
+		if (path_in_tar[i] == '/')
+		{
+			index++;
+			if (index == nbSlash)
+			{
 				char verifyExist[i];
-				strncpy(verifyExist,path_in_tar,i);
+				strncpy(verifyExist, path_in_tar, i);
 
-				if (typeFile(path_to_tar,verifyExist) == '5') return 1;
+				if (typeFile(path_to_tar, verifyExist) == '5')
+					return 1;
 				return 0;
 			}
 		}
