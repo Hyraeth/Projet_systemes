@@ -99,7 +99,6 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			char typefile = typeFile(pathLocation->path, pathLocation->nameInTar);
 			if (typefile == '5') //if the copy destination (path inside the tar) exist and is a folder
 			{
-				//todo check if there is already a
 				char *nameFull = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 1 + z);
 				strcpy(nameFull, pathLocation->nameInTar);
 				if (z)
