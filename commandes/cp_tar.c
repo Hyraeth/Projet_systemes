@@ -73,12 +73,15 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			free(ph);
 			return -1;
 		}
+		dataToCopy = fileDataNotInTar(pathData->path, ph);
 		if (pathLocation->isTarIndicated) {
 			char *nameWithoutTar = malloc(strlen(pathData->name) - 3);
 			strncpy(nameWithoutTar,pathData->name,strlen(pathData->name) - 4);
 			nameWithoutTar[strlen(pathData->name) - 4] = '\0';
 			ph->typeflag = '5';
+			sprintf(ph->size,"%07d",0);
 			res = copyFolder(pathData, pathLocation, nameWithoutTar, ph); //copy folder
+			if (dataToCopy != NULL) free(dataToCopy);
 			free(ph);
 			free(nameWithoutTar);
 			return res;
