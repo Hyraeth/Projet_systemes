@@ -15,6 +15,7 @@
 #include "headers/rm_tar.h"
 #include "headers/mkdir_tar.h"
 #include "headers/rmdir_tar.h"
+#include "headers/mv_tar.h"
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -84,6 +85,7 @@ int tsh_cp(SimpleCommand_t *cmd);
 int tsh_rm(SimpleCommand_t *cmd);
 int tsh_rmdir(SimpleCommand_t *cmd);
 int tsh_mkdir(SimpleCommand_t *cmd);
+int tsh_mv(SimpleCommand_t *cmd);
 
 char *builtin_str[] = {
     "cd",
@@ -94,6 +96,7 @@ char *builtin_str[] = {
     "pwd",
     "mkdir",
     "rmdir",
+    "mv",
     "exit"};
 
 /**
@@ -109,6 +112,7 @@ int (*builtin_func[])(SimpleCommand_t *cmd) = {
     &tsh_pwd,
     &tsh_mkdir,
     &tsh_rmdir,
+    &tsh_mv,
     &tsh_exit};
 
 int main(int argc, char const *argv[])
@@ -613,7 +617,7 @@ int exec_cmd(SimpleCommand_t *cmd)
     {
         return 1;
     }
-    for (size_t i = 0; i < 9; i++)
+    for (size_t i = 0; i < 10; i++)
     {
         if (strcmp(cmd->args[0], builtin_str[i]) == 0)
         {
@@ -642,6 +646,8 @@ int exec_cmd(SimpleCommand_t *cmd)
 int exec_complexcmd(ComplexCommand_t *cmd)
 {
     int fdin, fdout, fderr, status, retval;
+    retval = 1;
+    pid_t cpid, wpid;
     //save current file descriptor
     int tmpin = dup(STDIN_FILENO);
     int tmpout = dup(STDOUT_FILENO);
@@ -686,8 +692,22 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     {
         if (true_err->isTarIndicated) // if the error redirection is in a tar
         {
-            if ((fderr = open("/tmp/tsh_tmp_err", O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1) //open a blank tmp file
-                perror("tsh: open");
+            if (cmd->appendErr)
+            {
+                char *path_src_err = malloc(strlen("/tmp/tsh_tmp_err") + 1);
+                strcpy(path_src_err, "/tmp/tsh_tmp_err");
+                pathStruct *tmp_err = makeStructFromPath(path_src_err);
+                cpTar(true_err, tmp_err, 0, true_err->name); //copy the file in the tar we want to append data out of the tar
+                rm_in_tar(true_err, 0);                      //delete the file in the tar (we will copy it back inside)
+                freeStruct(tmp_err);
+                if ((fderr = open("/tmp/tsh_tmp_err", O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1) //open a blank tmp file
+                    perror("tsh: open");
+            }
+            else
+            {
+                if ((fderr = open("/tmp/tsh_tmp_err", O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1) //open a blank tmp file
+                    perror("tsh: open");
+            }
         }
         else
         {
@@ -721,8 +741,22 @@ int exec_complexcmd(ComplexCommand_t *cmd)
 
             if (true_output->isTarIndicated) // if the output redirection is in a tar
             {
-                if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
-                    perror("tsh: open");
+                if (cmd->appendOut)
+                {
+                    char *path_src_out = malloc(strlen("/tmp/tsh_tmp_out") + 1);
+                    strcpy(path_src_out, "/tmp/tsh_tmp_out");
+                    pathStruct *tmp_output = makeStructFromPath(path_src_out);
+                    cpTar(true_output, tmp_output, 0, true_output->name); //copy the file in the tar we want to append data out of the tar
+                    rm_in_tar(true_output, 0);                            //delete the file in the tar (we will copy it back inside)
+                    freeStruct(tmp_output);
+                    if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1) //open a blank tmp file
+                        perror("tsh: open");
+                }
+                else
+                {
+                    if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
+                        perror("tsh: open");
+                }
             }
             else
             {
@@ -756,17 +790,8 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             char *path_src_out = malloc(strlen("/tmp/tsh_tmp_out") + 1);
             strcpy(path_src_out, "/tmp/tsh_tmp_out");
             pathStruct *tmp_output = makeStructFromPath(path_src_out); //turn a const string into a string
-            if (cmd->appendOut)
-            {
-                //todo
-                //cpAppendTar(tmp_output, true_output, 0, tmp_output->name);
-            }
-            else
-            {
-                cpTar(tmp_output, true_output, 0, tmp_output->name); //copy the content of the tmp file into the tar at the correct location
-            }
+            cpTar(tmp_output, true_output, 0, tmp_output->name);       //copy the content of the tmp file into the tar at the correct location
             freeStruct(tmp_output);
-            free(path_src_out);
         }
         freeStruct(true_output);
 
@@ -775,23 +800,14 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             char *path_src_err = malloc(strlen("/tmp/tsh_tmp_err") + 1);
             strcpy(path_src_err, "/tmp/tsh_tmp_err");
             pathStruct *tmp_err = makeStructFromPath(path_src_err);
-            if (cmd->appendErr)
-            {
-                //cpAppendTar(tmp_err, true_err, 0, tmp_err->name);
-            }
-            else
-            {
-                cpTar(tmp_err, true_err, 0, tmp_err->name);
-            }
+            cpTar(tmp_err, true_err, 0, tmp_err->name);
             freeStruct(tmp_err);
-            free(path_src_err);
         }
         freeStruct(true_err);
 
         return retval;
     }
     //if there is more than one simple command
-    pid_t cpid, wpid;
     char *path_outStruct = malloc(strlen(cmd->output) + 1);
     memcpy(path_outStruct, cmd->output, strlen(cmd->output) + 1);
     pathStruct *true_output = makeStructFromPath(path_outStruct);
@@ -817,8 +833,22 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                 {
                     if (true_output->isTarIndicated) // if the output redirection is in a tar
                     {
-                        if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
-                            perror("tsh: open");
+                        if (cmd->appendOut)
+                        {
+                            char *path_src_out = malloc(strlen("/tmp/tsh_tmp_out") + 1);
+                            strcpy(path_src_out, "/tmp/tsh_tmp_out");
+                            pathStruct *tmp_output = makeStructFromPath(path_src_out);
+                            cpTar(true_output, tmp_output, 0, true_output->name); //copy the file in the tar we want to append data out of the tar
+                            rm_in_tar(true_output, 0);                            //delete the file in the tar (we will copy it back inside)
+                            freeStruct(tmp_output);
+                            if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1) //open a blank tmp file
+                                perror("tsh: open");
+                        }
+                        else
+                        {
+                            if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
+                                perror("tsh: open");
+                        }
                     }
                     else
                     {
@@ -858,6 +888,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             }
             else
             {
+                printMessageTsh(1, "exec simple command failed");
                 retval = -1;
                 exit(EXIT_FAILURE);
             }
@@ -870,22 +901,18 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     dup2(tmperr, STDERR_FILENO);
     close(tmperr);
 
+    do
+    {
+        wpid = waitpid(cpid, &status, WUNTRACED);
+    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
     if (strcmp(cmd->output, "") != 0 && true_output->isTarIndicated) //if the output redirection was in a tar (tmp file was opened)
     {
         char *path_src_out = malloc(strlen("/tmp/tsh_tmp_out") + 1);
         strcpy(path_src_out, "/tmp/tsh_tmp_out");
         pathStruct *tmp_output = makeStructFromPath(path_src_out); //turn a const string into a string
-        if (cmd->appendOut)
-        {
-            //todo
-            //cpAppendTar(tmp_output, true_output, 0, tmp_output->name);
-        }
-        else
-        {
-            cpTar(tmp_output, true_output, 0, tmp_output->name); //copy the content of the tmp file into the tar at the correct location
-        }
+        cpTar(tmp_output, true_output, 0, tmp_output->name);       //copy the content of the tmp file into the tar at the correct location
         freeStruct(tmp_output);
-        free(path_src_out);
     }
     freeStruct(true_output);
 
@@ -894,23 +921,11 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         char *path_src_err = malloc(strlen("/tmp/tsh_tmp_err") + 1);
         strcpy(path_src_err, "/tmp/tsh_tmp_err");
         pathStruct *tmp_err = makeStructFromPath(path_src_err);
-        if (cmd->appendErr)
-        {
-            //cpAppendTar(tmp_err, true_err, 0, tmp_err->name);
-        }
-        else
-        {
-            cpTar(tmp_err, true_err, 0, tmp_err->name);
-        }
+        cpTar(tmp_err, true_err, 0, tmp_err->name);
         freeStruct(tmp_err);
-        free(path_src_err);
     }
     freeStruct(true_err);
 
-    do
-    {
-        wpid = waitpid(cpid, &status, WUNTRACED);
-    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
     return retval;
 }
 
@@ -963,19 +978,25 @@ int cd_tar(char *path)
     int pwdlen = PWDLEN;
     char *pwdtmp;
     if ((pwdtmp = malloc(pwdlen)) == NULL)
-        perror("tsh");
+        perror("tsh: cd malloc");
     while (getcwd(pwdtmp, pwdlen) == NULL)
     {
         pwdlen *= 2;
         free(pwdtmp);
         if ((pwdtmp = malloc(pwdlen)) == NULL)
-            perror("tsh");
+            perror("tsh: cd malloc");
     }
     int tmpDepth = tarDepth;
     char **tmpTarDir;
-    if ((tmpTarDir = malloc((tarDepth + 1) * sizeof(char *))) == NULL)
-        perror("tsh");
-    memcpy(tmpTarDir, tarDirArray, tarDepth + 1);
+    if ((tmpTarDir = malloc((tarDepth + 2) * sizeof(char *))) == NULL)
+        perror("tsh: cd malloc");
+    for (size_t i = 0; i < tarDepth + 1; i++)
+    {
+        tmpTarDir[i] = malloc(strlen(tarDirArray[i]));
+        memcpy(tmpTarDir[i], tarDirArray[i], strlen(tarDirArray[i]) + 1);
+    }
+    tmpTarDir[tarDepth + 1] = NULL;
+
     int failure = 0;
 
     int i = 0;
@@ -984,7 +1005,7 @@ int cd_tar(char *path)
     {
         if (chdir("/") != 0)
         {
-            perror("tsh: cd");
+            perror("tsh: cd chdir");
         }
     }
     //if the parth start with a ~
@@ -993,32 +1014,41 @@ int cd_tar(char *path)
         char *home = getenv("HOME");
         if (chdir(home) != 0)
         {
-            perror("tsh: cd");
+            perror("tsh: cd chdir");
         }
         i++;
     }
     char *chemin;
     if ((chemin = malloc(strlen(path) + 1)) == NULL)
-        perror("tsh");
+        perror("tsh: cd malloc");
     memcpy(chemin, path, strlen(path) + 1);
     char **arrayDir = parse_path(chemin); //parsing th path into array of folder/file name
     while (arrayDir[i] != NULL)
     {
-        //if the destination a tar we add the file name into tarDirArray
+        //if the destination is a tar we add the file name into tarDirArray
         remove_escape_char(arrayDir[i]);
         if (isTar(arrayDir[i]))
         {
             tarDepth++;
             if ((fdTar = open(arrayDir[i], O_RDWR, S_IRUSR | S_IWUSR)) == -1)
             {
-                free(chemin);
                 tarDepth--;
                 perror("tsh: cd");
+                failure = 1;
+                break;
             }
             if ((tarDirArray = malloc((tarDepth + 2) * sizeof(char *))) == NULL)
+            {
                 perror("tsh: cd");
+                failure = 1;
+                break;
+            }
             if ((tarDirArray[tarDepth] = malloc((strlen(arrayDir[i]) + 1) * sizeof(char))) == NULL)
+            {
                 perror("tsh: cd");
+                failure = 1;
+                break;
+            }
             memcpy(tarDirArray[tarDepth], arrayDir[i], strlen(arrayDir[i]) + 1);
             tarDirArray[tarDepth + 1] = NULL;
         }
@@ -1043,7 +1073,11 @@ int cd_tar(char *path)
                     {
                         //we realloc tarDirArray into 1 size smaller
                         if ((tarDirArray = realloc(tarDirArray, (tarDepth + 2) * sizeof(char *))) == NULL)
+                        {
                             perror("tsh: cd");
+                            failure = 1;
+                            break;
+                        }
                         tarDirArray[tarDepth + 1] = NULL;
                     }
                 } //if we go down in the tar
@@ -1052,12 +1086,20 @@ int cd_tar(char *path)
                     //if it is a folder connected from where we are in the tar
                     if (isTarFolder(arrayDir[i], tarDirArray) == 1)
                     {
-                        tarDepth++;                                                                        //increment tardepth to add a new folder
-                        if ((tarDirArray = realloc(tarDirArray, (tarDepth + 2) * sizeof(char *))) == NULL) //realloc one size bigger
+                        tarDepth++; //increment tardepth to add a new folder
+                        if ((tarDirArray = realloc(tarDirArray, (tarDepth + 2) * sizeof(char *))) == NULL)
+                        { //realloc one size bigger
                             perror("tsh: cd");
+                            failure = 1;
+                            break;
+                        }
                         //malloc the space required for the name of the new folder
                         if ((tarDirArray[tarDepth] = malloc((strlen(arrayDir[i]) + 1) * sizeof(char))) == NULL)
+                        {
                             perror("tsh: cd");
+                            failure = 1;
+                            break;
+                        }
                         //copy the name of the folder into the new space
                         memcpy(tarDirArray[tarDepth], arrayDir[i], strlen(arrayDir[i]) + 1);
                         tarDirArray[tarDepth + 1] = NULL;
@@ -1089,11 +1131,26 @@ int cd_tar(char *path)
     if (failure)
     {
         chdir(pwdtmp);
-        memcpy(tarDirArray, tmpTarDir, tmpDepth + 1);
+        tarDirArray = malloc((tmpDepth + 2) * sizeof(char *));
+        for (size_t i = 0; i < tmpDepth + 1; i++)
+        {
+            tarDirArray[i] = malloc(strlen(tmpTarDir[i]));
+            memcpy(tarDirArray[i], tmpTarDir[i], strlen(tmpTarDir[i]) + 1);
+        }
+        tarDirArray[tmpDepth + 1] = NULL;
         tarDepth = tmpDepth;
+        for (size_t i = 0; tmpTarDir[i] == NULL; i++)
+        {
+            free(tmpTarDir[i]);
+        }
+        free(tmpTarDir);
         return -1;
     }
     free(pwdtmp);
+    for (size_t i = 0; tmpTarDir[i] == NULL; i++)
+    {
+        free(tmpTarDir[i]);
+    }
     free(tmpTarDir);
     return 1;
 }
@@ -1260,9 +1317,7 @@ int tsh_ls(SimpleCommand_t *cmd)
             //if the ith argument of the command is not an option
             if (!is_an_option(cmd->args[i]))
             {
-                write(STDOUT_FILENO, "\n", strlen("\n"));
-                write(STDOUT_FILENO, cmd->args[i], strlen(cmd->args[i])); //write the name of the path to ls
-                write(STDOUT_FILENO, ":\n", strlen(":\n"));
+
                 //get the absolute path of the path given in form of array of string
                 char **abs_path_array = parsePathAbsolute(cmd->args[i], get_pwd());
                 if (abs_path_array == NULL)
@@ -1274,6 +1329,8 @@ int tsh_ls(SimpleCommand_t *cmd)
                 //if we are going in a tar
                 if (abs_path_split[1] != NULL)
                 {
+                    write(STDOUT_FILENO, cmd->args[i], strlen(cmd->args[i])); //write the name of the path to ls
+                    write(STDOUT_FILENO, ":\n", strlen(":\n"));
                     //turn the array of string in the form of a string
                     char *path_to_open = array_to_path(abs_path_split[0], 1);
                     //add more memory to add the tar to open in the path
@@ -1302,13 +1359,13 @@ int tsh_ls(SimpleCommand_t *cmd)
                     char **args = malloc((cmd->nb_options + 3) * sizeof(char *));
                     args[0] = malloc(strlen(cmd->args[0]) + 1);
                     memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
-                    for (size_t i = 0; i < cmd->nb_options; i++)
+                    for (size_t j = 0; j < cmd->nb_options; j++)
                     {
-                        args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
-                        memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                        args[j + 1] = malloc(strlen(cmd->options[j]) + 1);
+                        memcpy(args[j + 1], cmd->options[j], strlen(cmd->options[j]) + 1);
                     }
-                    args[cmd->nb_options + 1] = malloc(strlen(path_to_ls) + 1);
-                    memcpy(args[cmd->nb_options + 1], path_to_ls, strlen(path_to_ls) + 1);
+                    args[cmd->nb_options + 1] = malloc(strlen(cmd->args[i]) + 1);
+                    memcpy(args[cmd->nb_options + 1], cmd->args[i], strlen(cmd->args[i]) + 1);
                     args[cmd->nb_options + 2] = NULL;
                     //write(1, path_to_ls, strlen(path_to_ls));
                     free(path_to_ls);
@@ -1417,12 +1474,44 @@ int tsh_cp(SimpleCommand_t *cmd)
     }
     int opt = has_correct_option(cmd->options, "-r");
     pathStruct *pathDest = makeStructFromPath(cmd->args[cmd->nbargs - 1]);
+    int dest_exist = 0;
+    if (isTar(pathDest->path))
+        dest_exist = doesTarExist(pathDest->path);
     for (size_t i = 1; i < cmd->nbargs - 1; i++)
     {
         if (!is_an_option(cmd->args[i]))
         {
             pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
-            if (pathSrc->isTarBrowsed || pathDest->isTarIndicated) //if the file/folder we want to copy is a tar or go through a tar
+            if (pathSrc->isTarIndicated && !pathSrc->isTarBrowsed && pathDest->isTarIndicated && !pathDest->isTarBrowsed && !dest_exist && (cmd->nbargs - cmd->nb_options) == 3)
+            { //if we want to cp a tar to another tar that doesn't exist (rename), call cp
+                if (!opt)
+                {
+                    write(STDERR_FILENO, "tsh: cp: -r not specified; ommitting directory '", strlen("tsh: cp: -r not specified; ommitting directory '"));
+                    write(STDERR_FILENO, cmd->args[i], strlen(cmd->args[i]));
+                    write(STDERR_FILENO, "'\n", strlen("'\n"));
+                }
+                else
+                {
+                    //allocate memory for "cp": cp, and the path_src, the path_dst, and NULL
+                    char **args = malloc(4 * sizeof(char *));
+                    args[0] = malloc(strlen(cmd->args[0]) + 1);
+                    memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+
+                    args[1] = malloc(strlen(pathSrc->path) + 1);
+                    memcpy(args[1], pathSrc->path, strlen(pathSrc->path) + 1);
+                    args[2] = malloc(strlen(pathDest->path) + 1);
+                    memcpy(args[2], pathDest->path, strlen(pathDest->path) + 1);
+                    args[3] = NULL;
+
+                    call_existing_command(args);
+                    for (size_t i = 0; i < 4; i++)
+                    {
+                        free(args[i]);
+                    }
+                    free(args);
+                }
+            }
+            else if (pathSrc->isTarBrowsed || pathDest->isTarIndicated) //if the file/folder we want to copy is a tar or go through a tar
             {
                 if (cpTar(pathSrc, pathDest, opt, pathSrc->name) == -1)
                 {
@@ -1644,8 +1733,81 @@ int tsh_rmdir(SimpleCommand_t *cmd)
     return 1;
 }
 
+int tsh_mv(SimpleCommand_t *cmd)
+{
+    if (cmd->nbargs - cmd->nb_options < 3)
+    {
+        printMessageTsh(STDERR_FILENO, "Il faut 3 arguments pour la fonction mv");
+        return -1;
+    }
+
+    pathStruct *pathDest = makeStructFromPath(cmd->args[cmd->nbargs - 1]);
+    int isDirDest = isADirectory(pathDest);
+
+    int nbSources = 0;
+    for (size_t i = 1; i < cmd->nbargs - 1; i++)
+    {
+        if (!is_an_option(cmd->args[i]))
+        {
+            nbSources++;
+            if (nbSources > 1 && !isDirDest)
+            {
+                write(STDERR_FILENO, "tsh: mv: target '", strlen("tsh: mv: target '"));
+                write(STDERR_FILENO, cmd->args[cmd->nbargs - 1], strlen(cmd->args[cmd->nbargs - 1]));
+                write(STDERR_FILENO, "' is not a directory\n", strlen("' is not a directory\n"));
+                freeStruct(pathDest);
+                return -1;
+            }
+        }
+    }
+
+    for (size_t i = 1; i < cmd->nbargs - 1; i++)
+    {
+        if (!is_an_option(cmd->args[i]))
+        {
+            pathStruct *pathSrc = makeStructFromPath(cmd->args[i]);
+            if (pathSrc->isTarIndicated || pathDest->isTarIndicated) //if the file/folder we want to move or rename is a tar or go through a tar
+            {
+                if (mvWithTar(pathSrc, pathDest) == -1)
+                {
+                    freeStruct(pathSrc);
+                    freeStruct(pathDest);
+                    return -1;
+                }
+            }
+            else
+            {
+                //allocate memory for "cp": cp, the options, and the path_src, the path_dst
+                char **args = malloc((cmd->nb_options + 4) * sizeof(char *));
+                args[0] = malloc(strlen(cmd->args[0]) + 1);
+                memcpy(args[0], cmd->args[0], strlen(cmd->args[0]) + 1);
+                for (size_t i = 0; i < cmd->nb_options; i++)
+                {
+                    args[i + 1] = malloc(strlen(cmd->options[i]) + 1);
+                    memcpy(args[i + 1], cmd->options[i], strlen(cmd->options[i]) + 1);
+                }
+                args[cmd->nb_options + 1] = malloc(strlen(pathSrc->path) + 1);
+                memcpy(args[cmd->nb_options + 1], pathSrc->path, strlen(pathSrc->path) + 1);
+                args[cmd->nb_options + 2] = malloc(strlen(pathDest->path) + 1);
+                memcpy(args[cmd->nb_options + 2], pathDest->path, strlen(pathDest->path) + 1);
+                args[cmd->nb_options + 3] = NULL;
+
+                call_existing_command(args);
+                for (size_t i = 0; i < cmd->nb_options + 4; i++)
+                {
+                    free(args[i]);
+                }
+                free(args);
+            }
+            freeStruct(pathSrc);
+        }
+    }
+    freeStruct(pathDest);
+    return 1;
+}
+
 /**
- * @brief Construct a pathStruct struct frfom a path.
+ * @brief Construct a pathStruct struct from a path.
  * 
  * @param path path to construct the struct from.
  * @return pathStruct pointer

@@ -15,85 +15,137 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 	struct posix_header *ph = malloc(sizeof(struct posix_header));
 	int res;
 
-	if (pathData->isTarBrowsed)
+	if (pathData->isTarBrowsed) //if we want to copy somthing in a tar
 	{
-		dataToCopy = fileDataInTar(pathData->nameInTar, pathData->path, ph);
-		if (typeFile(pathData->path, pathData->nameInTar) == '5')
+		if (!doesTarExist(pathData->path))
 		{
-			if (!op)
+			perror("tsh: cp");
+			return -1;
+		}
+		dataToCopy = fileDataInTar(pathData->nameInTar, pathData->path, ph); //copy into a buffer the content of what we want to copy
+
+		if (typeFile(pathData->path, pathData->nameInTar) == '5') //if what we want to copy is a folder
+		{
+			if (!op) //if the option -r is not set
 			{
-				printMessageTsh(STDERR_FILENO, "Vous ne pouvez copier des dossiers qu'en indicant l'option -r");
-				free(dataToCopy);
+				printMessageTsh(STDERR_FILENO, "tsh: cp: -r not specified");
+				if (dataToCopy != NULL)
+					free(dataToCopy);
 				free(ph);
 				return -1;
 			}
-			else
+			else //if the option -r has been set
 			{
-				if (pathData->nameInTar[strlen(name) - 1] != '/')
+				if (pathData->nameInTar[strlen(pathData->nameInTar) - 1] != '/') // if the name of the directory to copy does not end with a '/'
 				{
-					pathData->nameInTar = realloc(pathData->nameInTar, strlen(pathData->nameInTar) + 2);
-					strcat(pathData->nameInTar, "/");
-					res = copyFolder(pathData, pathLocation, name, ph);
+					pathData->nameInTar = realloc(pathData->nameInTar, strlen(pathData->nameInTar) + 2); //make more space
+					strcat(pathData->nameInTar, "/");													 //add '/' at the end
+					res = copyFolder(pathData, pathLocation, name, ph);									 //copy the directory
 				}
-				else
-					res = copyFolder(pathData, pathLocation, name, ph);
-				free(dataToCopy);
+				else													// if the name of the directory to copy does end with a '/
+					res = copyFolder(pathData, pathLocation, name, ph); //copy the directory
+				if (dataToCopy != NULL)									//after everything has been copied, free if not null
+					free(dataToCopy);
 				free(ph);
 				return res;
 			}
 		}
 	}
-	else
+	else //if what we want to copy is not in a tar
 	{
-		dataToCopy = fileDataNotInTar(pathData->path, ph);
+		dataToCopy = fileDataNotInTar(pathData->path, ph); //copy into a buffer what we want to copy
 		struct stat sb;
-		if (stat(pathData->path, &sb) != 0)
+		if (stat(pathData->path, &sb) != 0) //store info in the file/directory if possible,
 		{
-			printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture d'un fichier");
-			free(dataToCopy);
+			perror("tsh: cp: cpTar: stat"); //file/directory probably dosen't exist
+			if (dataToCopy != NULL)
+				free(dataToCopy);
 			free(ph);
 			return -1;
 		}
-		if (S_ISDIR(sb.st_mode))
+		if (S_ISDIR(sb.st_mode)) //if what we want to copy is a folder
 		{
-			if (!op)
+			if (!op) //if -r has not been set
 			{
 				printMessageTsh(STDERR_FILENO, "Vous ne pouvez copier des dossiers qu'en indicant l'option -r");
 				free(ph);
-				free(dataToCopy);
+				if (dataToCopy != NULL)
+					free(dataToCopy);
 				return -1;
 			}
 			else
 			{
-				res = copyFolder(pathData, pathLocation, name, ph);
-				free(dataToCopy);
+				res = copyFolder(pathData, pathLocation, name, ph); //copy folder
+				if (dataToCopy != NULL)
+					free(dataToCopy);
 				free(ph);
 				return res;
 			}
 		}
+		if (isTar(pathData->path))
+		{
+			//todo if have time
+		}
 	}
 
-	if (pathLocation->isTarIndicated)
+	if (pathLocation->isTarIndicated) //if the copy destination is a tar
 	{
-		if (pathLocation->isTarBrowsed)
+		if (pathLocation->isTarBrowsed) //if the copy destination is inside a tar and a path inside the tar has been given
 		{
-			char *nameFull = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 1);
-			strcpy(nameFull, pathLocation->nameInTar);
-			strcat(nameFull, name);
-			res = copyFileInTar(dataToCopy, nameFull, pathLocation->path, ph);
-			free(nameFull);
+			int z = 0;
+			if (pathLocation->nameInTar[strlen(pathLocation->nameInTar) - 1] != '/') //if the copy destination doesn't end with a '/'
+				z = 1;																 //set z to one to cat '/' to the copy destination
+
+			char typefile = typeFile(pathLocation->path, pathLocation->nameInTar);
+			if (typefile == '5') //if the copy destination (path inside the tar) exist and is a folder
+			{
+				//todo check if there is already a
+				char *nameFull = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 1 + z);
+				strcpy(nameFull, pathLocation->nameInTar);
+				if (z)
+					strcat(nameFull, "/");
+				strcat(nameFull, name);
+
+				res = copyFileInTar(dataToCopy, nameFull, pathLocation->path, ph);
+				free(nameFull);
+			}
+			else if (typefile == '9') //if the copy destination (path inside the tar) does not exist
+			{
+				res = copyFileInTar(dataToCopy, pathLocation->nameInTar, pathLocation->path, ph);
+			}
+			else //if the copy destination (path inside the tar) exist but isn't a directory
+			{
+				printMessageTsh(STDERR_FILENO, "tsh: cp: Cannot overwrite non-directory with directory");
+			}
 		}
-		else
+		else //if the copy destination is inside a tar and no path inside the tar has been given (ie just copy at the root of the tar, not in a folder and no rename)
 		{
 			res = copyFileInTar(dataToCopy, name, pathLocation->path, ph);
 		}
 	}
-	else
+	else //if the copy location is not a tar but the file to copy is in a tar (line 18 copyData)
 	{
-		res = cpyDataFileNotInTar(concatPathName(pathLocation->path, name), dataToCopy, ph);
+		struct stat sb;
+		if (stat(pathLocation->path, &sb) != 0) //if no file/directory has been found at the copy destination
+		{
+			res = cpyDataFileNotInTar(pathLocation->path, dataToCopy, ph); //create a file at the location and copy it
+			if (dataToCopy != NULL)
+				free(dataToCopy);
+			free(ph);
+			return res;
+		}
+		if (S_ISDIR(sb.st_mode)) //if the copy location is in a directory that exist
+		{
+			res = cpyDataFileNotInTar(concatPathName(pathLocation->path, name), dataToCopy, ph); //add the name of the file to copy to the path for creation
+		}
+		else //if the copy location is not a directory truncated the copy location
+		{
+			res = cpyDataFileNotInTar(pathLocation->path, dataToCopy, ph);
+		}
 	}
 
-	free(dataToCopy);
+	if (dataToCopy != NULL)
+		free(dataToCopy);
 	free(ph);
 	return res;
 }
@@ -109,39 +161,147 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
  */
 int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struct posix_header *ph)
 {
-	int res;
+	int res, status;
 	mode_t modeDir;
-
-	if (!pathLocation->isTarIndicated)
+	int folder_exist = 1;
+	pid_t cpid, wpid;
+	if (!pathLocation->isTarIndicated) //if the copy destination is not in a tar
 	{
-		char *pathLocationDir = concatPathName(pathLocation->path, name);
-		res = mkdir(pathLocationDir, modeDir);
-		free(pathLocationDir);
+		struct stat sb;
+		if (stat(pathLocation->path, &sb) != 0) //if the path to the copy destination doesnt exist
+		{
+			if (!subFolderExistNotInTar(pathLocation->path))
+			{ //if there are no subfolder to where we want to cp
+				res = -1;
+			}
+			else
+			{
+				res = mkdir(pathLocation->path, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
+			} //create the directory at the copy location
+			folder_exist = 0;
+		}
+		else if (S_ISDIR(sb.st_mode)) //if the cp destination is a folder
+		{
+			char *pathLocationDir = concatPathName(pathLocation->path, name); //path to the folder to create
+			res = mkdir(pathLocationDir, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH);
+			if (res == -1 && errno == EEXIST) //if folder exist
+			{
+				cpid = fork(); //create a child process to delete the folder
+				if (cpid == -1)
+				{
+					perror("tsh: cp");
+					return -1;
+				}
+				if (cpid == 0)
+				{
+					if (execlp("rm", "rm", "-r", pathLocationDir, NULL) == -1) //delete the folder
+						perror("tsh: call_existing_command execvp failed");
+					exit(EXIT_FAILURE);
+				}
+				do //wait for child to end
+				{
+					wpid = waitpid(cpid, &status, WUNTRACED);
+				} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+				res = mkdir(pathLocationDir, S_IRWXU | S_IWGRP | S_IXGRP | S_IXOTH); //create the folder after the child is dead
+			}
+			free(pathLocationDir);
+		}
+		else //if the copy destination is not a folder
+		{
+			printMessageTsh(STDERR_FILENO, "tsh: cp: Cannot overwrite non-directory with directory");
+			return -1;
+		}
 	}
-	else
+	else if (pathLocation->isTarBrowsed) //if the copy destination is inside a tar folder (that may or may not need to be created)
 	{
-		char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
-		strcpy(nameDirInTar,pathLocation->nameInTar);
-		strcat(nameDirInTar,name);
-		strcat(nameDirInTar,"/");
-		mkdirInTar(pathLocation->path,nameDirInTar,ph);
-		free(nameDirInTar);
+		char type = typeFile(pathLocation->path, pathLocation->nameInTar);
+		int z = 0;
+		if (type == '9')
+		{
+			if (!subFolderExistInTar(pathLocation->path, pathLocation->nameInTar))
+			{
+				res = -1;
+			}
+			else
+			{
+				res = mkdirInTar(pathLocation->path, pathLocation->nameInTar, ph);
+			}
+			folder_exist = 0;
+		}
+		else if (type == '5')
+		{
+			char *nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 3);
+			strcpy(nameDirInTar, pathLocation->nameInTar);
+			if (nameDirInTar[strlen(nameDirInTar) - 1] != '/')
+				strcat(nameDirInTar, "/");
+			strcat(nameDirInTar, name);
+			char typefile = typeFile(pathLocation->path, nameDirInTar);
+			if (typefile != '5' && typefile != '9') //if the folder we want to copy already exist in the tar and isn't a folder
+			{
+				printMessageTsh(1, "tsh: cp: Cannot overwrite non-directory with directory");
+				free(nameDirInTar);
+				return -1;
+			}
+			if (typefile == '5') //if folder of name nameDir exist at the root of the tar, delete it
+			{
+				rmWithOptionTar(pathLocation->path, nameDirInTar);
+			}
+			if (name[strlen(name) - 1] != '/')
+				strcat(nameDirInTar, "/");
+			res = mkdirInTar(pathLocation->path, nameDirInTar, ph);
+			free(nameDirInTar);
+		}
+		else
+		{
+			printMessageTsh(STDERR_FILENO, "tsh: cp: Cannot overwrite non-directory with directory");
+			return -1;
+		}
+	}
+	else //if the copy destination is inside a tar, at the root (ie not is a folder or no rename)
+	{
+		if (doesTarExist(pathLocation->path)) //if the tar which is the copy dest exist
+		{
+			char *nameDir = malloc(strlen(name) + 2);
+			strcpy(nameDir, name);
+			if (name[strlen(name) - 1] != '/')
+				strcat(nameDir, "/");
+			char typefile = typeFile(pathLocation->path, nameDir);
+			if (typefile != '5' && typefile != '9') //if the folder we want to copy already exist in the tar and isn't a folder
+			{
+				printMessageTsh(STDERR_FILENO, "tsh: cp: Cannot overwrite non-directory with directory");
+				free(nameDir);
+				return -1;
+			}
+			if (typefile == '5') //if folder of name nameDir exist at the root of the tar, delete it
+			{
+				rmWithOptionTar(pathLocation->path, name);
+			}
+			res = mkdirInTar(pathLocation->path, nameDir, ph);
+			free(nameDir);
+		}
+		else //if there is no tar at the destination (ie dest folder is just a tar but it doesn't exist)
+		{
+			res = makeEmptyTar(pathLocation->path);
+			folder_exist = 0;
+		}
 	}
 
 	if (res != -1)
 	{
-		pathStruct *pathLocationNew = makeNewLocationStruct(pathLocation, name);
+		pathStruct *pathLocationNew = makeNewLocationStruct(pathLocation, name, folder_exist);
 
-		if (pathData->isTarBrowsed)
+		if (pathData->isTarBrowsed) //if what we want to copy is inside a tar folder
 		{
-			char **nameSubFiles = findSubFiles(pathData->path, pathData->nameInTar, 1);
+			char **nameSubFiles = findSubFiles(pathData->path, pathData->nameInTar, 1); //find every subfolder/subfiles of the directory pathData->nameInTar
 			int i = 0;
-			while (nameSubFiles[i] != NULL)
+			while (nameSubFiles[i] != NULL) //iterate and call cp
 			{
+				//printMessageTsh(1, "cp nameSubFiles[i]");
+				//printMessageTsh(1, nameSubFiles[i]);
 				pathStruct *pathDataNew = malloc(sizeof(pathStruct));
 				pathDataNew->isTarBrowsed = 1;
 				pathDataNew->isTarIndicated = 1;
-				pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 2);
+				pathDataNew->nameInTar = malloc(strlen(pathData->nameInTar) + strlen(nameSubFiles[i]) + 1);
 
 				strcpy(pathDataNew->nameInTar, pathData->nameInTar);
 				strcat(pathDataNew->nameInTar, nameSubFiles[i]);
@@ -150,19 +310,26 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 				strcpy(pathDataNew->path, pathData->path);
 
 				cpTar(pathDataNew, pathLocationNew, 1, nameSubFiles[i]);
+
+				//printMessageTsh(1, nameSubFiles[i]);
+				//printMessageTsh(1, " end cp nameSubFiles[i]");
 				free(nameSubFiles[i]);
 				free(pathDataNew->path);
 				free(pathDataNew->nameInTar);
 				free(pathDataNew);
 				i++;
 			}
-		}
-		else
+		}	 /* //todo
+		else if (pathData->isTarIndicated) 
+		{
+		}*/
+		else //if what we want to copy is not inside a tar
 		{
 			DIR *dir = opendir(pathData->path);
 			struct dirent *dirent;
-
-			while ((dirent = readdir(dir)) != NULL)
+			/*printMessageTsh(1, "start while\n");
+			printMessageTsh(1, pathData->path);*/
+			while ((dirent = readdir(dir)) != NULL) //iterate over every subfolder/files of the folder pathData->path
 			{
 				if (strcmp(".", dirent->d_name) != 0 && strcmp("..", dirent->d_name) != 0)
 				{
@@ -171,24 +338,34 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 					pathDataNew->isTarIndicated = 0;
 					pathDataNew->nameInTar = NULL;
 					pathDataNew->path = concatPathName(pathData->path, dirent->d_name);
+					/*printMessageTsh(1, "start cp\n");
+					printMessageTsh(1, pathDataNew->path);
+					printMessageTsh(1, pathLocationNew->path);
+					printMessageTsh(1, pathLocationNew->nameInTar);
+					printMessageTsh(1, dirent->d_name);*/
 
 					if (cpTar(pathDataNew, pathLocationNew, 1, dirent->d_name) == -1)
 					{
+						//printMessageTsh(2, "cp failed\n");
 						freeStruct(pathLocationNew);
 						closedir(dir);
 						return -1;
 					}
 					free(pathDataNew->path);
 					free(pathDataNew);
+					//printMessageTsh(1, "end cp\n");
 				}
 			}
 			closedir(dir);
+			/*printMessageTsh(1, pathData->path);
+			printMessageTsh(1, pathLocationNew->nameInTar);
+			printMessageTsh(1, "end while\n");*/
 		}
 		freeStruct(pathLocationNew);
 	}
 	else
 	{
-		printMessageTsh(STDERR_FILENO, "Erreur lors de la créature du dossier pour cp");
+		perror("tsh: cp: copyFolder: mkdir");
 		return -1;
 	}
 
@@ -196,7 +373,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 }
 
 /**
- * @brief Get the data from a file and fills its correspondant posix_header structure
+ * @brief Get the data from a file ouside a tar and fills its correspondant posix_header structure
  * 
  * @param path : path to the file we want to copy
  * @param ph : posix_header corresponding to that file
@@ -205,20 +382,26 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 char *fileDataNotInTar(char *path, struct posix_header *ph)
 {
 	struct stat sb;
-	if (stat(path, &sb) != 0)
+	if (stat(path, &sb) != 0) //if the file doesn't exist or somthing
 	{
-		printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture du fichier");
+		perror("tsh: cp: fileDataNotInTar: stat");
 		return NULL;
 	}
-
 	int fd;
-	if ((fd = open(path, O_RDONLY)) == -1)
-		return NULL;
 
+	if ((fd = open(path, O_RDONLY, S_IRUSR)) == -1)
+	{
+		perror("tsh: cp: fileDataNotInTar: open");
+		return NULL;
+	}
+	lseek(fd, 0, SEEK_SET);
 	remplirHeader(ph, sb);
 
+	int n = 0;
+	int k = 0;
 	char *data = malloc(sb.st_size);
 	read(fd, data, sb.st_size);
+
 	close(fd);
 	return data;
 }
@@ -232,7 +415,10 @@ char *fileDataNotInTar(char *path, struct posix_header *ph)
 void remplirHeader(struct posix_header *ph, struct stat sb)
 {
 	makePermissions(ph, sb);
-	sprintf(ph->size, "%011lo", sb.st_size);
+	if (S_ISDIR(sb.st_mode))
+		sprintf(ph->size, "%011lo", (unsigned long)0);
+	else
+		sprintf(ph->size, "%011lo", sb.st_size);
 
 	switch (sb.st_mode & S_IFMT)
 	{
@@ -264,6 +450,7 @@ void remplirHeader(struct posix_header *ph, struct stat sb)
 
 	sprintf(ph->mtime, "%011lo", sb.st_mtime);
 	sprintf(ph->uid, "%07d", sb.st_uid);
+	//printf("gid : %d\n", sb.st_gid);
 	sprintf(ph->gid, "%07d", sb.st_gid);
 
 	struct passwd *pwd;
@@ -320,15 +507,21 @@ void makePermissions(struct posix_header *ph, struct stat sb)
 int cpyDataFileNotInTar(char *path, char *data, struct posix_header *ph)
 {
 	int fd;
-	if ((fd = open(path, O_WRONLY | O_CREAT, 0644)) == -1)
+	if ((fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1)
+	{
+		perror("tsh: cp: cpyDataFileNotInTar: open");
 		return -1;
+	}
 
 	int n;
 
-	n = write(fd, data, octalToDecimal(atoi(ph->size)));
+	n = write(fd, data, octalToDecimal(atoi(ph->size))); //write the content of data buffer into fd
 
 	if (n == -1)
+	{
+		perror("tsh: cp: cpyDataFileNotInTar: write");
 		return -1;
+	}
 	return 1;
 }
 
@@ -380,7 +573,7 @@ char *getLast(char **charArray)
  * @return pathStruct* : returns a pointer to the pathStruct created, 
  						used to copy the subfiles of the folder
  */
-pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name)
+pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name, int folder_exist)
 {
 	pathStruct *res = malloc(sizeof(pathStruct));
 	res->isTarIndicated = pathLocation->isTarIndicated;
@@ -388,41 +581,63 @@ pathStruct *makeNewLocationStruct(pathStruct *pathLocation, char *name)
 
 	if (res->isTarIndicated)
 	{
-
 		res->path = malloc(strlen(pathLocation->path) + 1);
-		strcpy(res->path, pathLocation->path);
+		memcpy(res->path, pathLocation->path, strlen(pathLocation->path) + 1);
 
 		char *nameDirInTar;
+		res->isTarBrowsed = 1;
+
 		if (pathLocation->isTarBrowsed)
 		{
-			nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
-			strcpy(nameDirInTar, pathLocation->nameInTar);
-			strcat(nameDirInTar, name);
+			if (folder_exist)
+			{
+				nameDirInTar = malloc(strlen(pathLocation->nameInTar) + strlen(name) + 2);
+				strcpy(nameDirInTar, pathLocation->nameInTar);
+				if (nameDirInTar[strlen(nameDirInTar) - 1] != '/')
+					strcat(nameDirInTar, "/");
+				strcat(nameDirInTar, name);
+			}
+			else
+			{
+				nameDirInTar = malloc(strlen(pathLocation->nameInTar) + 1);
+				strcpy(nameDirInTar, pathLocation->nameInTar);
+			}
 		}
 		else
 		{
-			nameDirInTar = malloc(strlen(name) + 2);
-			strcpy(nameDirInTar, name);
+			if (folder_exist)
+			{
+				nameDirInTar = malloc(strlen(name) + 1);
+				strcpy(nameDirInTar, name);
+			}
+			else
+			{
+				nameDirInTar = NULL;
+				res->isTarBrowsed = 0;
+			}
 		}
-		strcat(nameDirInTar, "/");
 
 		res->nameInTar = nameDirInTar;
-
-		res->isTarBrowsed = 1;
 	}
 
 	else
 	{
 		res->isTarBrowsed = 0;
 		res->nameInTar = NULL;
-		res->path = concatPathName(pathLocation->path, name);
+		if (folder_exist)
+			res->path = concatPathName(pathLocation->path, name);
+		else
+		{
+			res->path = malloc(strlen(pathLocation->path) + 1);
+			memcpy(res->path, pathLocation->path, strlen(pathLocation->path) + 1);
+		}
 	}
 
 	return res;
 }
 
 /**
- * @brief Free a 
+ * @brief Free a structure pathStruct
  * 
  * @param path 
  */
@@ -430,8 +645,74 @@ void freeStruct(pathStruct *pathToFree)
 {
 	if (pathToFree->nameInTar != NULL)
 		free(pathToFree->nameInTar);
-	free(pathToFree->path);
+	if (pathToFree->path != NULL)
+		free(pathToFree->path);
 	if (pathToFree->name != NULL)
 		free(pathToFree->name);
 	free(pathToFree);
+}
+
+int subFolderExistNotInTar(char *path)
+{
+	int nbSlash = 0;
+	for (size_t i = 1; i < strlen(path); i++)
+	{
+		if (path[i] == '/' && i != strlen(path) - 1)
+			nbSlash++;
+	}
+	int index = 0;
+	if (nbSlash == 0)
+		return 1;
+
+	for (size_t i = 1; i < strlen(path); i++)
+	{
+		if (path[i] == '/')
+		{
+			index++;
+			if (index == nbSlash)
+			{
+				char verifyExist[i + 1];
+				strncpy(verifyExist, path, i + 1);
+				verifyExist[i] = '\0';
+
+				struct stat sb;
+				if (stat(verifyExist, &sb) == 0 && S_ISDIR(sb.st_mode))
+					return 1;
+				return 0;
+			}
+		}
+	}
+	return 0;
+}
+
+int subFolderExistInTar(char *path_to_tar, char *path_in_tar)
+{
+	int nbSlash = 0;
+	for (size_t i = 1; i < strlen(path_in_tar); i++)
+	{
+		if (path_in_tar[i] == '/' && i != strlen(path_in_tar) - 1)
+			nbSlash++;
+	}
+	int index = 0;
+	if (nbSlash == 0)
+		return 1;
+
+	for (size_t i = 1; i < strlen(path_in_tar); i++)
+	{
+		if (path_in_tar[i] == '/')
+		{
+			index++;
+			if (index == nbSlash)
+			{
+				char verifyExist[i + 1];
+				strncpy(verifyExist, path_in_tar, i + 1);
+				verifyExist[i] = '\0';
+
+				if (typeFile(path_to_tar, verifyExist) == '5')
+					return 1;
+				return 0;
+			}
+		}
+	}
+	return 0;
 }
