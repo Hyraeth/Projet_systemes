@@ -1022,8 +1022,6 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     close(tmpin);
     dup2(tmpout, STDOUT_FILENO);
     close(tmpout);
-    dup2(tmperr, STDERR_FILENO);
-    close(tmperr);
 
     do
     {
