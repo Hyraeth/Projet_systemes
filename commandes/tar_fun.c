@@ -609,7 +609,7 @@ int isADirectory(pathStruct *pathSrc)
 	}
 	if (pathSrc->isTarIndicated)
 		return 1;
-	if (stat(pathSrc->path, &buffer))
+	if (stat(pathSrc->path, &buffer) != 0)
 	{
 		return 0;
 	}

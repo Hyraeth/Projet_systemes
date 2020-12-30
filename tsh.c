@@ -656,6 +656,15 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     char *path_inputStruct = malloc(strlen(cmd->input) + 1);
     memcpy(path_inputStruct, cmd->input, strlen(cmd->input) + 1);
     pathStruct *true_input = makeStructFromPath(path_inputStruct);
+    free(path_inputStruct);
+    if (isADirectory(true_input) && strcmp(cmd->input, "") != 0)
+    {
+        write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+        write(STDERR_FILENO, cmd->input, strlen(cmd->input));
+        write(STDERR_FILENO, ": Is a directory\n", strlen(": Is a directory\n"));
+        freeStruct(true_input);
+        return -1;
+    }
     if (strcmp(cmd->input, "") == 0) // if there isn't an input redirection
     {
         fdin = dup(tmpin);
@@ -666,17 +675,32 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         {
             char *tmp_input_path = malloc(strlen("/tmp/tsh_tmp_in") + 1);
             strcpy(tmp_input_path, "/tmp/tsh_tmp_in");
-            pathStruct *tmp_input = makeStructFromPath(tmp_input_path);
-            cpTar(true_input, tmp_input, 0, true_input->name); //copy the file into a tmp file
-            freeStruct(tmp_input);
+            pathStruct *tmp_input = makeStructFromPath(tmp_input_path); //create struct for cp
             free(tmp_input_path);
+            if (cpTar(true_input, tmp_input, 0, true_input->name) == -1)
+            { //copy the file into a tmp file
+                freeStruct(tmp_input);
+                freeStruct(true_input);
+                return -1;
+            }
+            freeStruct(tmp_input);
             if ((fdin = open("/tmp/tsh_tmp_in", O_RDONLY)) == -1)
+            {
                 perror("tsh: open");
+                freeStruct(true_input);
+                return -1;
+            }
         }
         else // if not open the file
         {
             if ((fdin = open(cmd->input, O_RDONLY, S_IRUSR)) == -1)
-                perror("tsh : open exec_complexcmd");
+            {
+                write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+                write(STDERR_FILENO, cmd->input, strlen(cmd->input));
+                write(STDERR_FILENO, ": No such file or directory\n", strlen(": No such file or directory\n"));
+                freeStruct(true_input);
+                return -1;
+            }
         }
     }
     freeStruct(true_input);
@@ -684,6 +708,15 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     char *path_errStruct = malloc(strlen(cmd->err) + 1);
     memcpy(path_errStruct, cmd->err, strlen(cmd->err) + 1);
     pathStruct *true_err = makeStructFromPath(path_errStruct);
+    free(path_errStruct);
+    if (isADirectory(true_err) && strcmp(cmd->err, "") != 0)
+    {
+        write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+        write(STDERR_FILENO, cmd->err, strlen(cmd->err));
+        write(STDERR_FILENO, ": Is a directory\n", strlen(": Is a directory\n"));
+        freeStruct(true_err);
+        return -1;
+    }
     if (strcmp(cmd->err, "") == 0) //if no error redirection has been given
     {
         fderr = dup(tmperr);
@@ -692,21 +725,32 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     {
         if (true_err->isTarIndicated) // if the error redirection is in a tar
         {
-            if (cmd->appendErr)
+            if (cmd->appendErr && typeFile(true_err->path, true_err->nameInTar) != '9')
             {
                 char *path_src_err = malloc(strlen("/tmp/tsh_tmp_err") + 1);
                 strcpy(path_src_err, "/tmp/tsh_tmp_err");
                 pathStruct *tmp_err = makeStructFromPath(path_src_err);
+
                 cpTar(true_err, tmp_err, 0, true_err->name); //copy the file in the tar we want to append data out of the tar
-                rm_in_tar(true_err, 0);                      //delete the file in the tar (we will copy it back inside)
+                rm_in_tar(true_err, 0);                      //delete the file in the tar (we will copy it back inside)}
+
                 freeStruct(tmp_err);
+                free(path_src_err);
                 if ((fderr = open("/tmp/tsh_tmp_err", O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1) //open a blank tmp file
+                {
                     perror("tsh: open");
+                    freeStruct(true_err);
+                    return -1;
+                }
             }
             else
             {
-                if ((fderr = open("/tmp/tsh_tmp_err", O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1) //open a blank tmp file
+                if ((fderr = open("/tmp/tsh_tmp_err", O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
+                { //open a blank tmp file
                     perror("tsh: open");
+                    freeStruct(true_err);
+                    return -1;
+                }
             }
         }
         else
@@ -714,12 +758,24 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             if (cmd->appendErr)
             {
                 if ((fderr = open(cmd->err, O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1)
-                    perror("tsh : open exec_complexcmd");
+                {
+                    write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+                    write(STDERR_FILENO, cmd->err, strlen(cmd->err));
+                    write(STDERR_FILENO, ": No such file or directory\n", strlen(": No such file or directory\n"));
+                    freeStruct(true_err);
+                    return -1;
+                }
             }
             else
             {
                 if ((fderr = open(cmd->err, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
-                    perror("tsh : open exec_complexcmd");
+                {
+                    write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+                    write(STDERR_FILENO, cmd->err, strlen(cmd->err));
+                    write(STDERR_FILENO, ": No such file or directory\n", strlen(": No such file or directory\n"));
+                    freeStruct(true_err);
+                    return -1;
+                }
             }
         }
     }
@@ -731,6 +787,15 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         char *path_outStruct = malloc(strlen(cmd->output) + 1);
         memcpy(path_outStruct, cmd->output, strlen(cmd->output) + 1);
         pathStruct *true_output = makeStructFromPath(path_outStruct);
+        free(path_outStruct);
+        if (isADirectory(true_output) && strcmp(cmd->output, "") != 0)
+        {
+            write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+            write(STDERR_FILENO, cmd->output, strlen(cmd->output));
+            write(STDERR_FILENO, ": Is a directory\n", strlen(": Is a directory\n"));
+            freeStruct(true_output);
+            return -1;
+        }
         //Change err and std output
         if (strcmp(cmd->output, "") == 0) // if no output redirection has been found
         {
@@ -741,21 +806,32 @@ int exec_complexcmd(ComplexCommand_t *cmd)
 
             if (true_output->isTarIndicated) // if the output redirection is in a tar
             {
-                if (cmd->appendOut)
+                if (cmd->appendOut && typeFile(true_output->path, true_output->nameInTar) != '9') //if we want to append to a file in a tar and this file exist
                 {
                     char *path_src_out = malloc(strlen("/tmp/tsh_tmp_out") + 1);
                     strcpy(path_src_out, "/tmp/tsh_tmp_out");
                     pathStruct *tmp_output = makeStructFromPath(path_src_out);
+
                     cpTar(true_output, tmp_output, 0, true_output->name); //copy the file in the tar we want to append data out of the tar
                     rm_in_tar(true_output, 0);                            //delete the file in the tar (we will copy it back inside)
+
                     freeStruct(tmp_output);
-                    if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1) //open a blank tmp file
+                    free(path_src_out);
+                    if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1)
+                    { //open a blank tmp file
                         perror("tsh: open");
+                        freeStruct(true_output);
+                        return -1;
+                    }
                 }
                 else
                 {
                     if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
+                    {
                         perror("tsh: open");
+                        freeStruct(true_output);
+                        return -1;
+                    }
                 }
             }
             else
@@ -763,12 +839,24 @@ int exec_complexcmd(ComplexCommand_t *cmd)
                 if (cmd->appendOut)
                 {
                     if ((fdout = open(cmd->output, O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1)
-                        perror("tsh : open exec_complexcmd");
+                    {
+                        write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+                        write(STDERR_FILENO, cmd->output, strlen(cmd->output));
+                        write(STDERR_FILENO, ": No such file or directory\n", strlen(": No such file or directory\n"));
+                        freeStruct(true_output);
+                        return -1;
+                    }
                 }
                 else
                 {
                     if ((fdout = open(cmd->output, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
-                        perror("tsh : open exec_complexcmd");
+                    {
+                        write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+                        write(STDERR_FILENO, cmd->output, strlen(cmd->output));
+                        write(STDERR_FILENO, ": No such file or directory\n", strlen(": No such file or directory\n"));
+                        freeStruct(true_output);
+                        return -1;
+                    }
                 }
             }
         }
@@ -790,7 +878,9 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             char *path_src_out = malloc(strlen("/tmp/tsh_tmp_out") + 1);
             strcpy(path_src_out, "/tmp/tsh_tmp_out");
             pathStruct *tmp_output = makeStructFromPath(path_src_out); //turn a const string into a string
-            cpTar(tmp_output, true_output, 0, tmp_output->name);       //copy the content of the tmp file into the tar at the correct location
+            free(path_src_out);
+            cpTar(tmp_output, true_output, 0, tmp_output->name); //copy the content of the tmp file into the tar at the correct location
+            retval = cpTar(tmp_output, true_output, 0, tmp_output->name);
             freeStruct(tmp_output);
         }
         freeStruct(true_output);
@@ -800,7 +890,8 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             char *path_src_err = malloc(strlen("/tmp/tsh_tmp_err") + 1);
             strcpy(path_src_err, "/tmp/tsh_tmp_err");
             pathStruct *tmp_err = makeStructFromPath(path_src_err);
-            cpTar(tmp_err, true_err, 0, tmp_err->name);
+            free(path_src_err);
+            retval = cpTar(tmp_err, true_err, 0, tmp_err->name);
             freeStruct(tmp_err);
         }
         freeStruct(true_err);
@@ -811,6 +902,15 @@ int exec_complexcmd(ComplexCommand_t *cmd)
     char *path_outStruct = malloc(strlen(cmd->output) + 1);
     memcpy(path_outStruct, cmd->output, strlen(cmd->output) + 1);
     pathStruct *true_output = makeStructFromPath(path_outStruct);
+    free(path_outStruct);
+    if (isADirectory(true_output) && strcmp(cmd->output, "") != 0)
+    {
+        write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+        write(STDERR_FILENO, cmd->output, strlen(cmd->output));
+        write(STDERR_FILENO, ": Is a directory\n", strlen(": Is a directory\n"));
+        freeStruct(true_output);
+        return -1;
+    }
     for (size_t i = 0; i < cmd->nbcmd; i++)
     {
 
@@ -818,49 +918,64 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         close(fdin);              // in the following loops, set the input to be from a pipe
         if (i == cmd->nbcmd - 1)  // if we reached the last command, set the output to a file
         {
-            if (strcmp(cmd->output, "") == 0)
+            if (strcmp(cmd->output, "") == 0) // if no output redirection has been found
             {
                 fdout = dup(tmpout);
             }
             else
             {
-                //Change err and std output
-                if (strcmp(cmd->output, "") == 0) // if no output redirection has been found
+                if (true_output->isTarIndicated) // if the output redirection is in a tar
                 {
-                    fdout = dup(tmpout);
-                }
-                else
-                {
-                    if (true_output->isTarIndicated) // if the output redirection is in a tar
+                    if (cmd->appendOut && typeFile(true_output->path, true_output->nameInTar) != '9') //if we want to append to a file in a tar and this file exist
                     {
-                        if (cmd->appendOut)
-                        {
-                            char *path_src_out = malloc(strlen("/tmp/tsh_tmp_out") + 1);
-                            strcpy(path_src_out, "/tmp/tsh_tmp_out");
-                            pathStruct *tmp_output = makeStructFromPath(path_src_out);
-                            cpTar(true_output, tmp_output, 0, true_output->name); //copy the file in the tar we want to append data out of the tar
-                            rm_in_tar(true_output, 0);                            //delete the file in the tar (we will copy it back inside)
-                            freeStruct(tmp_output);
-                            if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1) //open a blank tmp file
-                                perror("tsh: open");
-                        }
-                        else
-                        {
-                            if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
-                                perror("tsh: open");
+                        char *path_src_out = malloc(strlen("/tmp/tsh_tmp_out") + 1);
+                        strcpy(path_src_out, "/tmp/tsh_tmp_out");
+                        pathStruct *tmp_output = makeStructFromPath(path_src_out);
+
+                        cpTar(true_output, tmp_output, 0, true_output->name); //copy the file in the tar we want to append data out of the tar
+                        rm_in_tar(true_output, 0);                            //delete the file in the tar (we will copy it back inside)
+
+                        freeStruct(tmp_output);
+                        free(path_src_out);
+                        if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1)
+                        { //open a blank tmp file
+                            perror("tsh: open");
+                            freeStruct(true_output);
+                            return -1;
                         }
                     }
                     else
                     {
-                        if (cmd->appendOut)
+                        if ((fdout = open("/tmp/tsh_tmp_out", O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
                         {
-                            if ((fdout = open(cmd->output, O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1)
-                                perror("tsh : open exec_complexcmd");
+                            perror("tsh: open");
+                            freeStruct(true_output);
+                            return -1;
                         }
-                        else
+                    }
+                }
+                else
+                {
+                    if (cmd->appendOut)
+                    {
+                        if ((fdout = open(cmd->output, O_WRONLY | O_CREAT | O_APPEND, S_IWUSR | S_IRUSR)) == -1)
                         {
-                            if ((fdout = open(cmd->output, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
-                                perror("tsh : open exec_complexcmd");
+                            write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+                            write(STDERR_FILENO, cmd->output, strlen(cmd->output));
+                            write(STDERR_FILENO, ": No such file or directory\n", strlen(": No such file or directory\n"));
+                            freeStruct(true_output);
+                            return -1;
+                        }
+                    }
+                    else
+                    {
+                        if ((fdout = open(cmd->output, O_WRONLY | O_CREAT | O_TRUNC, S_IWUSR | S_IRUSR)) == -1)
+                        {
+                            write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+                            write(STDERR_FILENO, cmd->output, strlen(cmd->output));
+                            write(STDERR_FILENO, ": No such file or directory\n", strlen(": No such file or directory\n"));
+                            freeStruct(true_output);
+                            return -1;
                         }
                     }
                 }

@@ -22,9 +22,16 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			perror("tsh: cp");
 			return -1;
 		}
+		char typesrc = typeFile(pathData->path, pathData->nameInTar);
+		if (typesrc == '9')
+		{
+			errno = ENOENT;
+			perror("tsh: cp");
+			return -1;
+		}
 		dataToCopy = fileDataInTar(pathData->nameInTar, pathData->path, ph); //copy into a buffer the content of what we want to copy
 
-		if (typeFile(pathData->path, pathData->nameInTar) == '5') //if what we want to copy is a folder
+		if (typesrc == '5') //if what we want to copy is a folder
 		{
 			if (!op) //if the option -r is not set
 			{
@@ -39,7 +46,7 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 				if (pathData->nameInTar[strlen(pathData->nameInTar) - 1] != '/') // if the name of the directory to copy does not end with a '/'
 				{
 					pathData->nameInTar = realloc(pathData->nameInTar, strlen(pathData->nameInTar) + 2); //make more space
-					strcat(pathData->nameInTar, "/");		  										     //add '/' at the end
+					strcat(pathData->nameInTar, "/");													 //add '/' at the end
 					res = copyFolder(pathData, pathLocation, name, ph);									 //copy the directory
 				}
 				else													// if the name of the directory to copy does end with a '/
@@ -114,7 +121,8 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			}
 			else //if the copy destination (path inside the tar) exist but isn't a directory
 			{
-				printMessageTsh(STDERR_FILENO, "tsh: cp: Cannot overwrite non-directory with directory");
+				deleteFileInTar(pathLocation->nameInTar, pathLocation->path);
+				res = copyFileInTar(dataToCopy, pathLocation->nameInTar, pathLocation->path, ph);
 			}
 		}
 		else //if the copy destination is inside a tar and no path inside the tar has been given (ie just copy at the root of the tar, not in a folder and no rename)
