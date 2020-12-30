@@ -43,5 +43,6 @@ A remplir
 
 ### Algorithme de traitement des chemins
 
-cet algorithme permet séparer le chemin avant le tar, du chemin restant, permettant de traiter les données indépendament.
+Cet algorithme permet séparer le chemin avant le tar, du chemin restant, permettant de traiter les données indépendament.
+Ainsi, il est ensuite plus aisé de travailler sur la structure créée qui permet rapidement de savoir si on utilise un tar ou non.
 De plus, il supprime les fichiers . et ..
