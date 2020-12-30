@@ -879,8 +879,6 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         close(tmpin);
         dup2(tmpout, STDOUT_FILENO);
         close(tmpout);
-        dup2(tmperr, STDERR_FILENO);
-        close(tmperr);
 
         if (strcmp(cmd->output, "") != 0 && true_output->isTarIndicated) //if the output redirection was in a tar (tmp file was opened)
         {
@@ -892,6 +890,9 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             freeStruct(tmp_output);
         }
         freeStruct(true_output);
+
+        dup2(tmperr, STDERR_FILENO);
+        close(tmperr);
 
         if (strcmp(cmd->err, "") != 0 && true_err->isTarIndicated) //if the error redirection was in a tar (tmp file was opened)
         {
@@ -1038,6 +1039,9 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         freeStruct(tmp_output);
     }
     freeStruct(true_output);
+
+    dup2(tmperr, STDERR_FILENO);
+    close(tmperr);
 
     if (strcmp(cmd->err, "") != 0 && true_err->isTarIndicated) //if the error redirection was in a tar (tmp file was opened)
     {

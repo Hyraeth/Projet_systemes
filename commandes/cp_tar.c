@@ -128,11 +128,12 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			else if (typefile == '9') //if the copy destination (path inside the tar) does not exist
 			{
 				if (subFolderExistInTar(pathLocation->path, pathLocation->nameInTar))
+				{
 					res = copyFileInTar(dataToCopy, pathLocation->nameInTar, pathLocation->path, ph);
+				}
 				else
 				{
-					errno = ENOENT;
-					perror("tsh: cp");
+					write(STDERR_FILENO, "tsh: cp: Path to copy destination does not exist\n", strlen("tsh: cp: Path to copy destination does not exist\n"));
 					return -1;
 				}
 			}
@@ -268,7 +269,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 				char typefile = typeFile(pathLocation->path, nameDirInTar);
 				if (typefile != '5' && typefile != '9') //if the folder we want to copy already exist in the tar and isn't a folder
 				{
-					printMessageTsh(1, "tsh: cp: Cannot overwrite non-directory with directory");
+					printMessageTsh(STDERR_FILENO, "tsh: cp: Cannot overwrite non-directory with directory");
 					free(nameDirInTar);
 					return -1;
 				}
@@ -327,8 +328,6 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 			int i = 0;
 			while (nameSubFiles[i] != NULL) //iterate and call cp
 			{
-				//printMessageTsh(1, "cp nameSubFiles[i]");
-				//printMessageTsh(1, nameSubFiles[i]);
 				pathStruct *pathDataNew = malloc(sizeof(pathStruct));
 				pathDataNew->isTarBrowsed = 1;
 				pathDataNew->isTarIndicated = 1;
@@ -341,9 +340,6 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 				strcpy(pathDataNew->path, pathData->path);
 
 				cpTar(pathDataNew, pathLocationNew, 1, nameSubFiles[i]);
-
-				//printMessageTsh(1, nameSubFiles[i]);
-				//printMessageTsh(1, " end cp nameSubFiles[i]");
 				free(nameSubFiles[i]);
 				free(pathDataNew->path);
 				free(pathDataNew->nameInTar);
@@ -358,8 +354,7 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 		{
 			DIR *dir = opendir(pathData->path);
 			struct dirent *dirent;
-			/*printMessageTsh(1, "start while\n");
-			printMessageTsh(1, pathData->path);*/
+
 			while ((dirent = readdir(dir)) != NULL) //iterate over every subfolder/files of the folder pathData->path
 			{
 				if (strcmp(".", dirent->d_name) != 0 && strcmp("..", dirent->d_name) != 0)
@@ -369,28 +364,18 @@ int copyFolder(pathStruct *pathData, pathStruct *pathLocation, char *name, struc
 					pathDataNew->isTarIndicated = 0;
 					pathDataNew->nameInTar = NULL;
 					pathDataNew->path = concatPathName(pathData->path, dirent->d_name);
-					/*printMessageTsh(1, "start cp\n");
-					printMessageTsh(1, pathDataNew->path);
-					printMessageTsh(1, pathLocationNew->path);
-					printMessageTsh(1, pathLocationNew->nameInTar);
-					printMessageTsh(1, dirent->d_name);*/
 
 					if (cpTar(pathDataNew, pathLocationNew, 1, dirent->d_name) == -1)
 					{
-						//printMessageTsh(2, "cp failed\n");
 						freeStruct(pathLocationNew);
 						closedir(dir);
 						return -1;
 					}
 					free(pathDataNew->path);
 					free(pathDataNew);
-					//printMessageTsh(1, "end cp\n");
 				}
 			}
 			closedir(dir);
-			/*printMessageTsh(1, pathData->path);
-			printMessageTsh(1, pathLocationNew->nameInTar);
-			printMessageTsh(1, "end while\n");*/
 		}
 		freeStruct(pathLocationNew);
 	}
