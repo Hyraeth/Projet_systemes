@@ -258,7 +258,7 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
                         {
                             return -1;
                         }
-                        return deleteFileInTar(pathSrc->nameInTar, pathSrc->path);
+                        return remove(pathSrc->path);
                     }
                 }
             }
