@@ -41,6 +41,7 @@ A remplir
 
 ## Algorithmes implémmentés
 
-### L'algorithme de traitement des chemins
+### Algorithme de traitement des chemins
 
 cet algorithme permet séparer le chemin avant le tar, du chemin restant, permettant de traiter les données indépendament.
+De plus, il supprime les fichiers . et ..
