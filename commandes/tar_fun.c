@@ -22,7 +22,10 @@ char *fileDataInTar(char *name_file, char *path_tar, struct posix_header *ph)
 {
 	int src = open(path_tar, O_RDONLY);
 	if (src == -1)
-		perror("tsh");
+	{
+		perror("tsh: cp: fileDataInTar");
+		return NULL;
+	}
 	char name[100];
 	char size[12];
 
@@ -143,12 +146,21 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 			path_in_tar[strlen(path_in_tar)] = '/';
 			path_in_tar[strlen(path_in_tar) + 1] = '\0';
 		}
+
 		int res = copyFileInTar(data, path_in_tar, path_tar, ph);
 		free(data);
 		return res;
 	}
 	else
 	{
+		if (path_in_tar[strlen(path_in_tar) - 1] != '/')
+		{
+			if ((path_in_tar = realloc(path_in_tar, strlen(path_in_tar) + 2)) == NULL)
+				perror("tsh: realloc mkdirInTar");
+			path_in_tar[strlen(path_in_tar)] = '/';
+			path_in_tar[strlen(path_in_tar) + 1] = '\0';
+		}
+		printMessageTsh(1, path_in_tar);
 		int res = copyFileInTar(data, path_in_tar, path_tar, ph);
 		free(data);
 		return res;
@@ -158,9 +170,9 @@ int mkdirInTar(char *path_tar, char *path_in_tar, struct posix_header *ph)
 int makeEmptyTar(char *path)
 {
 	int fd_dest;
-	if ((fd_dest = open(path, O_CREAT, 0775)) == -1)
+	if ((fd_dest = open(path, O_WRONLY | O_CREAT, 0775)) == -1)
 	{
-		printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture du fichier tar d'arrivée");
+		perror("tsh: makeEmptyTar open");
 		return -1;
 	}
 
@@ -184,7 +196,7 @@ int deleteFileInTar(char *name_file, char *path_tar)
 	int src = open(path_tar, O_RDWR);
 	if (src == -1)
 	{
-		printMessageTsh(STDERR_FILENO, "Erreur lors de l'ouverture du tar");
+		perror("tsh: rm");
 		close(src);
 		return 0;
 	}
@@ -234,7 +246,8 @@ int deleteFileInTar(char *name_file, char *path_tar)
 
 		if (read(src, dataToMove, sizeToCopy) == -1)
 		{
-			printMessageTsh(STDERR_FILENO, "Erreur lors de la suppression d'un fichier dans le tar");
+			perror("tsh: rm");
+			//printMessageTsh(STDERR_FILENO, "Erreur lors de la suppression d'un fichier dans le tar");
 			return -1;
 		}
 		lseek(src, emplacement, SEEK_SET);
@@ -245,7 +258,7 @@ int deleteFileInTar(char *name_file, char *path_tar)
 		return 1;
 	}
 
-	printMessageTsh(STDERR_FILENO, "Le fichier à supprimer n'existe pas");
+	printMessageTsh(STDERR_FILENO, "tsh: rm: File does not exists");
 	close(src);
 	return -1;
 }
@@ -275,13 +288,13 @@ int rmWithOptionTar(char *path_to_tar, char *path_in_tar)
 	free(subFiles);
 	if (i == 0)
 	{
-		printMessageTsh(STDERR_FILENO, "rm : Le dossier n'existe pas");
+		printMessageTsh(STDERR_FILENO, "tsh: rm: No such directory");
 		return -1;
 	}
 	return 1;
 }
 
-int isEmptyDirTar (char *path_to_tar, char *path_in_tar)
+int isEmptyDirTar(char *path_to_tar, char *path_in_tar)
 {
 	char **subFiles = findSubFiles(path_to_tar, path_in_tar, 0);
 	int i = 0;
@@ -290,7 +303,7 @@ int isEmptyDirTar (char *path_to_tar, char *path_in_tar)
 		i++;
 	}
 
-	int res = (i == 1) ;
+	int res = (i == 1);
 
 	i = 0;
 	while (subFiles[i] != NULL)
@@ -301,7 +314,6 @@ int isEmptyDirTar (char *path_to_tar, char *path_in_tar)
 	free(subFiles);
 	return res;
 }
-
 
 /**
  * @brief Find all subfiles (depending on the depth) of a given folder in a tar 
@@ -387,8 +399,9 @@ char *isSubFile(char *s, char *toVerify, int depth)
 			return NULL;
 	}
 	int nbSlash = 0;
-	
-	if (depth !=0){
+
+	if (depth != 0)
+	{
 		for (size_t i = strlen(s); i < strlen(toVerify); i++)
 		{
 			if (toVerify[i] == '/' && i != strlen(toVerify) - 1)
@@ -454,7 +467,10 @@ char typeFile(char *path_tar, char *pathInTar)
 {
 	int src = open(path_tar, O_RDONLY);
 	if (src == -1)
-		perror("tsh");
+	{
+		perror("tsh: cp: typeFile");
+		return 9;
+	}
 	char bloc[BLOCKSIZE];
 	read(src, bloc, 512);
 	char name[100];
@@ -548,7 +564,8 @@ int doesTarExist(char *path)
 	return (stat(path, &buffer) == 0);
 }
 
-int renameInTar (char *path_to_tar, char *oldName, char *newName) {
+int renameInTar(char *path_to_tar, char *oldName, char *newName)
+{
 	int src = open(path_to_tar, O_RDONLY);
 	if (src == -1)
 		perror("tsh");
@@ -564,11 +581,11 @@ int renameInTar (char *path_to_tar, char *oldName, char *newName) {
 
 		if (strcmpTar(oldName, name))
 		{
-			lseek(src,-BLOCKSIZE,SEEK_CUR);
-			write(src,newName,strlen(newName));
+			lseek(src, -BLOCKSIZE, SEEK_CUR);
+			write(src, newName, strlen(newName));
 			for (size_t i = 0; i < 100 - strlen(newName); i++)
 			{
-				write(src,"\0",1);
+				write(src, "\0", 1);
 			}
 			return 1;
 		}
@@ -586,14 +603,19 @@ int renameInTar (char *path_to_tar, char *oldName, char *newName) {
 	return -1;
 }
 
-int isADirectory (pathStruct *pathSrc) {
+int isADirectory(pathStruct *pathSrc)
+{
 	struct stat buffer;
-	if (pathSrc->isTarBrowsed) {
-		return (typeFile(pathSrc->path,pathSrc->nameInTar) == '5');
+	if (pathSrc->isTarBrowsed)
+	{
+		return (typeFile(pathSrc->path, pathSrc->nameInTar) == '5');
 	}
-	if (pathSrc->isTarIndicated) return 1;
-	if (stat(pathSrc->path,&buffer)) {
+	if (pathSrc->isTarIndicated)
+		return 1;
+	if (stat(pathSrc->path, &buffer))
+	{
 		return 0;
 	}
-	else return S_ISDIR(buffer.st_mode);
+	else
+		return S_ISDIR(buffer.st_mode);
 }
