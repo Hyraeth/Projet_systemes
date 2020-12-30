@@ -1902,6 +1902,9 @@ pathStruct *makeStructFromPath(char *path)
 {
     pathStruct *pathRes = malloc(sizeof(pathStruct));
 
+    printMessageTsh(1,"Struct");
+    printMessageTsh(1,path);
+
     if (strlen(path) == 0) {
         pathRes->isTarBrowsed = 0;
         pathRes->isTarIndicated = 0;
@@ -1921,7 +1924,7 @@ pathStruct *makeStructFromPath(char *path)
     {
         pathRes->isTarBrowsed = 0;
         pathRes->isTarIndicated = 0;
-        if (path3D[0][0] == NULL) pathRes->path = array_to_path(path3D[0], 1);
+        if (path3D[0][0] != NULL) pathRes->path = array_to_path(path3D[0], 1);
         else {
             pathRes->path = malloc(2);
             strcpy(pathRes->path,"/");
