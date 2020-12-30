@@ -117,7 +117,14 @@ int cpTar(pathStruct *pathData, pathStruct *pathLocation, int op, char *name)
 			}
 			else if (typefile == '9') //if the copy destination (path inside the tar) does not exist
 			{
-				res = copyFileInTar(dataToCopy, pathLocation->nameInTar, pathLocation->path, ph);
+				if (subFolderExistInTar(pathLocation->path, pathLocation->nameInTar))
+					res = copyFileInTar(dataToCopy, pathLocation->nameInTar, pathLocation->path, ph);
+				else
+				{
+					errno = ENOENT;
+					perror("tsh: cp");
+					return -1;
+				}
 			}
 			else //if the copy destination (path inside the tar) exist but isn't a directory
 			{

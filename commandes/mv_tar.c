@@ -41,14 +41,16 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
                     }
                     else
                     {
-                        if (subFolderExistInTar(pathLocation->path,pathLocation->nameInTar)){
+                        if (subFolderExistInTar(pathLocation->path, pathLocation->nameInTar))
+                        {
                             if (cpTar(pathSrc, pathLocation, 1, pathSrc->name) == -1)
                             {
                                 return -1;
                             }
                             return deleteFileInTar(pathSrc->nameInTar, pathSrc->path);
                         }
-                        else {
+                        else
+                        {
                             printMessageTsh(STDERR_FILENO, "Erreur avec les chemins spécifiés, veuillez vérifier");
                             return -1;
                         }
@@ -67,7 +69,8 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
                     struct stat buffer;
                     if (stat(pathLocation->path, &buffer) != 0)
                     {
-                        if (subFolderExistNotInTar(pathLocation->path)){
+                        if (subFolderExistNotInTar(pathLocation->path))
+                        {
                             if (cpTar(pathSrc, pathLocation, 1, pathSrc->name) == -1)
                             {
                                 return -1;
@@ -110,7 +113,8 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
                     {
                         return renameInTar(pathSrc->path, pathSrc->nameInTar, pathLocation->nameInTar);
                     }
-                    else if (subFolderExistInTar(pathLocation->path,pathLocation->nameInTar)) {
+                    else if (subFolderExistInTar(pathLocation->path, pathLocation->nameInTar))
+                    {
                         if (cpTar(pathSrc, pathLocation, 0, pathSrc->name) == -1)
                         {
                             return -1;
@@ -127,15 +131,18 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
             else if (!pathLocation->isTarIndicated)
             {
                 struct stat buffer;
-                if (stat(pathLocation->path,&buffer) != 0) {
-                    if (subFolderExistNotInTar(pathLocation->path)) {
+                if (stat(pathLocation->path, &buffer) != 0)
+                {
+                    if (subFolderExistNotInTar(pathLocation->path))
+                    {
                         if (cpTar(pathSrc, pathLocation, 0, pathSrc->name) == -1)
                         {
                             return -1;
                         }
                         return deleteFileInTar(pathSrc->nameInTar, pathSrc->path);
                     }
-                    else {
+                    else
+                    {
                         printMessageTsh(STDERR_FILENO, "Erreur avec les chemins spécifiés, veuillez vérifier");
                         return -1;
                     }
@@ -169,8 +176,10 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
             printMessageTsh(STDERR_FILENO, "Le cas des tars imbriqués n'est pas géré");
             return -1;
         }
-        else if (pathLocation->isTarIndicated) {
-            if (subFolderExistNotInTar(pathLocation->path)){
+        else if (pathLocation->isTarIndicated)
+        {
+            if (subFolderExistNotInTar(pathLocation->path))
+            {
                 if (cpTar(pathSrc, pathLocation, 1, pathSrc->name) == -1)
                 {
                     return -1;
@@ -242,7 +251,8 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
                     else
                         return 0;
                 }
-                else if (c == '9') {
+                else if (c == '9')
+                {
                     if (cpTar(pathSrc, pathLocation, 1, pathSrc->name) == -1)
                     {
                         return -1;
@@ -251,8 +261,8 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
                         return 1;
                     else
                         return 0;
-                    }
-                else 
+                }
+                else
                 {
                     printMessageTsh(STDERR_FILENO, "Erreur avec les chemins spécifiés, veuillez vérifier");
                     return -1;
@@ -289,7 +299,8 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
                 }
                 else
                 {
-                    if (subFolderExistInTar(pathLocation->path,pathLocation->nameInTar)) {
+                    if (subFolderExistInTar(pathLocation->path, pathLocation->nameInTar))
+                    {
                         if (cpTar(pathSrc, pathLocation, 0, pathSrc->name) == -1)
                         {
                             return -1;
@@ -311,6 +322,7 @@ int mvWithTar(pathStruct *pathSrc, pathStruct *pathLocation)
             }
         }
     }
+    return -1;
 }
 
 int isInSameFolder(pathStruct *pathSrc, pathStruct *pathLocation)

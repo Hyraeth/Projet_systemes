@@ -665,6 +665,14 @@ int exec_complexcmd(ComplexCommand_t *cmd)
         freeStruct(true_input);
         return -1;
     }
+    if (strcmp(cmd->input, "") != 0 && typeFile(true_input->path, true_input->nameInTar) == '9')
+    {
+        write(STDERR_FILENO, "tsh: ", strlen("tsh: "));
+        write(STDERR_FILENO, cmd->input, strlen(cmd->input));
+        write(STDERR_FILENO, ": No such file or directory\n", strlen(": No such file or directory\n"));
+        freeStruct(true_input);
+        return -1;
+    }
     if (strcmp(cmd->input, "") == 0) // if there isn't an input redirection
     {
         fdin = dup(tmpin);
@@ -879,8 +887,7 @@ int exec_complexcmd(ComplexCommand_t *cmd)
             strcpy(path_src_out, "/tmp/tsh_tmp_out");
             pathStruct *tmp_output = makeStructFromPath(path_src_out); //turn a const string into a string
             free(path_src_out);
-            cpTar(tmp_output, true_output, 0, tmp_output->name); //copy the content of the tmp file into the tar at the correct location
-            retval = cpTar(tmp_output, true_output, 0, tmp_output->name);
+            retval = cpTar(tmp_output, true_output, 0, tmp_output->name); //copy the content of the tmp file into the tar at the correct location
             freeStruct(tmp_output);
         }
         freeStruct(true_output);
